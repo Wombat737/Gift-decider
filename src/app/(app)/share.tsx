@@ -115,6 +115,11 @@ export default function ShareScreen() {
           onChangeText={setOccasionTitle}
         />
         <Button label={busy ? 'Saving…' : 'Create occasion pack'} disabled={busy} onPress={() => void onCreateOccasion()} />
+        {message ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            {message}
+          </ThemedText>
+        ) : null}
       </ThemedView>
 
       <TextField
