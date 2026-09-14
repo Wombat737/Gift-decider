@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { WishlistProvider } from '@/context/wishlist-context';
+import { WebFonts } from '@/components/web-fonts';
 import { Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -23,6 +24,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <WishlistProvider>
+        <WebFonts />
         <SplashController />
         <ThemedRoot />
       </WishlistProvider>
