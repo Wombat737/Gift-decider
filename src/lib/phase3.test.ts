@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 
 import {
+  addDemoPledge,
   getDemoItem,
   listDemoItems,
   resetDemoStore,
@@ -20,6 +21,7 @@ import {
   isRevealedToOwner,
   localDateISO,
   pickOrganiserName,
+  pledgeRemaining,
   pledgeTotal,
   readyToBuyEmailPreview,
   shiftLocalDate,
@@ -216,6 +218,20 @@ describe('Phase 3 demo walkthrough — surprise-safe', () => {
     assert.equal(owner.delivery_method, null);
     assert.equal(JSON.stringify(owner).includes('PayID'), false);
     assert.equal(ownerPayloadLeaksGiftProgress(owner), null);
+  });
+
+  it('chipping in the remainder marks ready to buy without waiting for mark-funded', () => {
+    const espresso = getDemoItem('demo-espresso');
+    assert.ok(espresso);
+    const remaining = pledgeRemaining(espresso);
+    assert.ok(remaining && remaining > 0);
+    addDemoPledge('demo-espresso', remaining, 'Jo');
+    const funded = getDemoItem('demo-espresso');
+    assert.ok(funded);
+    assert.equal(groupGiftPhase(funded), 'ready_to_buy');
+    assert.ok(funded.notices?.some((row) => row.kind === 'ready_to_buy'));
+    assert.equal(isRevealedToOwner(funded), false);
+    assert.equal(ownerSafeItem(funded).reveal, undefined);
   });
 
   it('organiser can mark purchased and pick delivery without revealing to the owner', () => {

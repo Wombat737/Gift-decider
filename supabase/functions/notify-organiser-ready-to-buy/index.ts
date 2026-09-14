@@ -59,6 +59,10 @@ Deno.serve(async (req) => {
   const resendKey = Deno.env.get('RESEND_API_KEY') ?? '';
   const postmark = Deno.env.get('POSTMARK_SERVER_TOKEN') ?? '';
   const from = Deno.env.get('NOTIFY_FROM_EMAIL') ?? 'Gift Decider <hello@giftdecider.app>';
+  const configuredTo = (Deno.env.get('NOTIFY_TO_EMAIL') ?? '').trim();
+  if (!message.to && configuredTo) {
+    message.to = configuredTo;
+  }
 
   if (resendKey && message.to) {
     const response = await fetch('https://api.resend.com/emails', {

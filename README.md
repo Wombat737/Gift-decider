@@ -258,7 +258,7 @@ npx supabase functions serve notify-organiser-ready-to-buy --no-verify-jwt
 npx supabase functions deploy notify-organiser-ready-to-buy
 ```
 
-Demo never needs keys: the giver UI shows the would-be email. If `RESEND_API_KEY` or `POSTMARK_SERVER_TOKEN` plus an organiser email are set on the function, it sends one email when a group gift hits Ready to buy. Push notifications are out of scope (next).
+Demo never needs keys: the giver UI shows the would-be email and the browser console logs it. If `RESEND_API_KEY` or `POSTMARK_SERVER_TOKEN` are set on the function, it sends **one** email when a group gift hits Ready to buy. Recipient is `organiser_email` on the request, or function env `NOTIFY_TO_EMAIL`. Push notifications are out of scope (next).
 
 ## Screens
 

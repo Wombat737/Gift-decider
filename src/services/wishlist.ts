@@ -494,6 +494,9 @@ export async function setSharedDelivery(
 
 async function sendReadyToBuyEmail(item: WishlistItem) {
   const preview = readyToBuyEmailPreview(item);
+  if (typeof console !== 'undefined') {
+    console.info('[notify-organiser-ready-to-buy]', preview.subject, '\n', preview.text);
+  }
   const functionUrl = env.supabaseUrl
     ? `${env.supabaseUrl.replace(/\/$/, '')}/functions/v1/notify-organiser-ready-to-buy`
     : '';
@@ -525,6 +528,11 @@ async function sendReadyToBuyEmail(item: WishlistItem) {
   }
 }
 
+async function notifyReadyToBuyIfNew(item: WishlistItem, alreadyNotified: boolean) {
+  if (alreadyNotified || !item.ready_to_buy_notified_at) return;
+  await sendReadyToBuyEmail(item);
+}
+
 export async function setSharedRevealAt(token: string, itemId: string, revealAt: string): Promise<WishlistItem> {
   const date = asRevealDate(revealAt);
   if (!date) throw new Error('Pick a reveal date');
@@ -550,9 +558,15 @@ export async function addSharedPledge(
   displayName?: string,
 ): Promise<ItemPledge> {
   if (useDemoShare(token)) {
-    return addDemoPledge(itemId, amount, displayName);
+    const alreadyNotified = Boolean(getDemoItem(itemId)?.ready_to_buy_notified_at);
+    const pledge = addDemoPledge(itemId, amount, displayName);
+    const item = getDemoItem(itemId);
+    if (item) await notifyReadyToBuyIfNew(item, alreadyNotified);
+    return pledge;
   }
 
+  const noticesBefore = await listSharedNotices(token);
+  const alreadyNotified = noticesBefore.some((row) => row.item_id === itemId && row.kind === 'ready_to_buy');
   const { data, error } = await supabase!.rpc('add_shared_item_pledge', {
     p_token: token,
     p_item_id: itemId,
@@ -561,16 +575,24 @@ export async function addSharedPledge(
   });
   if (error) throw error;
   const row = data as ItemPledge;
+  if (!alreadyNotified) {
+    const items = await getSharedItems(token);
+    const item = items.find((entry) => entry.id === itemId);
+    if (item) await notifyReadyToBuyIfNew(item, alreadyNotified);
+  }
   return { ...row, amount: Number(row.amount) };
 }
 
 export async function markSharedItemFunded(token: string, itemId: string): Promise<WishlistItem> {
   if (useDemoShare(token)) {
+    const alreadyNotified = Boolean(getDemoItem(itemId)?.ready_to_buy_notified_at);
     const item = markDemoItemFunded(itemId);
-    await sendReadyToBuyEmail(item);
+    await notifyReadyToBuyIfNew(item, alreadyNotified);
     return item;
   }
 
+  const noticesBefore = await listSharedNotices(token);
+  const alreadyNotified = noticesBefore.some((row) => row.item_id === itemId && row.kind === 'ready_to_buy');
   const { data, error } = await supabase!.rpc('mark_shared_item_funded', {
     p_token: token,
     p_item_id: itemId,
@@ -578,14 +600,15 @@ export async function markSharedItemFunded(token: string, itemId: string): Promi
   if (error) throw error;
   const { pledges, noticeRows } = await loadSharedGiverExtras(token);
   const item = asGiverItem(data as WishlistItem, pledges, noticeRows);
-  await sendReadyToBuyEmail(item);
+  await notifyReadyToBuyIfNew(item, alreadyNotified);
   return item;
 }
 
 export async function simulateSharedFunded(token: string, itemId: string): Promise<WishlistItem> {
   if (useDemoShare(token)) {
+    const alreadyNotified = Boolean(getDemoItem(itemId)?.ready_to_buy_notified_at);
     const item = simulateDemoFunded(itemId, 'the group (demo)');
-    await sendReadyToBuyEmail(item);
+    await notifyReadyToBuyIfNew(item, alreadyNotified);
     return item;
   }
   return markSharedItemFunded(token, itemId);
