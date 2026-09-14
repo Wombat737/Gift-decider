@@ -31,7 +31,7 @@ export function Card({ children, style, padded = true, raised = true, ...rest }:
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: Radius.lg,
+    borderRadius: Radius.card,
     borderWidth: 1,
     gap: Spacing.two,
   },

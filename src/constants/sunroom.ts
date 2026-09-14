@@ -1,0 +1,41 @@
+/** Locked Sunroom design tokens. Cream paper, moss brand, coral only for chip-in. */
+export const Sunroom = {
+  bg: '#F7F1E8',
+  surface: '#FFFBF6',
+  ink: '#1F2A24',
+  inkMuted: '#5B6A63',
+  brand: '#2F6B5A',
+  brandSoft: '#D8EBE3',
+  brandText: '#FFFBF6',
+  accent: '#E07A5F',
+  accentMuted: '#F6E0D8',
+  accentText: '#FFF8F4',
+  paper: '#E8DFD2',
+  border: '#E4D8C8',
+  reserved: '#B65A40',
+  warning: '#9A6B12',
+  overlay: 'rgba(31, 42, 36, 0.42)',
+  radius: {
+    button: 12,
+    card: 16,
+    pill: 999,
+  },
+} as const;
+
+export const SunroomDark = {
+  bg: '#16201C',
+  surface: '#22302A',
+  ink: '#F4EFE6',
+  inkMuted: '#A8B5AF',
+  brand: '#7EB8A4',
+  brandSoft: '#2A433A',
+  brandText: '#12201B',
+  accent: '#E07A5F',
+  accentMuted: '#4A322C',
+  accentText: '#1A1614',
+  paper: '#31403A',
+  border: '#334039',
+  reserved: '#E08A70',
+  warning: '#E6C35C',
+  overlay: 'rgba(0, 0, 0, 0.5)',
+} as const;

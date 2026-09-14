@@ -118,7 +118,7 @@ export default function ItemDetailScreen() {
       ) : (
         <>
           <View style={styles.block}>
-            <ThemedText type="eyebrow" themeColor="accent">
+            <ThemedText type="eyebrow" themeColor="brand">
               {item.reveal ? 'Your list · from the group' : 'Your list · unspoiled'}
             </ThemedText>
             <ThemedText type="heading">{item.title || 'Untitled gift'}</ThemedText>
@@ -163,8 +163,8 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: Radius.lg,
-    backgroundColor: '#E5D8C8',
+    borderRadius: Radius.card,
+    backgroundColor: '#E8DFD2',
   },
   block: {
     gap: Spacing.one,

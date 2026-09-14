@@ -50,7 +50,7 @@ export function LinkHealPanel({ item, busy, demo, onMarkDead, onDemoCheck }: Lin
       </ThemedText>
       <ThemedText
         type="smallBold"
-        themeColor={health === 'ok' ? 'success' : 'accent'}
+        themeColor={health === 'ok' ? 'brand' : 'accent'}
         accessibilityLabel={`link-health-${health}`}>
         {linkHealthCopy(health)}
       </ThemedText>

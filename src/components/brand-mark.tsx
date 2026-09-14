@@ -23,10 +23,10 @@ export function BrandMark({ size = 48 }: BrandMarkProps) {
           width: size,
           height: size,
           borderRadius: radius,
-          backgroundColor: theme.accent,
+          backgroundColor: theme.brand,
         },
       ]}>
-      <ThemedText style={{ color: theme.accentText, fontSize, lineHeight: fontSize + 4, fontWeight: 700 }}>
+      <ThemedText style={{ color: theme.brandText, fontSize, lineHeight: fontSize + 4, fontWeight: 700 }}>
         G
       </ThemedText>
     </View>

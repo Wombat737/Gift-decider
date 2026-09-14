@@ -39,11 +39,11 @@ export function VibeChips({ tags, selected, onToggle }: VibeChipsProps) {
             style={[
               styles.chip,
               {
-                backgroundColor: active ? theme.accentMuted : theme.backgroundElement,
-                borderColor: active ? theme.accent : theme.border,
+                backgroundColor: active ? theme.brandSoft : theme.backgroundElement,
+                borderColor: active ? theme.brand : theme.border,
               },
             ]}>
-            <ThemedText type="small" style={{ color: active ? theme.accent : theme.text }}>
+            <ThemedText type="small" style={{ color: active ? theme.brand : theme.text }}>
               {tag}
             </ThemedText>
           </ChipWrap>
@@ -73,11 +73,11 @@ export function FilterChips({ options, value, onChange }: FilterChipsProps) {
             style={[
               styles.chip,
               {
-                backgroundColor: active ? theme.accent : theme.backgroundElement,
-                borderColor: active ? theme.accent : theme.border,
+                backgroundColor: active ? theme.brand : theme.backgroundElement,
+                borderColor: active ? theme.brand : theme.border,
               },
             ]}>
-            <ThemedText type="smallBold" style={{ color: active ? theme.accentText : theme.text }}>
+            <ThemedText type="smallBold" style={{ color: active ? theme.brandText : theme.text }}>
               {option.label}
             </ThemedText>
           </Pressable>

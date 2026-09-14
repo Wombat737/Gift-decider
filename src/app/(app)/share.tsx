@@ -76,7 +76,7 @@ export default function ShareScreen() {
       />
 
       <Card>
-        <ThemedText type="eyebrow" themeColor="accent">
+        <ThemedText type="eyebrow" themeColor="brand">
           Whole wishlist
         </ThemedText>
         <ThemedText type="smallBold">Every pinned gift</ThemedText>
@@ -92,7 +92,7 @@ export default function ShareScreen() {
       </Card>
 
       <Card>
-        <ThemedText type="eyebrow" themeColor="accent">
+        <ThemedText type="eyebrow" themeColor="brand">
           Occasion packs
         </ThemedText>
         <ThemedText type="smallBold">Birthday, housewarming, Christmas</ThemedText>

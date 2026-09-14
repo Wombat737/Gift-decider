@@ -14,7 +14,7 @@ export default function NotFoundScreen() {
           /g/demo-birthday, and /g/demo-housewarming.
         </ThemedText>
         <Link href="/">
-          <ThemedText type="link" themeColor="accent">
+          <ThemedText type="link" themeColor="brand">
             Back to Gift Decider
           </ThemedText>
         </Link>

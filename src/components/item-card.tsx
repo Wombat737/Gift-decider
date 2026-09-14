@@ -9,7 +9,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { giverItemChipLabel } from '@/lib/format';
 import { improvisedConfidence } from '@/lib/improv';
 import { linkNeedsHeal } from '@/lib/link-health';
-import { groupGiftPhase, isFunded } from '@/lib/pledges';
+import { giverChipTone, ownerMomentTone } from '@/lib/tones';
 import type { WishlistItem } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -23,19 +23,12 @@ type ItemCardProps = {
 
 export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardProps) {
   const theme = useTheme();
-  const funded = showStatus && isFunded(item);
-  const phase = showStatus ? groupGiftPhase(item) : null;
-  const statusTone =
-    funded || item.status === 'purchased' || phase === 'ready_to_buy' || phase === 'revealed'
-      ? 'success'
-      : item.status === 'reserved'
-        ? 'reserved'
-        : 'accent';
   const confidence = showStatus ? improvisedConfidence(item) : null;
+  const revealTone = ownerMomentTone();
 
   const body = (
     <>
-      <View style={styles.imageWrap}>
+      <View style={[styles.imageWrap, { backgroundColor: theme.paper }]}>
         <Image
           source={{ uri: item.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
           style={styles.image}
@@ -58,11 +51,11 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
           </ThemedText>
         ) : null}
         {item.reveal ? (
-          <ThemedText type="small" style={{ color: theme.success }} accessibilityLabel="from-the-group">
+          <ThemedText type="momentSmall" themeColor={revealTone} accessibilityLabel="from-the-group">
             From the group
           </ThemedText>
         ) : null}
-        {showStatus ? <StatusChip label={giverItemChipLabel(item)} tone={statusTone} /> : null}
+        {showStatus ? <StatusChip label={giverItemChipLabel(item)} tone={giverChipTone(item)} /> : null}
         {showStatus && linkNeedsHeal(item) ? (
           <ThemedText type="small" themeColor="accent">
             Link issue
@@ -106,14 +99,14 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     gap: 0,
+    padding: Spacing.two,
+    paddingBottom: Spacing.one,
   },
   imageWrap: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#EADCCE',
     overflow: 'hidden',
-    borderTopLeftRadius: Radius.lg,
-    borderTopRightRadius: Radius.lg,
+    borderRadius: Radius.card - 6,
   },
   image: {
     width: '100%',
@@ -121,8 +114,8 @@ const styles = StyleSheet.create({
   },
   meta: {
     gap: Spacing.one,
-    paddingHorizontal: Spacing.two + 2,
+    paddingHorizontal: Spacing.one,
     paddingTop: Spacing.two,
-    paddingBottom: Spacing.two + 4,
+    paddingBottom: Spacing.two,
   },
 });

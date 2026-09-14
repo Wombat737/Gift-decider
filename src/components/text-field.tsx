@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 50,
-    borderRadius: Radius.md,
+    borderRadius: Radius.button,
     paddingHorizontal: Spacing.three,
     fontSize: 16,
     borderWidth: 1,

@@ -13,13 +13,13 @@ export function LegalLinks({ includeSettings = false }: LegalLinksProps) {
   return (
     <View style={styles.row}>
       <Link href="/privacy" onPress={() => track('privacy_opened', { source: 'legal_links' })}>
-        <ThemedText type="small" themeColor="accent">
+        <ThemedText type="small" themeColor="brand">
           Privacy policy
         </ThemedText>
       </Link>
       {includeSettings ? (
         <Link href="/settings" onPress={() => track('settings_opened', { source: 'legal_links' })}>
-          <ThemedText type="small" themeColor="accent">
+          <ThemedText type="small" themeColor="brand">
             Settings
           </ThemedText>
         </Link>

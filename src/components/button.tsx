@@ -6,15 +6,29 @@ import { useTheme } from '@/hooks/use-theme';
 
 type ButtonProps = Omit<PressableProps, 'style'> & {
   label: string;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'pledge';
 };
 
 export function Button({ label, variant = 'primary', disabled, ...rest }: ButtonProps) {
   const theme = useTheme();
   const background =
-    variant === 'primary' ? theme.accent : variant === 'secondary' ? theme.backgroundElement : 'transparent';
-  const color = variant === 'primary' ? theme.accentText : variant === 'ghost' ? theme.accent : theme.text;
-  const borderColor = variant === 'secondary' ? theme.border : variant === 'ghost' ? 'transparent' : theme.accent;
+    variant === 'primary'
+      ? theme.brand
+      : variant === 'pledge'
+        ? theme.accent
+        : variant === 'secondary'
+          ? theme.backgroundElement
+          : 'transparent';
+  const color =
+    variant === 'primary' || variant === 'pledge'
+      ? variant === 'pledge'
+        ? theme.accentText
+        : theme.brandText
+      : variant === 'ghost'
+        ? theme.brand
+        : theme.text;
+  const borderColor =
+    variant === 'secondary' ? theme.border : variant === 'ghost' ? 'transparent' : variant === 'pledge' ? theme.accent : theme.brand;
 
   return (
     <Pressable
@@ -39,7 +53,7 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
 const styles = StyleSheet.create({
   base: {
     minHeight: 50,
-    borderRadius: Radius.md,
+    borderRadius: Radius.button,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.four,

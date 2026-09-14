@@ -12,9 +12,9 @@ export function NoSubLock({ compact = false }: { compact?: boolean }) {
       style={[
         styles.row,
         compact && styles.compact,
-        { backgroundColor: theme.accentMuted, borderColor: theme.accent },
+        { backgroundColor: theme.brandSoft, borderColor: theme.brandSoft },
       ]}>
-      <ThemedText type="smallBold" themeColor="accent">
+      <ThemedText type="smallBold" themeColor="brand">
         🔒 {compact ? 'Locked' : 'No substitutes'}
       </ThemedText>
       {compact ? null : (
@@ -28,7 +28,7 @@ export function NoSubLock({ compact = false }: { compact?: boolean }) {
 
 const styles = StyleSheet.create({
   row: {
-    borderRadius: Radius.md,
+    borderRadius: Radius.card,
     borderWidth: 1,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,

@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { DateField } from '@/components/date-field';
+import { GroupGiftStrip } from '@/components/group-gift-strip';
+import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { FilterChips } from '@/components/vibe-chips';
@@ -17,8 +19,6 @@ import {
   isFunded,
   isRevealDue,
   pickOrganiserName,
-  pledgeRemaining,
-  pledgeTotal,
   shiftLocalDate,
 } from '@/lib/pledges';
 import type { DeliveryMethod, WishlistItem } from '@/lib/types';
@@ -72,14 +72,11 @@ export function PledgePanel({
   const [organiserDraft, setOrganiserDraft] = useState(item.organiser_name ?? '');
   const [payDraft, setPayDraft] = useState(item.pay_instructions ?? '');
   const [deliveryNote, setDeliveryNote] = useState(item.delivery_note ?? '');
-  const total = pledgeTotal(item);
-  const remaining = pledgeRemaining(item);
   const funded = isFunded(item);
   const revealed = isRevealDue(item);
   const phase = groupGiftPhase(item);
   const revealLabel = formatRevealDate(item.reveal_at);
   const organiser = pickOrganiserName(item);
-  const readyNotice = (item.notices ?? []).find((row) => row.kind === 'ready_to_buy');
   const pledgeNames = [...new Set((item.pledges ?? []).map((row) => row.display_name?.trim()).filter(Boolean))] as string[];
 
   useEffect(() => {
@@ -139,34 +136,12 @@ export function PledgePanel({
 
       {item.is_group_gift ? (
         <>
-          <ThemedText type="smallBold" themeColor="success">
+          <ThemedText type="smallBold" themeColor={phase === 'ready_to_buy' ? 'accent' : 'brand'}>
             {groupGiftPhaseLabel(phase)}
             {phase === 'ready_to_buy' ? ' — organiser should purchase' : ''}
           </ThemedText>
-          {funded && item.status !== 'purchased' ? (
-            <Card accessibilityLabel="organiser-ready-to-buy">
-              <ThemedText type="eyebrow" themeColor="success">
-                Funded — time to buy
-              </ThemedText>
-              <ThemedText type="smallBold">
-                {organiser} is the organiser. Buy it, then mark purchased and pick delivery.
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                They still won’t see who chipped in until {revealLabel}. Push notifications are next —
-                this in-app banner is the alert for now.
-              </ThemedText>
-              {readyNotice?.email_preview ? (
-                <ThemedText type="small" themeColor="textSecondary" accessibilityLabel="ready-to-buy-email-stub">
-                  Email stub (no key required): {readyNotice.email_preview.split('\n')[0]}
-                </ThemedText>
-              ) : null}
-            </Card>
-          ) : null}
-          <ThemedText>
-            {formatAud(total)}
-            {item.target_amount ? ` of ${formatAud(item.target_amount)}` : ''} chipped in
-            {funded ? ' · Funded' : remaining != null ? ` · ${formatAud(remaining)} to go` : ''}
-          </ThemedText>
+          {funded && item.status !== 'purchased' ? <ReadyToBuyBanner item={item} /> : null}
+          <GroupGiftStrip item={item} />
           <ThemedText type="small" themeColor="textSecondary">
             Organiser: {organiser}. Reveal to them on {revealLabel}
             {revealed ? ' (that date has arrived).' : ' — they stay unspoiled until then.'}
@@ -190,9 +165,14 @@ export function PledgePanel({
             value={name}
             onChangeText={setName}
           />
-          <Button label={busy ? 'Saving…' : 'I’ve chipped in'} disabled={busy} onPress={() => void submit()} />
+          <Button
+            label={busy ? 'Saving…' : 'I’ve chipped in'}
+            variant="pledge"
+            disabled={busy}
+            onPress={() => void submit()}
+          />
           {funded ? (
-            <ThemedText type="small" themeColor="success">
+            <ThemedText type="small" themeColor="accent">
               {revealed
                 ? 'Funded, and the reveal date has arrived — they can see who it’s from.'
                 : `Funded among givers. They still won’t see who it’s from until ${revealLabel}.`}
@@ -284,7 +264,7 @@ export function PledgePanel({
                   onPress={onMarkPurchased}
                 />
               ) : (
-                <ThemedText type="small" themeColor="success">
+                <ThemedText type="small" themeColor="brand">
                   Purchased. They still only see who chipped in on {revealLabel}.
                 </ThemedText>
               )}

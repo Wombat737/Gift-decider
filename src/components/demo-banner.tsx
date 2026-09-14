@@ -13,8 +13,8 @@ export function DemoBanner() {
   if (!demo) return null;
 
   return (
-    <ThemedView type="accentMuted" style={styles.banner}>
-      <ThemedText type="eyebrow" themeColor="accent">
+    <ThemedView type="brandSoft" style={styles.banner}>
+      <ThemedText type="eyebrow" themeColor="brand">
         Demo for mates
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
@@ -28,7 +28,7 @@ export function DemoBanner() {
 
 const styles = StyleSheet.create({
   banner: {
-    borderRadius: Radius.md,
+    borderRadius: Radius.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two + 2,
     gap: Spacing.one,

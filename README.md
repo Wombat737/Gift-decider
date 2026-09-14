@@ -2,6 +2,8 @@
 
 Mobile wishlist app for gift-givers who need to pick from a recipient’s **living photo wishlist**.
 
+**Sunroom** is the locked visual direction: cream paper (`#F7F1E8` / `#FFFBF6`), moss brand (`#2F6B5A`), coral only for chip-in and pledges (`#E07A5F`). Plus Jakarta Sans for UI; Fraunces for moment titles, empty states, and group-gift reveal. Success / purchased / reserved styling never appears on owner views.
+
 - Recipients curate photos + notes + taste/vibes + an optional buy URL
 - Occasion packs (birthday, housewarming, …) each get their own giver link
 - Givers open a shared read-only link: soft-lock, chip in, AU store search, dead-link heal
@@ -68,12 +70,12 @@ Direct giver links (keep the `/Gift-decider` prefix):
 
 ## Phase 4 (soft launch)
 
-Visual polish on the existing IA — owner vs giver pills, gift cards, empty states, invite copy. No information-architecture redesign. Group-gift reveal is now gated by a **reveal date**, not by funded.
+Visual polish on the existing IA — owner vs giver pills, gift cards, empty states, invite copy. No information-architecture redesign. Group-gift reveal is now gated by a **reveal date**, not by funded. **Sunroom** tokens replace the Phase 4 terracotta defaults (sage brand, coral pledges, scrapbook cards).
 
 | Piece | Where |
 | --- | --- |
 | **EAS profiles** | `eas.json` — `development` (dev client, internal APK), `preview` (internal APK / ad hoc for mates), `production` (AAB + autoIncrement) |
-| **App identity** | `app.json` — name Gift Decider, slug `gift-decider`, scheme `giftdecider`, terracotta gift icons/splash |
+| **App identity** | `app.json` — name Gift Decider, slug `gift-decider`, scheme `giftdecider`, Sunroom sage splash / theme |
 | **Privacy + deletion** | `/privacy` (public) and **Settings** (signed-in). Deletion is a mailto stub (`EXPO_PUBLIC_SUPPORT_EMAIL`) |
 | **Analytics** | `src/lib/analytics.ts` — no-op unless `EXPO_PUBLIC_ANALYTICS_ENABLED=true` (console only). No paid account. |
 
@@ -131,6 +133,7 @@ npm test    # surprise-safe + demo-walk unit tests (no Supabase)
 ## Stack
 
 - Expo SDK 57, React Native, Expo Router, TypeScript
+- **Sunroom** UI: Plus Jakarta Sans + Fraunces on web (Google Fonts); native uses system-ui / Georgia as the closest Expo stand-ins
 - Supabase: Postgres, Auth, Storage, Edge Functions
 - Session storage: `expo-sqlite` on iOS/Android, `localStorage` on web
 - Demo mode so you can run the UI before a Supabase project exists
