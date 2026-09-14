@@ -18,7 +18,7 @@ export function DemoBanner() {
       <ThemedText type="small" themeColor="textSecondary">
         {env.isSupabaseConfigured
           ? 'Signed in locally — data stays on this device.'
-          : 'Supabase env is empty. Screens use sample data so you can click around.'}
+          : 'Supabase env is empty. Screens use sample data so you can click around — including funded reveal and dead-link heal.'}
       </ThemedText>
     </ThemedView>
   );

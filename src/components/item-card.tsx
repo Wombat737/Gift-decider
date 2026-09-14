@@ -4,8 +4,9 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
-import { giverConfidence } from '@/lib/confidence';
 import { giverStatusLabel } from '@/lib/format';
+import { improvisedConfidence } from '@/lib/improv';
+import { linkNeedsHeal } from '@/lib/link-health';
 import { isFunded } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -27,7 +28,7 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
       : item.status === 'reserved'
         ? theme.reserved
         : theme.accent;
-  const confidence = showStatus ? giverConfidence(item) : null;
+  const confidence = showStatus ? improvisedConfidence(item) : null;
 
   const body = (
     <>
@@ -51,10 +52,20 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
             {item.tags.join(' · ')}
           </ThemedText>
         ) : null}
+        {item.reveal ? (
+          <ThemedText type="small" style={{ color: theme.success }} accessibilityLabel="from-the-group">
+            From the group
+          </ThemedText>
+        ) : null}
         {showStatus ? (
           <ThemedText type="small" style={{ color: tone }}>
             {giverStatusLabel(item.status, funded)}
             {item.is_group_gift && !funded ? ' · group' : ''}
+          </ThemedText>
+        ) : null}
+        {showStatus && linkNeedsHeal(item) ? (
+          <ThemedText type="small" themeColor="accent">
+            Link issue
           </ThemedText>
         ) : null}
         {confidence ? (

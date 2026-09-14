@@ -13,11 +13,22 @@ import type { WishlistItem } from '@/lib/types';
 type PledgePanelProps = {
   item: WishlistItem;
   busy?: boolean;
+  demo?: boolean;
   onToggleGroup: (enabled: boolean) => void;
   onPledge: (amount: number, name?: string) => Promise<void>;
+  onMarkFunded: () => void;
+  onSimulateFunded?: () => void;
 };
 
-export function PledgePanel({ item, busy, onToggleGroup, onPledge }: PledgePanelProps) {
+export function PledgePanel({
+  item,
+  busy,
+  demo,
+  onToggleGroup,
+  onPledge,
+  onMarkFunded,
+  onSimulateFunded,
+}: PledgePanelProps) {
   const [amount, setAmount] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +55,8 @@ export function PledgePanel({ item, busy, onToggleGroup, onPledge }: PledgePanel
     <ThemedView type="backgroundElement" style={styles.card}>
       <ThemedText type="smallBold">Group gift · honour system</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        Chip-in is giver-only. They won’t see who paid, and there’s no Stripe yet.
+        Chip-in is giver-only until funded. Then they see who it’s from — not the dollar amounts.
+        Honour system, no Stripe.
       </ThemedText>
 
       {item.is_group_gift ? (
@@ -74,6 +86,22 @@ export function PledgePanel({ item, busy, onToggleGroup, onPledge }: PledgePanel
             onChangeText={setName}
           />
           <Button label={busy ? 'Saving…' : 'I’ve chipped in'} disabled={busy} onPress={() => void submit()} />
+          {funded ? (
+            <ThemedText type="small" themeColor="success">
+              Funded — the recipient can now see who it’s from.
+            </ThemedText>
+          ) : (
+            <Button label="Mark funded" variant="secondary" disabled={busy} onPress={onMarkFunded} />
+          )}
+          {demo && !funded && onSimulateFunded ? (
+            <Button
+              label="Simulate funded (demo)"
+              variant="ghost"
+              disabled={busy}
+              accessibilityLabel="simulate-funded-demo"
+              onPress={onSimulateFunded}
+            />
+          ) : null}
           <Button label="Not a group gift" variant="ghost" disabled={busy} onPress={() => onToggleGroup(false)} />
         </>
       ) : (

@@ -73,7 +73,7 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         placeholder="80"
         value={value.targetAmount}
         onChangeText={(targetAmount) => onChange({ targetAmount })}
-        hint="Used if givers chip in. They see progress; you won’t."
+        hint="Used if givers chip in. You only see who it’s from once it’s funded."
       />
 
       <View style={{ gap: 8 }}>
@@ -87,7 +87,7 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
           onChange={(id) => onChange({ itemKind: id as ItemKind })}
         />
         <ThemedText type="small" themeColor="textSecondary">
-          Vibes help givers when it isn’t a barcode. Substitutes stay locked off until Phase 3.
+          Vibes help givers match the board. If a buy link dies, they get close swaps — unless you lock Exact.
         </ThemedText>
       </View>
 
@@ -129,7 +129,7 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         <View style={{ flex: 1, paddingRight: 12 }}>
           <ThemedText>No substitutions</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Shows a lock to givers. We won’t suggest swaps yet.
+            Shows a lock to givers. Dead-link heal will only offer exact-SKU recovery, not substitutes.
           </ThemedText>
         </View>
         <Switch

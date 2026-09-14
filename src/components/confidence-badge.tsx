@@ -3,12 +3,12 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { giverConfidence } from '@/lib/confidence';
+import { improvisedConfidence } from '@/lib/improv';
 import type { WishlistItem } from '@/lib/types';
 
 export function ConfidenceBadge({ item }: { item: WishlistItem }) {
   const theme = useTheme();
-  const confidence = giverConfidence(item);
+  const confidence = improvisedConfidence(item);
   const color =
     confidence.level === 'safe' ? theme.success : confidence.level === 'needs-size' ? theme.warning : theme.reserved;
 
