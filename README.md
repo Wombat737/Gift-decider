@@ -9,6 +9,36 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 
 This repo is a thrifty **Expo + Supabase** starter: screens navigate, schema + RLS exist, auth and Instagram are stubbed where production work still has to happen.
 
+## Open the web demo
+
+No install, no Expo CLI, no Supabase. Open this on your phone:
+
+**https://wombat737.github.io/Gift-decider/**
+
+Tap **Explore demo**, then walk wishlist → paste Instagram URL → share → `/g/demo` reserve/purchased.
+
+Giver shortcut: [https://wombat737.github.io/Gift-decider/g/demo](https://wombat737.github.io/Gift-decider/g/demo)
+
+If that 404s, GitHub Pages is not switched on yet (one click):
+
+1. Repo **Settings → Pages**
+2. Source: **Deploy from a branch**
+3. Branch: **`gh-pages`** / **`/` (root)** → Save
+4. Wait ~1 minute, then reload the URL above
+
+Or deploy a root-path copy to your own free host (no secrets required beyond logging in):
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Wombat737/Gift-decider)
+
+Netlify: import the GitHub repo. Build command `npx expo export -p web`, publish directory `dist`. SPA redirects are already in `public/_redirects` and `netlify.toml`.
+
+From this repo:
+
+```bash
+npm install
+npm run deploy    # exports with EXPO_BASE_URL=/Gift-decider and pushes gh-pages
+```
+
 ## Stack
 
 - Expo SDK 57, React Native, Expo Router, TypeScript
@@ -30,7 +60,7 @@ Then:
 - **Android:** Expo Go, or an emulator
 - **Web:** press `w` — useful for clicking through screens on a laptop
 
-If `.env.local` still has placeholders, the app starts in **demo mode**. Tap **Explore demo** on the sign-in screen. Sample gifts load in memory; paste-URL uses an in-app stub; share token is `demo` (`/g/demo`).
+If `.env.local` still has placeholders, the app starts in **demo mode**. Tap **Explore demo** on the sign-in screen. Sample gifts persist in the browser; paste-URL uses an in-app stub; share token is `demo` (`/g/demo`).
 
 You do **not** need Docker or a hosted Supabase project to walk the screens.
 
@@ -170,4 +200,6 @@ supabase/functions/      preview-url stub
 npx expo start          # dev server
 npx expo start --web
 npx tsc --noEmit        # types
+npm run export:web      # production SPA → dist/
+npm run deploy          # GitHub Pages (subpath /Gift-decider)
 ```

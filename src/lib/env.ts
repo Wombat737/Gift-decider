@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 function read(name: string) {
   return (process.env[name] ?? '').trim();
 }
@@ -27,6 +29,15 @@ export const env = {
   googleAndroidClientId: read('EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID'),
 };
 
+export function publicOrigin() {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin) {
+    const href = typeof document !== 'undefined' ? document.querySelector('base')?.getAttribute('href') : null;
+    const prefix = !href || href === '/' ? '' : href.replace(/\/$/, '');
+    return `${window.location.origin}${prefix}`;
+  }
+  return env.appUrl.replace(/\/$/, '');
+}
+
 export function shareLink(token: string) {
-  return `${env.appUrl.replace(/\/$/, '')}/g/${token}`;
+  return `${publicOrigin()}/g/${token}`;
 }

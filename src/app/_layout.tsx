@@ -8,7 +8,11 @@ import { WishlistProvider } from '@/context/wishlist-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
-SplashScreen.preventAutoHideAsync();
+try {
+  SplashScreen.preventAutoHideAsync();
+} catch {
+  // Web / static export has no native splash screen.
+}
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -28,7 +32,11 @@ export default function RootLayout() {
 function SplashController() {
   const { isLoading } = useAuth();
   if (!isLoading) {
-    SplashScreen.hide();
+    try {
+      SplashScreen.hide();
+    } catch {
+      // ignore
+    }
   }
   return null;
 }

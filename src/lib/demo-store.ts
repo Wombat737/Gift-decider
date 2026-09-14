@@ -3,6 +3,7 @@ import type { ItemStatus, NewWishlistItem, SharedWishlist, Wishlist, WishlistIte
 const DEMO_WISHLIST_ID = 'demo-wishlist';
 const DEMO_OWNER_ID = 'demo-user';
 export const DEMO_SHARE_TOKEN = 'demo';
+const STORAGE_KEY = 'giftdecider.demo-items.v1';
 
 function now() {
   return new Date().toISOString();
@@ -28,7 +29,7 @@ const seed: WishlistItem[] = [
     status: 'available',
     reserved_by: null,
     reserved_at: null,
-    created_at: now(),
+    created_at: '2026-01-01T00:00:00.000Z',
   },
   {
     id: 'demo-socks',
@@ -44,8 +45,8 @@ const seed: WishlistItem[] = [
     no_substitution: false,
     status: 'reserved',
     reserved_by: 'Alex',
-    reserved_at: now(),
-    created_at: now(),
+    reserved_at: '2026-01-01T00:00:00.000Z',
+    created_at: '2026-01-01T00:00:00.000Z',
   },
   {
     id: 'demo-book',
@@ -62,7 +63,7 @@ const seed: WishlistItem[] = [
     status: 'available',
     reserved_by: null,
     reserved_at: null,
-    created_at: now(),
+    created_at: '2026-01-01T00:00:00.000Z',
   },
   {
     id: 'demo-plant',
@@ -78,12 +79,38 @@ const seed: WishlistItem[] = [
     no_substitution: false,
     status: 'purchased',
     reserved_by: 'Sam',
-    reserved_at: now(),
-    created_at: now(),
+    reserved_at: '2026-01-01T00:00:00.000Z',
+    created_at: '2026-01-01T00:00:00.000Z',
   },
 ];
 
-let items = seed.map((item) => ({ ...item }));
+function canUseStorage() {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function loadItems(): WishlistItem[] {
+  if (!canUseStorage()) return seed.map((item) => ({ ...item }));
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return seed.map((item) => ({ ...item }));
+    const parsed = JSON.parse(raw) as WishlistItem[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return seed.map((item) => ({ ...item }));
+    return parsed;
+  } catch {
+    return seed.map((item) => ({ ...item }));
+  }
+}
+
+function saveItems(next: WishlistItem[]) {
+  if (!canUseStorage()) return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Private mode / quota — keep going in memory.
+  }
+}
+
+let items = loadItems();
 
 export const demoWishlist: Wishlist = {
   id: DEMO_WISHLIST_ID,
@@ -126,6 +153,7 @@ export function addDemoItem(input: NewWishlistItem): WishlistItem {
     created_at: now(),
   };
   items = [item, ...items];
+  saveItems(items);
   return { ...item };
 }
 
@@ -147,5 +175,6 @@ export function setDemoItemStatus(
   };
 
   items = items.map((item) => (item.id === itemId ? next : item));
+  saveItems(items);
   return { ...next };
 }
