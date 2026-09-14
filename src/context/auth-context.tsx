@@ -22,33 +22,58 @@ const DEMO_USER: SessionUser = {
   demo: true,
 };
 
+const DEMO_SESSION_KEY = 'giftdecider.demo-session';
+
+function readDemoSession() {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(DEMO_SESSION_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeDemoSession(on: boolean) {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    if (on) localStorage.setItem(DEMO_SESSION_KEY, '1');
+    else localStorage.removeItem(DEMO_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!supabase) {
+      setUser(readDemoSession() ? DEMO_USER : null);
       setIsLoading(false);
       return;
     }
 
     supabase.auth.getSession().then(({ data }) => {
       const sessionUser = data.session?.user;
-      setUser(
-        sessionUser
-          ? { id: sessionUser.id, email: sessionUser.email ?? null, demo: false }
-          : null,
-      );
+      if (sessionUser) {
+        setUser({ id: sessionUser.id, email: sessionUser.email ?? null, demo: false });
+      } else if (readDemoSession()) {
+        setUser(DEMO_USER);
+      } else {
+        setUser(null);
+      }
       setIsLoading(false);
     });
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUser = session?.user;
-      setUser(
-        sessionUser
-          ? { id: sessionUser.id, email: sessionUser.email ?? null, demo: false }
-          : null,
-      );
+      if (sessionUser) {
+        setUser({ id: sessionUser.id, email: sessionUser.email ?? null, demo: false });
+      } else if (readDemoSession()) {
+        setUser(DEMO_USER);
+      } else {
+        setUser(null);
+      }
     });
 
     return () => data.subscription.unsubscribe();
@@ -75,9 +100,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return 'Check your email for a magic link.';
       },
       signInDemo() {
+        writeDemoSession(true);
         setUser(DEMO_USER);
       },
       async signOut() {
+        writeDemoSession(false);
         if (supabase && !user?.demo) {
           await supabase.auth.signOut();
         }
