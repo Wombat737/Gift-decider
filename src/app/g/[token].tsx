@@ -23,7 +23,13 @@ export default function GiverShareScreen() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!token) return;
+    if (!token || token === 'undefined') {
+      setMeta(null);
+      setItems([]);
+      setError('This share link is missing a token.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

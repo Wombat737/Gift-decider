@@ -57,7 +57,7 @@ export default function ShareScreen() {
           <Button
             label="Open giver view"
             variant="secondary"
-            onPress={() => wishlist && router.push(`/g/${wishlist.share_token}`)}
+            onPress={() => wishlist?.share_token && router.push(`/g/${wishlist.share_token}`)}
           />
         </View>
       </ThemedView>

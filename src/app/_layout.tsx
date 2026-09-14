@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  initialRouteName: 'sign-in',
+  initialRouteName: 'index',
 };
 
 export default function RootLayout() {
@@ -62,6 +62,7 @@ function RootNavigator({
         headerTintColor: headerTint,
         contentStyle: { backgroundColor: headerBackground },
       }}>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="g/[token]" options={{ title: 'Shared wishlist' }} />
       <Stack.Screen name="auth/callback" options={{ title: 'Signing in' }} />
       <Stack.Protected guard={!!user}>

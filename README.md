@@ -13,6 +13,7 @@ This repo is a thrifty **Expo + Supabase** starter: screens navigate, schema + R
 
 - Expo SDK 57, React Native, Expo Router, TypeScript
 - Supabase: Postgres, Auth, Storage, Edge Functions
+- Session storage: `expo-sqlite` on iOS/Android, `localStorage` on web
 - Demo mode so you can run the UI before a Supabase project exists
 
 ## Run locally
@@ -112,8 +113,9 @@ npx supabase functions deploy preview-url
 
 | Route | Who | What |
 | --- | --- | --- |
+| `/` | Anyone | Redirects to sign-in or `/wishlist` |
 | `/sign-in` | Anyone | Magic link + Apple/Google placeholders + Explore demo |
-| `/` | Recipient | Wishlist photo grid |
+| `/wishlist` | Recipient | Wishlist photo grid |
 | `/add` | Recipient | Manual item |
 | `/paste` | Recipient | Paste Instagram URL → stub preview → pin |
 | `/item/[id]` | Recipient | Item detail |

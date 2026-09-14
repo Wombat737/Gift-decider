@@ -13,7 +13,7 @@ export default function AppLayout() {
         headerTintColor: theme.text,
         contentStyle: { backgroundColor: theme.background },
       }}>
-      <Stack.Screen name="index" options={{ title: 'My wishlist' }} />
+      <Stack.Screen name="wishlist" options={{ title: 'My wishlist' }} />
       <Stack.Screen name="add" options={{ title: 'Add item' }} />
       <Stack.Screen name="paste" options={{ title: 'Paste Instagram URL' }} />
       <Stack.Screen name="share" options={{ title: 'Share & invite' }} />

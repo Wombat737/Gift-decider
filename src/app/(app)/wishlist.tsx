@@ -48,7 +48,11 @@ export default function WishlistGridScreen() {
         </View>
       )}
 
-      <Pressable onPress={() => void signOut()} style={styles.signOut}>
+      <Pressable
+        onPress={() => {
+          void signOut().then(() => router.replace('/sign-in'));
+        }}
+        style={styles.signOut}>
         <ThemedText type="small" themeColor="textSecondary">
           Sign out
         </ThemedText>

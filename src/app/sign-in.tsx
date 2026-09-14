@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -66,7 +67,14 @@ export default function SignInScreen() {
 
       <Button label={busy ? 'Sending…' : 'Email me a magic link'} disabled={busy} onPress={() => void onMagicLink()} />
 
-      <Button label="Explore demo" variant="secondary" onPress={signInDemo} />
+      <Button
+        label="Explore demo"
+        variant="secondary"
+        onPress={() => {
+          signInDemo();
+          router.replace('/wishlist');
+        }}
+      />
 
       <View style={styles.oauth}>
         <Button

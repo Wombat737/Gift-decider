@@ -10,7 +10,7 @@ export default function AuthCallbackScreen() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace('/');
+      router.replace('/wishlist');
     }
   }, [isLoading, user]);
 
