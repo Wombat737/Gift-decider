@@ -72,7 +72,7 @@ export default function ShareScreen() {
       <FlowHeader
         role="owner"
         title="Invite mates"
-        subtitle="Whole-list or occasion packs. Friends open a read-only link. You won’t see what they reserved, pledged, or bought until a group gift is funded."
+        subtitle="Whole-list or occasion packs. Friends open a read-only link. You won’t see what they reserved, pledged, or bought. Group gifts stay unspoiled until the reveal date."
       />
 
       <Card>

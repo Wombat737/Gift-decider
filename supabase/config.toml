@@ -25,3 +25,7 @@ additional_redirect_urls = ["giftdecider://auth/callback", "http://localhost:808
 [functions.preview-url]
 # Stub returns fake previews only — no private data. JWT optional so you can curl it.
 verify_jwt = false
+
+[functions.notify-organiser-ready-to-buy]
+# Stub returns the would-be email. Sends only if Resend/Postmark env is set.
+verify_jwt = false

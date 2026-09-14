@@ -73,7 +73,7 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         placeholder="80"
         value={value.targetAmount}
         onChangeText={(targetAmount) => onChange({ targetAmount })}
-        hint="Used if givers chip in. You only see who it’s from once it’s funded."
+        hint="Used if givers chip in. You see who it’s from on the reveal date they pick — not as soon as it’s funded."
       />
 
       <View style={{ gap: 8 }}>

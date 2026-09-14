@@ -1,4 +1,5 @@
-import type { ItemStatus } from '@/lib/types';
+import { groupGiftPhase, isFunded } from '@/lib/pledges';
+import type { ItemStatus, WishlistItem } from '@/lib/types';
 
 export function statusLabel(status: ItemStatus) {
   switch (status) {
@@ -13,15 +14,20 @@ export function statusLabel(status: ItemStatus) {
 
 /** Giver-facing soft lock — no names, so other givers aren’t spoiled with who. */
 export function giverStatusLabel(status: ItemStatus, funded = false) {
+  if (status === 'purchased') return 'Bought';
   if (funded) return 'Funded';
-  switch (status) {
-    case 'reserved':
-      return 'Taken';
-    case 'purchased':
-      return 'Bought';
-    default:
-      return 'Open';
-  }
+  if (status === 'reserved') return 'Taken';
+  return 'Open';
+}
+
+/** Giver grid chip: Collecting → Ready to buy → Bought, plus Revealed after the date. */
+export function giverItemChipLabel(item: WishlistItem) {
+  const phase = groupGiftPhase(item);
+  if (phase === 'ready_to_buy') return 'Ready to buy';
+  if (phase === 'purchased') return 'Bought';
+  if (phase === 'revealed') return 'Bought · Revealed';
+  if (phase === 'collecting') return `${giverStatusLabel(item.status, false)} · Collecting`;
+  return giverStatusLabel(item.status, isFunded(item));
 }
 
 export function parseTags(value: string) {

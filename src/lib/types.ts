@@ -3,6 +3,8 @@ export type ItemStatus = 'available' | 'reserved' | 'purchased';
 export type ItemKind = 'exact' | 'vibe';
 export type MemberRole = 'owner' | 'viewer';
 export type ConfidenceLevel = 'safe' | 'bold' | 'needs-size';
+export type DeliveryMethod = 'to_organiser' | 'collect' | 'other';
+export type GroupGiftPhase = 'collecting' | 'ready_to_buy' | 'purchased' | 'revealed';
 
 export type Profile = {
   id: string;
@@ -34,10 +36,11 @@ export type ItemPledge = {
   created_at: string;
 };
 
-/** Owner-only, and only after a group gift is funded. Never includes amounts. */
+/** Owner-only, and only on/after the reveal date. Never includes amounts. */
 export type FundedReveal = {
   from_group: true;
   contributors: string[];
+  reveal_at: string | null;
 };
 
 export type LinkHealth = 'ok' | 'missing' | 'dead';
@@ -49,6 +52,16 @@ export type GiftSubstitute = {
   query: string;
   exactSku: boolean;
   vibeTags: string[];
+};
+
+export type OrganiserNotice = {
+  id: string;
+  item_id: string;
+  kind: 'ready_to_buy';
+  title: string;
+  body: string;
+  email_preview: string;
+  created_at: string;
 };
 
 export type WishlistItem = {
@@ -69,13 +82,21 @@ export type WishlistItem = {
   no_substitution: boolean;
   is_group_gift: boolean;
   funded_at: string | null;
+  /** Calendar date (YYYY-MM-DD). Owner sees who chipped in on/after this date — not when funded. */
+  reveal_at: string | null;
   buy_url_dead: boolean;
+  organiser_name: string | null;
+  pay_instructions: string | null;
+  delivery_method: DeliveryMethod | null;
+  delivery_note: string | null;
+  ready_to_buy_notified_at: string | null;
   status: ItemStatus;
   reserved_by: string | null;
   reserved_at: string | null;
   created_at: string;
   pledges?: ItemPledge[];
-  /** Set on owner payloads only after funded. Givers never need this. */
+  notices?: OrganiserNotice[];
+  /** Set on owner payloads only on/after reveal_at. Givers never need this. */
   reveal?: FundedReveal;
 };
 
