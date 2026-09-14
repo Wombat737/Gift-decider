@@ -89,7 +89,12 @@ export default function SignInScreen() {
         }
       />
 
-      <Button label={busy ? 'Sending…' : 'Email me a magic link'} disabled={busy} onPress={() => void onMagicLink()} />
+      <Button
+        label={busy ? 'Sending…' : 'Email me a magic link'}
+        variant="secondary"
+        disabled={busy}
+        onPress={() => void onMagicLink()}
+      />
 
       <View style={styles.oauth}>
         <Button
