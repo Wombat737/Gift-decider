@@ -1,4 +1,4 @@
-import type { ItemPledge, WishlistItem } from '@/lib/types';
+import type { GroupGiftPhase, ItemPledge, WishlistItem } from '@/lib/types';
 
 /** Local calendar date as YYYY-MM-DD (MVP compare; not timezone-aware). */
 export function localDateISO(date = new Date()) {
@@ -45,6 +45,12 @@ export function pledgeTotal(item: WishlistItem) {
   return itemPledges(item).reduce((sum, pledge) => sum + pledge.amount, 0);
 }
 
+export function pledgeRemaining(item: WishlistItem) {
+  const target = item.target_amount;
+  if (target == null || target <= 0) return null;
+  return Math.max(0, Math.round((target - pledgeTotal(item)) * 100) / 100);
+}
+
 export function isFunded(item: WishlistItem) {
   if (item.funded_at) return true;
   const target = item.target_amount;
@@ -65,8 +71,69 @@ export function formatContributorList(names: string[]) {
   return `${unique.slice(0, -1).join(', ')}, and ${unique[unique.length - 1]}`;
 }
 
-export function pledgeRemaining(item: WishlistItem) {
-  const target = item.target_amount;
-  if (target == null || target <= 0) return null;
-  return Math.max(0, Math.round((target - pledgeTotal(item)) * 100) / 100);
+export function groupGiftPhase(item: WishlistItem): GroupGiftPhase | null {
+  if (!item.is_group_gift) return null;
+  if (isRevealDue(item) && item.status === 'purchased') return 'revealed';
+  if (item.status === 'purchased') return 'purchased';
+  if (isFunded(item)) return 'ready_to_buy';
+  return 'collecting';
+}
+
+export function groupGiftPhaseLabel(phase: GroupGiftPhase | null) {
+  switch (phase) {
+    case 'collecting':
+      return 'Collecting';
+    case 'ready_to_buy':
+      return 'Ready to buy';
+    case 'purchased':
+      return 'Purchased';
+    case 'revealed':
+      return 'Revealed';
+    default:
+      return null;
+  }
+}
+
+export function deliveryMethodLabel(method: WishlistItem['delivery_method']) {
+  switch (method) {
+    case 'to_organiser':
+      return 'Ship to organiser';
+    case 'collect':
+      return 'Collect / pickup';
+    case 'other':
+      return 'Other';
+    default:
+      return null;
+  }
+}
+
+export function asDeliveryMethod(value: string | null | undefined): WishlistItem['delivery_method'] {
+  if (value === 'to_organiser' || value === 'collect' || value === 'other') return value;
+  return null;
+}
+
+export function pickOrganiserName(item: WishlistItem, fallback?: string | null) {
+  const named = fallback?.trim();
+  if (named) return named;
+  if (item.organiser_name?.trim()) return item.organiser_name.trim();
+  const firstNamed = itemPledges(item).find((row) => row.display_name?.trim())?.display_name?.trim();
+  return firstNamed || 'the organiser';
+}
+
+export function readyToBuyEmailPreview(item: WishlistItem) {
+  const who = item.organiser_name?.trim() || 'Organiser';
+  const title = item.title || 'the group gift';
+  const pay = item.pay_instructions?.trim() || '(no PayID / BSB note yet)';
+  const reveal = formatRevealDate(item.reveal_at);
+  const subject = `Funded — time to buy ${title}`;
+  const text = [
+    `Hi ${who},`,
+    '',
+    `The group gift “${title}” is funded. Gift Decider holds no money — honour system.`,
+    `How givers pay you: ${pay}`,
+    `They see who chipped in on ${reveal} — not today.`,
+    '',
+    'Mark it purchased in the giver view when you’ve bought it, and pick delivery (to you / collect / other).',
+  ].join('\n');
+  return { subject, text };
 }

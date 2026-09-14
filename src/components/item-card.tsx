@@ -6,10 +6,10 @@ import { Card } from '@/components/card';
 import { StatusChip } from '@/components/status-chip';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
-import { giverStatusLabel } from '@/lib/format';
+import { giverItemChipLabel } from '@/lib/format';
 import { improvisedConfidence } from '@/lib/improv';
 import { linkNeedsHeal } from '@/lib/link-health';
-import { isFunded } from '@/lib/pledges';
+import { groupGiftPhase, isFunded } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -24,8 +24,13 @@ type ItemCardProps = {
 export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardProps) {
   const theme = useTheme();
   const funded = showStatus && isFunded(item);
+  const phase = showStatus ? groupGiftPhase(item) : null;
   const statusTone =
-    funded || item.status === 'purchased' ? 'success' : item.status === 'reserved' ? 'reserved' : 'accent';
+    funded || item.status === 'purchased' || phase === 'ready_to_buy' || phase === 'revealed'
+      ? 'success'
+      : item.status === 'reserved'
+        ? 'reserved'
+        : 'accent';
   const confidence = showStatus ? improvisedConfidence(item) : null;
 
   const body = (
@@ -57,12 +62,7 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
             From the group
           </ThemedText>
         ) : null}
-        {showStatus ? (
-          <StatusChip
-            label={`${giverStatusLabel(item.status, funded)}${item.is_group_gift && !funded ? ' · group' : ''}`}
-            tone={statusTone}
-          />
-        ) : null}
+        {showStatus ? <StatusChip label={giverItemChipLabel(item)} tone={statusTone} /> : null}
         {showStatus && linkNeedsHeal(item) ? (
           <ThemedText type="small" themeColor="accent">
             Link issue

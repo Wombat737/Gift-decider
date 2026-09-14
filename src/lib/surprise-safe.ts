@@ -28,7 +28,13 @@ export function ownerSafeItem(item: WishlistItem): WishlistItem {
     buy_url_dead: false,
     funded_at: null,
     reveal_at: revealed ? item.reveal_at : null,
+    organiser_name: null,
+    pay_instructions: null,
+    delivery_method: null,
+    delivery_note: null,
+    ready_to_buy_notified_at: null,
     pledges: undefined,
+    notices: undefined,
     reveal: revealed ? revealFromItem(item) : undefined,
   };
 }
@@ -45,6 +51,12 @@ export function ownerPayloadLeaksGiftProgress(item: WishlistItem) {
   if (item.is_group_gift) return 'is_group_gift';
   if (item.buy_url_dead) return 'buy_url_dead';
   if (item.pledges) return 'pledges';
+  if (item.notices) return 'notices';
+  if (item.organiser_name) return 'organiser_name';
+  if (item.pay_instructions) return 'pay_instructions';
+  if (item.delivery_method) return 'delivery_method';
+  if (item.delivery_note) return 'delivery_note';
+  if (item.ready_to_buy_notified_at) return 'ready_to_buy_notified_at';
   if (item.funded_at) return 'funded_at';
   if (!item.reveal && item.reveal_at) return 'early_reveal_at';
   if (item.reveal?.contributors.some((name) => /\d/.test(name) && /\$|aud/i.test(name))) return 'amount_in_name';

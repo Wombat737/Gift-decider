@@ -16,17 +16,20 @@ import { VibeChips } from '@/components/vibe-chips';
 import { Radius, Spacing } from '@/constants/theme';
 import { track } from '@/lib/analytics';
 import { isDemoShareToken } from '@/lib/demo-store';
-import { giverStatusLabel } from '@/lib/format';
+import { giverItemChipLabel } from '@/lib/format';
 import { isFunded } from '@/lib/pledges';
-import type { ItemStatus, WishlistItem } from '@/lib/types';
+import type { DeliveryMethod, ItemStatus, WishlistItem } from '@/lib/types';
 import {
   addSharedPledge,
   getSharedItems,
   markSharedItemFunded,
   runDemoLinkCheck,
+  setSharedDelivery,
   setSharedGroupGift,
   setSharedItemStatus,
   setSharedLinkDead,
+  setSharedOrganiser,
+  setSharedPayInstructions,
   setSharedRevealAt,
   simulateSharedFunded,
   simulateSharedReveal,
@@ -74,12 +77,17 @@ export default function GiverItemScreen() {
     }
   }
 
-  async function toggleGroup(enabled: boolean, revealAt?: string | null) {
+  async function toggleGroup(
+    enabled: boolean,
+    revealAt?: string | null,
+    organiserName?: string | null,
+    payInstructions?: string | null,
+  ) {
     if (!token || !item) return;
     setError(null);
     setBusy(true);
     try {
-      setItem(await setSharedGroupGift(token, item.id, enabled, revealAt));
+      setItem(await setSharedGroupGift(token, item.id, enabled, revealAt, organiserName, payInstructions));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update group gift');
     } finally {
@@ -129,6 +137,45 @@ export default function GiverItemScreen() {
       setItem(await simulateSharedFunded(token, item.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not simulate funding');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSetOrganiser(organiserName: string) {
+    if (!token || !item) return;
+    setError(null);
+    setBusy(true);
+    try {
+      setItem(await setSharedOrganiser(token, item.id, organiserName));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save organiser');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSetPayInstructions(payInstructions: string) {
+    if (!token || !item) return;
+    setError(null);
+    setBusy(true);
+    try {
+      setItem(await setSharedPayInstructions(token, item.id, payInstructions));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save pay instructions');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSetDelivery(method: DeliveryMethod, note?: string | null) {
+    if (!token || !item) return;
+    setError(null);
+    setBusy(true);
+    try {
+      setItem(await setSharedDelivery(token, item.id, method, note));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save delivery');
     } finally {
       setBusy(false);
     }
@@ -207,7 +254,7 @@ export default function GiverItemScreen() {
         </ThemedText>
         <ThemedText type="heading">{item.title || 'Untitled gift'}</ThemedText>
         <ThemedText type="smallBold" style={{ color: tone }}>
-          {giverStatusLabel(item.status, funded)}
+          {giverItemChipLabel(item)}
           {item.item_kind === 'vibe' ? ' · vibe' : ''}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
@@ -243,10 +290,17 @@ export default function GiverItemScreen() {
         item={item}
         busy={busy}
         demo={demo}
-        onToggleGroup={(enabled, revealAt) => void toggleGroup(enabled, revealAt)}
+        defaultOrganiserName={name.trim() || undefined}
+        onToggleGroup={(enabled, revealAt, organiserName, payInstructions) =>
+          void toggleGroup(enabled, revealAt, organiserName, payInstructions)
+        }
         onSetRevealAt={(revealAt) => void onSetRevealAt(revealAt)}
+        onSetOrganiser={(organiserName) => void onSetOrganiser(organiserName)}
+        onSetPayInstructions={(value) => void onSetPayInstructions(value)}
+        onSetDelivery={(method, note) => void onSetDelivery(method, note)}
         onPledge={onPledge}
         onMarkFunded={() => void onMarkFunded()}
+        onMarkPurchased={() => void updateStatus('purchased')}
         onSimulateFunded={() => void onSimulateFunded()}
         onSimulateReveal={(which) => void onSimulateReveal(which)}
       />

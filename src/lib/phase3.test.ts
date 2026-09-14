@@ -5,16 +5,23 @@ import {
   getDemoItem,
   listDemoItems,
   resetDemoStore,
+  setDemoDelivery,
+  setDemoItemStatus,
+  setDemoOrganiser,
   simulateDemoFunded,
   simulateDemoReveal,
 } from './demo-store';
+import { giverItemChipLabel } from './format';
 import { inspectBuyLink } from './link-health';
 import {
   formatContributorList,
+  groupGiftPhase,
   isFunded,
   isRevealedToOwner,
   localDateISO,
+  pickOrganiserName,
   pledgeTotal,
+  readyToBuyEmailPreview,
   shiftLocalDate,
 } from './pledges';
 import { ownerPayloadLeaksGiftProgress, ownerSafeItem } from './surprise-safe';
@@ -54,6 +61,10 @@ describe('Phase 3 demo walkthrough — surprise-safe', () => {
     assert.equal(stillHidden.reveal, undefined);
     assert.equal(stillHidden.funded_at, null);
     assert.equal(stillHidden.is_group_gift, false);
+    assert.equal(stillHidden.organiser_name, null);
+    assert.equal(stillHidden.pay_instructions, null);
+    assert.equal(stillHidden.notices, undefined);
+    assert.equal(JSON.stringify(stillHidden).includes('PayID'), false);
     assert.equal(ownerPayloadLeaksGiftProgress(stillHidden), null);
   });
 
@@ -90,6 +101,9 @@ describe('Phase 3 demo walkthrough — surprise-safe', () => {
     assert.equal(owner.funded_at, null);
     assert.equal(JSON.stringify(owner.reveal).includes('80'), false);
     assert.equal(JSON.stringify(owner).includes('"amount"'), false);
+    assert.equal(JSON.stringify(owner).includes('PayID'), false);
+    assert.equal(owner.organiser_name, null);
+    assert.equal(owner.pay_instructions, null);
     assert.equal(formatContributorList(owner.reveal.contributors).includes('Alex'), true);
     assert.equal(ownerPayloadLeaksGiftProgress(owner), null);
   });
@@ -112,6 +126,9 @@ describe('Phase 3 demo walkthrough — surprise-safe', () => {
     assert.equal(owner.pledges, undefined);
     assert.equal(owner.funded_at, null);
     assert.equal(JSON.stringify(owner).includes('"amount"'), false);
+    assert.equal(JSON.stringify(owner).includes('BSB'), false);
+    assert.equal(owner.pay_instructions, null);
+    assert.equal(owner.organiser_name, null);
     assert.equal(ownerPayloadLeaksGiftProgress(owner), null);
   });
 
@@ -157,5 +174,95 @@ describe('Phase 3 demo walkthrough — surprise-safe', () => {
     assert.equal(espresso.reveal, undefined);
     assert.ok(grinder.reveal);
     assert.ok(owners.every((item) => ownerPayloadLeaksGiftProgress(item) === null));
+  });
+
+  it('organiser is who marked the group gift, else first named pledge, else the organiser', () => {
+    const espresso = getDemoItem('demo-espresso');
+    assert.ok(espresso);
+    assert.equal(pickOrganiserName(espresso), 'Alex');
+    assert.equal(pickOrganiserName({ ...espresso, organiser_name: null }), 'Alex');
+    assert.equal(pickOrganiserName({ ...espresso, organiser_name: null, pledges: [] }), 'the organiser');
+    const handed = setDemoOrganiser('demo-espresso', 'Sam');
+    assert.equal(handed.organiser_name, 'Sam');
+    assert.equal(pickOrganiserName(handed), 'Sam');
+  });
+
+  it('simulate funded creates a ready-to-buy notice and email stub; givers still see amounts', () => {
+    const espresso = getDemoItem('demo-espresso');
+    assert.ok(espresso);
+    assert.equal(groupGiftPhase(espresso), 'collecting');
+    assert.equal(giverItemChipLabel(espresso), 'Open · Collecting');
+    assert.match(espresso.pay_instructions ?? '', /PayID/);
+
+    const funded = simulateDemoFunded('demo-espresso');
+    assert.equal(groupGiftPhase(funded), 'ready_to_buy');
+    assert.equal(giverItemChipLabel(funded), 'Ready to buy');
+    assert.ok(funded.notices?.some((row) => row.kind === 'ready_to_buy'));
+    const notice = funded.notices?.find((row) => row.kind === 'ready_to_buy');
+    assert.ok(notice);
+    assert.match(notice.title, /Funded — time to buy/);
+    assert.match(notice.email_preview, /Funded — time to buy/);
+    assert.match(notice.email_preview, /honour system/i);
+    const preview = readyToBuyEmailPreview(funded);
+    assert.match(preview.subject, /Funded — time to buy/);
+    assert.ok(pledgeTotal(funded) >= (funded.target_amount ?? 0));
+    assert.ok(funded.pledges?.some((row) => row.amount === 80));
+
+    const owner = ownerSafeItem(funded);
+    assert.equal(owner.reveal, undefined);
+    assert.equal(owner.pay_instructions, null);
+    assert.equal(owner.organiser_name, null);
+    assert.equal(owner.notices, undefined);
+    assert.equal(owner.delivery_method, null);
+    assert.equal(JSON.stringify(owner).includes('PayID'), false);
+    assert.equal(ownerPayloadLeaksGiftProgress(owner), null);
+  });
+
+  it('organiser can mark purchased and pick delivery without revealing to the owner', () => {
+    simulateDemoFunded('demo-espresso');
+    const delivered = setDemoDelivery('demo-espresso', 'collect', 'Pickup Saturday');
+    assert.equal(delivered.delivery_method, 'collect');
+    const bought = setDemoItemStatus('demo-espresso', 'purchased', 'Alex');
+    assert.equal(bought.status, 'purchased');
+    assert.equal(groupGiftPhase(bought), 'purchased');
+    assert.equal(giverItemChipLabel(bought), 'Bought');
+    assert.equal(isRevealedToOwner(bought), false);
+
+    const owner = ownerSafeItem(bought);
+    assert.equal(owner.reveal, undefined);
+    assert.equal(owner.status, 'available');
+    assert.equal(owner.delivery_method, null);
+    assert.equal(owner.delivery_note, null);
+    assert.equal(JSON.stringify(owner).includes('Pickup'), false);
+    assert.equal(ownerPayloadLeaksGiftProgress(owner), null);
+
+    const revealed = simulateDemoReveal('demo-espresso', 'yesterday');
+    assert.equal(groupGiftPhase(revealed), 'revealed');
+    assert.equal(giverItemChipLabel(revealed), 'Bought · Revealed');
+    const ownerRevealed = ownerSafeItem(revealed);
+    assert.ok(ownerRevealed.reveal?.contributors.includes('Alex'));
+    assert.equal(ownerRevealed.pay_instructions, null);
+    assert.equal(ownerRevealed.delivery_method, null);
+    assert.equal(JSON.stringify(ownerRevealed).includes('PayID'), false);
+    assert.equal(ownerPayloadLeaksGiftProgress(ownerRevealed), null);
+  });
+
+  it('grinder is purchased, revealed to the owner by name only, and givers still see pay notes', () => {
+    const giver = getDemoItem('demo-grinder');
+    assert.ok(giver);
+    assert.equal(groupGiftPhase(giver), 'revealed');
+    assert.equal(giverItemChipLabel(giver), 'Bought · Revealed');
+    assert.equal(giver.organiser_name, 'Sam');
+    assert.match(giver.pay_instructions ?? '', /BSB/);
+    assert.equal(giver.delivery_method, 'to_organiser');
+    assert.ok(giver.notices?.some((row) => row.kind === 'ready_to_buy'));
+
+    const owner = ownerSafeItem(giver);
+    assert.ok(owner.reveal?.contributors.includes('Sam'));
+    assert.equal(owner.pay_instructions, null);
+    assert.equal(owner.organiser_name, null);
+    assert.equal(owner.delivery_method, null);
+    assert.equal(JSON.stringify(owner).includes('BSB'), false);
+    assert.equal(ownerPayloadLeaksGiftProgress(owner), null);
   });
 });

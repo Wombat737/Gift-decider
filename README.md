@@ -6,10 +6,12 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 - Occasion packs (birthday, housewarming, …) each get their own giver link
 - Givers open a shared read-only link: soft-lock, chip in, AU store search, dead-link heal
 - **Surprise gifts:** reserved / purchased / pledge progress is **giver-only** while a gift is in flight
+- Group gifts have an **organiser** (who marked it a group gift, else the first named pledge, else “the organiser”). They buy; givers pay them via **PayID / BSB** (honour system — Gift Decider holds no money)
 - When a **group gift’s reveal date** arrives, the recipient sees **who it’s from** (names / Anonymous) — not the dollar amounts, and **not** as soon as it’s funded
 - Instagram v1: paste a public post URL → **preview stub** → pin as an item
 - Soft-launch ready: polished UI, EAS build profiles, privacy + account-deletion stubs
-- Real Stripe/PayID, Meta Instagram OAuth, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
+- Real Stripe, Meta Instagram OAuth, push notifications, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
+- Push notifications are next; Ready to buy uses an in-app banner plus an email stub (`notify-organiser-ready-to-buy`)
 
 This repo is a thrifty **Expo + Supabase** starter: screens navigate, schema + RLS exist, auth and Instagram are stubbed where production work still has to happen.
 
@@ -54,8 +56,8 @@ Send them the Pages demo on their phone, or sit together and tap:
 1. **Explore demo** — recipient grid. No Taken/Bought. Filter **Housewarming**.
 2. Open **Home espresso machine** — still unspoiled (future reveal date, even if givers fund it). **Burr coffee grinder** already shows **From the group** (reveal date in the past). Settings → Privacy / deletion stub if a mate asks “is this a real app?”
 3. **Share / occasions** → **Copy invite** (Birthday or Housewarming) or **Open giver view**.
-4. As a giver: confidence chips, AU search, soft-lock, espresso chip-in progress + **Simulate funded (demo)** (owner still unspoiled), then **Simulate reveal date = yesterday**. Linen throw dead-link heal.
-5. Flip back to the owner tab: espresso **From the group**; everything else still looks untouched except the grinder (already revealed).
+4. As a giver: mark group gift (reveal date + organiser + PayID note), chip in, **Simulate funded (demo)** → **Funded — time to buy** banner + email stub. Organiser marks purchased + delivery. Owner still unspoiled. Then **Simulate reveal date = yesterday**.
+5. Flip back to the owner tab: espresso **From the group** + names only (no dollars, no PayID). Grinder is already revealed.
 
 Direct giver links (keep the `/Gift-decider` prefix):
 
@@ -84,6 +86,7 @@ Surprise-safe rule: the recipient/owner never sees reserved, purchased, who lock
 | Feature | Where | Demo how-to (no Supabase, no LLM key) |
 | --- | --- | --- |
 | **Reveal-date group gift** | Owner item on/after `reveal_at`; givers keep the pledge bar | Housewarming → **Home espresso machine** (reveal date in the future). As a giver, tap **Simulate funded (demo)** — flip to the owner tab: still unspoiled. Back as a giver, tap **Simulate reveal date = yesterday** (or **today**). Owner espresso then shows **From the group** and **who chipped in** (Alex, Anonymous, …). **Burr coffee grinder** is already funded with a past reveal date so the owner grid shows it immediately. |
+| **Organiser + honour-system buy** | Giver item + list banner | Enabling a group gift asks for reveal date, organiser name, and PayID / BSB. States: Collecting → Ready to buy → Purchased → Revealed. Funded fires **Funded — time to buy** in-app (demo) plus `notify-organiser-ready-to-buy` email stub. Organiser marks purchased and picks delivery (`to_organiser` / collect / other). Owner never sees pay notes or delivery. |
 | **Dead-link heal** | Giver item only | Housewarming → **Washed linen throw**. Giver sees “link looks dead” plus vibe-close alternatives (sage linen / oatmeal cotton). Owner item has no heal UI. |
 | **Exact lock** | Giver heal on a locked item | Birthday → **Speckled ceramic mug** (🔒). Mark **Link’s dead**. Recovery searches for that SKU only — no substitutes. |
 | **Vibe improv** | Giver confidence + substitute copy | Heuristic uses title + vibe tags. Optional LLM via `EXPO_PUBLIC_OPENAI_API_KEY` / `EXPO_PUBLIC_LLM_URL` or the `improv-substitutes` Edge Function when a key is present. Demo stays deterministic without a key. |
@@ -112,12 +115,13 @@ npx expo start --web
 1. **Explore demo** → recipient wishlist (no Taken/Bought badges, no pledge bar). Espresso is not yet “from the group”; **Burr coffee grinder** already is (past reveal date).
 2. Filter **Housewarming**. Open **Home espresso machine** — still a normal unspoiled item.
 3. **Share / occasions** → **Open giver view** for Housewarming (or `/g/demo-housewarming`).
-4. Open espresso as a giver: see chip-in progress and the future reveal date. Tap **Simulate funded (demo)**. Flip to the owner tab — espresso is **still unspoiled**.
-5. Back as a giver, tap **Simulate reveal date = yesterday** (or **today**). Owner espresso now shows **From the group** + names.
-6. Open **Washed linen throw**: dead-link heal + vibe substitutes. Owner never sees this panel.
-7. Optional: giver mug → **Link’s dead** → exact-SKU recovery only.
+4. Open espresso as a giver: Alex is organiser, PayID note, chip-in progress, future reveal date. Tap **Simulate funded (demo)** — giver list/item show **Funded — time to buy** plus an email stub (no API key). Flip to the owner tab — espresso is **still unspoiled**.
+5. As the organiser, mark purchased and pick delivery. Owner is still blind.
+6. Back as a giver, tap **Simulate reveal date = yesterday** (or **today**). Owner espresso now shows **From the group** + names (still no dollars / PayID).
+7. Open **Washed linen throw**: dead-link heal + vibe substitutes. Owner never sees this panel.
+8. Optional: giver mug → **Link’s dead** → exact-SKU recovery only.
 
-Sample data lives in `localStorage` (`giftdecider.demo.v4`). `/g/demo` is the whole list; occasion tokens are `demo-birthday` and `demo-housewarming`.
+Sample data lives in `localStorage` (`giftdecider.demo.v5`). `/g/demo` is the whole list; occasion tokens are `demo-birthday` and `demo-housewarming`. Espresso starts collecting with a future reveal date; grinder is already purchased with yesterday’s reveal date.
 
 ```bash
 npx tsc --noEmit
@@ -170,6 +174,8 @@ Copy `.env.example` → `.env.local`. Restart Expo after edits.
 | `EXPO_PUBLIC_SUPPORT_EMAIL` | Mailto inbox for account-deletion requests (default `hello@giftdecider.app`) |
 | `EXPO_PUBLIC_ANALYTICS_ENABLED` | `true` logs events to the console. Default off. No paid analytics product |
 
+Organiser email (`notify-organiser-ready-to-buy`) uses **server** secrets `RESEND_API_KEY` / `POSTMARK_SERVER_TOKEN` on the Edge Function — not `EXPO_PUBLIC_*`. Demo shows the stub without them.
+
 Both Supabase values are meant to be public. **RLS is what keeps data private** — apply the migrations before pointing the app at a live project.
 
 ## Supabase
@@ -180,7 +186,7 @@ Both Supabase values are meant to be public. **RLS is what keeps data private** 
 
 ### 2. Apply the migrations
 
-SQL lives in `supabase/migrations/`. Apply **in order** (init, Phase 2, Phase 3, reveal-date).
+SQL lives in `supabase/migrations/`. Apply **in order** (init, Phase 2, Phase 3, reveal-date, organiser).
 
 **Dashboard:** SQL Editor → paste each file → run.
 
@@ -206,14 +212,15 @@ npx supabase db push
 - `profiles` — handle, display name, locale (`en-AU` default)
 - `wishlists` — one default list per signup, plus `share_token`
 - `occasions` — named packs under a wishlist, each with a `share_token`
-- `wishlist_items` — image, title, notes, source, buy URL, vibe tags, `item_kind`, size hint, target amount, occasion, no-substitution, giver-only status / group-gift / `buy_url_dead`, `funded_at`, `reveal_at` (calendar date)
+- `wishlist_items` — image, title, notes, source, buy URL, vibe tags, `item_kind`, size hint, target amount, occasion, no-substitution, giver-only status / group-gift / `buy_url_dead`, `funded_at`, `reveal_at` (calendar date), organiser name, pay instructions, delivery method/note, `ready_to_buy_notified_at`
 - `item_pledges` — honour-system chip-ins (givers via RPC). **Owners have no SELECT.** After `reveal_at` (not merely `funded_at`), `list_owned_revealed_contributors` returns **names only** (Anonymous if blank) — never amounts
+- `organiser_notices` — giver-only “Funded — time to buy” rows (same surprise-safe rule as pledges)
 - `wishlist_members` — email invites
 - `link_previews` — URL cache for the paste flow
 - Storage bucket `wishlist-images` (`{user_id}/...`)
 - Trigger: new `auth.users` row → profile + empty wishlist
-- RLS: owner full CRUD on list/items/occasions; accepted members SELECT + reserve/purchased/group-gift; pledges hidden from owners
-- RPCs for anonymous givers: `get_shared_wishlist`, `get_shared_wishlist_items`, `set_shared_item_status`, `set_shared_item_group_gift` (requires reveal date when enabling), `set_shared_item_reveal_at`, `list_shared_item_pledges`, `add_shared_item_pledge`, `mark_shared_item_funded`, `set_shared_item_link_dead` (wishlist **or** occasion token)
+- RLS: owner full CRUD on list/items/occasions; accepted members SELECT + reserve/purchased/group-gift; pledges and organiser notices hidden from owners
+- RPCs for anonymous givers: `get_shared_wishlist`, `get_shared_wishlist_items`, `set_shared_item_status`, `set_shared_item_group_gift` (requires reveal date when enabling; optional organiser + PayID), `set_shared_item_reveal_at`, `set_shared_item_organiser`, `set_shared_item_pay_instructions`, `set_shared_item_delivery`, `list_shared_item_pledges`, `list_shared_organiser_notices`, `add_shared_item_pledge`, `mark_shared_item_funded`, `set_shared_item_link_dead` (wishlist **or** occasion token)
 - Owner RPC: `list_owned_revealed_contributors` (authenticated owner, group gifts on/after `reveal_at` only — not merely funded)
 
 ### 3. Auth settings
@@ -243,6 +250,16 @@ npx supabase functions deploy improv-substitutes
 
 Without `OPENAI_API_KEY` in the function env it returns `{ "source": "stub", "suggestions": [] }` and the app uses its local catalog.
 
+### 6. Organiser ready-to-buy email (stub)
+
+```bash
+npx supabase functions serve notify-organiser-ready-to-buy --no-verify-jwt
+# or
+npx supabase functions deploy notify-organiser-ready-to-buy
+```
+
+Demo never needs keys: the giver UI shows the would-be email. If `RESEND_API_KEY` or `POSTMARK_SERVER_TOKEN` plus an organiser email are set on the function, it sends one email when a group gift hits Ready to buy. Push notifications are out of scope (next).
+
 ## Screens
 
 | Route | Who | What |
@@ -256,8 +273,8 @@ Without `OPENAI_API_KEY` in the function env it returns `{ "source": "stub", "su
 | `/share` | Recipient | Whole-list + occasion **Copy invite** (mate-ready text) |
 | `/settings` | Recipient | Privacy link, account-deletion mailto stub, sign out |
 | `/privacy` | Anyone | Store-listing privacy stub (works on `/Gift-decider/privacy`) |
-| `/g/[token]` | Giver | Read-only list **with** Taken/Bought (no names), confidence, link-issue flag |
-| `/g/[token]/[itemId]` | Giver | Soft lock, group pledges, reveal date, mark funded, dead-link heal, AU buy helpers |
+| `/g/[token]` | Giver | Read-only list **with** Taken/Bought (no names), confidence, link-issue flag, **Funded — time to buy** banner |
+| `/g/[token]/[itemId]` | Giver | Soft lock, group pledges, organiser / PayID / delivery, reveal date, mark funded, dead-link heal, AU buy helpers |
 | `/auth/callback` | Auth | Magic-link landing stub |
 
 ## What’s stubbed (on purpose)
@@ -268,10 +285,11 @@ Without `OPENAI_API_KEY` in the function env it returns `{ "source": "stub", "su
 - **Email invites** — inserts `wishlist_members` when Supabase is configured; does not send mail
 - **Camera / Storage upload** — add-item takes an image URL; bucket + RLS are ready
 - **AI matches / dead-link heal** — heuristic catalog + optional LLM. Demo is stubbed and offline-safe
-- **Group-gift reveal to recipient** — names / Anonymous on/after the reveal date, not when funded. No Stripe or PayID
+- **Group-gift reveal to recipient** — names / Anonymous on/after the reveal date, not when funded. No Stripe
+- **Organiser notify** — in-app banner + `notify-organiser-ready-to-buy` email stub (Resend/Postmark optional). **Push notifications are next**
 - **Account deletion** — Settings mailto stub until a backend mailer exists
 - **Analytics** — no-op hook; optional console traces. No paid account
-- **Real payments** — honour-system pledges only. No Stripe or PayID
+- **Real payments** — honour-system pledges + PayID/BSB text only. No Stripe. Gift Decider holds no money
 - **Store submit** — EAS profiles are ready; Apple/Play upload needs Wombat’s accounts
 - **Affiliates** — AU helpers are plain search URLs (Amazon AU, Kmart, Target AU, Big W)
 
@@ -336,8 +354,8 @@ src/app/                 Expo Router screens
 src/context/             Auth + wishlist
 src/services/            Preview + wishlist API (Supabase or demo store)
 src/lib/                 Env, types, confidence, AU buy URLs, substitutes, analytics stub, demo store
-supabase/migrations/     Schema + RLS (init + phase2 + phase3 + reveal_at)
-supabase/functions/      preview-url stub + optional improv-substitutes
+supabase/migrations/     Schema + RLS (init + phase2 + phase3 + reveal_at + organiser)
+supabase/functions/      preview-url stub, optional improv-substitutes, notify-organiser-ready-to-buy stub
 ```
 
 ## Scripts

@@ -1,10 +1,20 @@
 import { slugToken } from '@/lib/format';
-import { asRevealDate, isFunded, pledgeRemaining, shiftLocalDate } from '@/lib/pledges';
+import {
+  asDeliveryMethod,
+  asRevealDate,
+  isFunded,
+  pickOrganiserName,
+  pledgeRemaining,
+  readyToBuyEmailPreview,
+  shiftLocalDate,
+} from '@/lib/pledges';
 import type {
+  DeliveryMethod,
   ItemPledge,
   ItemStatus,
   NewWishlistItem,
   Occasion,
+  OrganiserNotice,
   SharedWishlist,
   UpdateWishlistItem,
   Wishlist,
@@ -14,7 +24,8 @@ import type {
 const DEMO_WISHLIST_ID = 'demo-wishlist';
 const DEMO_OWNER_ID = 'demo-user';
 export const DEMO_SHARE_TOKEN = 'demo';
-const STORAGE_KEY = 'giftdecider.demo.v4';
+const STORAGE_KEY = 'giftdecider.demo.v5';
+const LEGACY_V4_KEY = 'giftdecider.demo.v4';
 const LEGACY_V3_KEY = 'giftdecider.demo.v3';
 const LEGACY_V2_KEY = 'giftdecider.demo.v2';
 const LEGACY_ITEMS_KEY = 'giftdecider.demo-items.v1';
@@ -65,6 +76,11 @@ const seedItems: WishlistItem[] = [
     funded_at: null,
     reveal_at: null,
     buy_url_dead: false,
+    organiser_name: null,
+    pay_instructions: null,
+    delivery_method: null,
+    delivery_note: null,
+    ready_to_buy_notified_at: null,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
@@ -90,6 +106,11 @@ const seedItems: WishlistItem[] = [
     funded_at: null,
     reveal_at: null,
     buy_url_dead: false,
+    organiser_name: null,
+    pay_instructions: null,
+    delivery_method: null,
+    delivery_note: null,
+    ready_to_buy_notified_at: null,
     status: 'reserved',
     reserved_by: 'Alex',
     reserved_at: '2026-01-01T00:00:00.000Z',
@@ -115,6 +136,11 @@ const seedItems: WishlistItem[] = [
     funded_at: null,
     reveal_at: null,
     buy_url_dead: false,
+    organiser_name: null,
+    pay_instructions: null,
+    delivery_method: null,
+    delivery_note: null,
+    ready_to_buy_notified_at: null,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
@@ -140,6 +166,11 @@ const seedItems: WishlistItem[] = [
     funded_at: null,
     reveal_at: null,
     buy_url_dead: false,
+    organiser_name: null,
+    pay_instructions: null,
+    delivery_method: null,
+    delivery_note: null,
+    ready_to_buy_notified_at: null,
     status: 'purchased',
     reserved_by: 'Sam',
     reserved_at: '2026-01-01T00:00:00.000Z',
@@ -165,6 +196,11 @@ const seedItems: WishlistItem[] = [
     funded_at: null,
     reveal_at: shiftLocalDate(14),
     buy_url_dead: false,
+    organiser_name: 'Alex',
+    pay_instructions: 'PayID: alex@chipin.au — honour system, Gift Decider holds no money',
+    delivery_method: null,
+    delivery_note: null,
+    ready_to_buy_notified_at: null,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
@@ -190,9 +226,14 @@ const seedItems: WishlistItem[] = [
     funded_at: '2026-01-08T00:00:00.000Z',
     reveal_at: shiftLocalDate(-1),
     buy_url_dead: false,
-    status: 'available',
-    reserved_by: null,
-    reserved_at: null,
+    organiser_name: 'Sam',
+    pay_instructions: 'BSB 062-000  Acc 1234 5678 — Sam (honour system)',
+    delivery_method: 'to_organiser',
+    delivery_note: 'Sam will wrap it and bring it on the night.',
+    ready_to_buy_notified_at: '2026-01-08T00:00:00.000Z',
+    status: 'purchased',
+    reserved_by: 'Sam',
+    reserved_at: '2026-01-08T00:00:00.000Z',
     created_at: '2026-01-04T00:00:00.000Z',
   },
   {
@@ -215,6 +256,11 @@ const seedItems: WishlistItem[] = [
     funded_at: null,
     reveal_at: null,
     buy_url_dead: true,
+    organiser_name: null,
+    pay_instructions: null,
+    delivery_method: null,
+    delivery_note: null,
+    ready_to_buy_notified_at: null,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
@@ -253,10 +299,30 @@ const seedPledges: ItemPledge[] = [
   },
 ];
 
+const seedNotices: OrganiserNotice[] = [
+  {
+    id: 'demo-notice-grinder',
+    item_id: 'demo-grinder',
+    kind: 'ready_to_buy',
+    title: 'Funded — time to buy',
+    body: 'Pledges hit the target. Buy it, then mark purchased and pick delivery. The recipient still will not see who chipped in until the reveal date.',
+    email_preview: [
+      'Subject: Funded — time to buy Burr coffee grinder',
+      '',
+      'Hi Sam,',
+      '',
+      'The group gift “Burr coffee grinder” is funded. Gift Decider holds no money — honour system.',
+      'How givers pay you: BSB 062-000  Acc 1234 5678 — Sam (honour system)',
+    ].join('\n'),
+    created_at: '2026-01-08T00:00:00.000Z',
+  },
+];
+
 type DemoBundle = {
   items: WishlistItem[];
   occasions: Occasion[];
   pledges: ItemPledge[];
+  notices: OrganiserNotice[];
 };
 
 function canUseStorage() {
@@ -310,9 +376,29 @@ function normalizeItem(raw: Partial<WishlistItem> & { id: string }): WishlistIte
     funded_at: raw.funded_at ?? (raw.id === 'demo-grinder' ? '2026-01-08T00:00:00.000Z' : null),
     reveal_at: asRevealDate(raw.reveal_at) ?? (isGroup ? defaultRevealAt(raw.id) ?? shiftLocalDate(1) : null),
     buy_url_dead: Boolean(raw.buy_url_dead) || raw.id === 'demo-throw',
-    status: raw.status === 'reserved' || raw.status === 'purchased' ? raw.status : 'available',
-    reserved_by: raw.reserved_by ?? null,
-    reserved_at: raw.reserved_at ?? null,
+    organiser_name:
+      raw.organiser_name ?? (raw.id === 'demo-espresso' ? 'Alex' : raw.id === 'demo-grinder' ? 'Sam' : null),
+    pay_instructions:
+      raw.pay_instructions ??
+      (raw.id === 'demo-espresso'
+        ? 'PayID: alex@chipin.au — honour system, Gift Decider holds no money'
+        : raw.id === 'demo-grinder'
+          ? 'BSB 062-000  Acc 1234 5678 — Sam (honour system)'
+          : null),
+    delivery_method:
+      asDeliveryMethod(raw.delivery_method) ?? (raw.id === 'demo-grinder' ? 'to_organiser' : null),
+    delivery_note:
+      raw.delivery_note ?? (raw.id === 'demo-grinder' ? 'Sam will wrap it and bring it on the night.' : null),
+    ready_to_buy_notified_at:
+      raw.ready_to_buy_notified_at ?? (raw.id === 'demo-grinder' ? '2026-01-08T00:00:00.000Z' : null),
+    status:
+      raw.status === 'reserved' || raw.status === 'purchased'
+        ? raw.status
+        : raw.id === 'demo-grinder'
+          ? 'purchased'
+          : 'available',
+    reserved_by: raw.reserved_by ?? (raw.id === 'demo-grinder' ? 'Sam' : null),
+    reserved_at: raw.reserved_at ?? (raw.id === 'demo-grinder' ? '2026-01-08T00:00:00.000Z' : null),
     created_at: raw.created_at ?? now(),
   };
 }
@@ -329,11 +415,18 @@ function ensureSeedPledges(list: ItemPledge[]) {
   return extra.length ? [...list, ...extra] : list;
 }
 
+function ensureSeedNotices(list: OrganiserNotice[]) {
+  const known = new Set(list.map((row) => row.id));
+  const extra = seedNotices.filter((row) => !known.has(row.id));
+  return extra.length ? [...list, ...extra] : list;
+}
+
 function fallbackBundle(): DemoBundle {
   return {
     items: cloneItems(seedItems),
     occasions: demoOccasionsSeed.map((row) => ({ ...row })),
     pledges: seedPledges.map((row) => ({ ...row })),
+    notices: seedNotices.map((row) => ({ ...row })),
   };
 }
 
@@ -347,7 +440,8 @@ function parseBundle(raw: string): DemoBundle | null {
         ? parsed.occasions
         : fallbackBundle().occasions;
     const pledges = ensureSeedPledges(Array.isArray(parsed.pledges) ? parsed.pledges : fallbackBundle().pledges);
-    return { items, occasions, pledges };
+    const notices = ensureSeedNotices(Array.isArray(parsed.notices) ? parsed.notices : fallbackBundle().notices);
+    return { items, occasions, pledges, notices };
   } catch {
     return null;
   }
@@ -360,6 +454,9 @@ function loadBundle(): DemoBundle {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) return parseBundle(raw) ?? fallback;
+
+    const v4 = window.localStorage.getItem(LEGACY_V4_KEY);
+    if (v4) return parseBundle(v4) ?? fallback;
 
     const v3 = window.localStorage.getItem(LEGACY_V3_KEY);
     if (v3) return parseBundle(v3) ?? fallback;
@@ -374,7 +471,7 @@ function loadBundle(): DemoBundle {
         const items = ensureSeedItems(
           parsed.filter((row) => row && row.id).map((row) => normalizeItem(row as WishlistItem)),
         );
-        return { items, occasions: fallback.occasions, pledges: fallback.pledges };
+        return { items, occasions: fallback.occasions, pledges: fallback.pledges, notices: fallback.notices };
       }
     }
   } catch {
@@ -387,13 +484,13 @@ function loadBundle(): DemoBundle {
 function saveBundle() {
   if (!canUseStorage()) return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, occasions, pledges }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, occasions, pledges, notices }));
   } catch {
     // Private mode / quota — keep going in memory.
   }
 }
 
-let { items, occasions, pledges } = loadBundle();
+let { items, occasions, pledges, notices } = loadBundle();
 
 export const demoWishlist: Wishlist = {
   id: DEMO_WISHLIST_ID,
@@ -416,19 +513,36 @@ function withPledges(item: WishlistItem): WishlistItem {
     ...item,
     tags: [...item.tags],
     pledges: pledges.filter((pledge) => pledge.item_id === item.id).map((pledge) => ({ ...pledge })),
+    notices: notices.filter((row) => row.item_id === item.id).map((row) => ({ ...row })),
   };
+}
+
+function recordReadyToBuyNotice(item: WishlistItem) {
+  if (item.ready_to_buy_notified_at) return item;
+  const preview = readyToBuyEmailPreview(item);
+  const notice: OrganiserNotice = {
+    id: id('notice'),
+    item_id: item.id,
+    kind: 'ready_to_buy',
+    title: 'Funded — time to buy',
+    body: `Pledges hit the target. ${pickOrganiserName(item)} should buy it, then mark purchased and pick delivery. The recipient still will not see who chipped in until the reveal date.`,
+    email_preview: `Subject: ${preview.subject}\n\n${preview.text}`,
+    created_at: now(),
+  };
+  notices = [notice, ...notices.filter((row) => !(row.item_id === item.id && row.kind === 'ready_to_buy'))];
+  return { ...item, ready_to_buy_notified_at: notice.created_at };
 }
 
 function maybeFund(item: WishlistItem): WishlistItem {
   if (item.funded_at) return item;
   const withCurrent = withPledges(item);
   if (!isFunded(withCurrent)) return item;
-  return {
+  return recordReadyToBuyNotice({
     ...item,
     funded_at: now(),
     is_group_gift: true,
     reveal_at: item.reveal_at ?? shiftLocalDate(1),
-  };
+  });
 }
 
 export function resolveDemoShare(token: string): { occasion: Occasion | null } | null {
@@ -498,6 +612,11 @@ export function addDemoItem(input: NewWishlistItem): WishlistItem {
     funded_at: null,
     reveal_at: null,
     buy_url_dead: false,
+    organiser_name: null,
+    pay_instructions: null,
+    delivery_method: null,
+    delivery_note: null,
+    ready_to_buy_notified_at: null,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
@@ -569,21 +688,85 @@ export function setDemoItemStatus(itemId: string, status: ItemStatus, reservedBy
   return withPledges(next);
 }
 
-export function setDemoGroupGift(itemId: string, isGroupGift: boolean, revealAt?: string | null): WishlistItem {
+export function setDemoGroupGift(
+  itemId: string,
+  isGroupGift: boolean,
+  revealAt?: string | null,
+  organiserName?: string | null,
+  payInstructions?: string | null,
+): WishlistItem {
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
   if (isGroupGift) {
     const date = asRevealDate(revealAt) ?? current.reveal_at ?? shiftLocalDate(1);
     if (!date) throw new Error('Pick a reveal date');
-    const next: WishlistItem = { ...current, is_group_gift: true, reveal_at: date };
+    const next: WishlistItem = {
+      ...current,
+      is_group_gift: true,
+      reveal_at: date,
+      organiser_name: organiserName?.trim() || current.organiser_name || pickOrganiserName(withPledges(current)),
+      pay_instructions:
+        payInstructions === undefined ? current.pay_instructions : payInstructions?.trim() || null,
+    };
     items = items.map((item) => (item.id === itemId ? next : item));
     saveBundle();
     return withPledges(next);
   }
-  const next: WishlistItem = { ...current, is_group_gift: false, reveal_at: null };
+  const next: WishlistItem = {
+    ...current,
+    is_group_gift: false,
+    reveal_at: null,
+    organiser_name: null,
+    pay_instructions: null,
+    delivery_method: null,
+    delivery_note: null,
+  };
   items = items.map((item) => (item.id === itemId ? next : item));
   saveBundle();
   return withPledges(next);
+}
+
+export function setDemoOrganiser(itemId: string, organiserName: string): WishlistItem {
+  const name = organiserName.trim();
+  if (!name) throw new Error('Name the organiser');
+  const current = items.find((item) => item.id === itemId);
+  if (!current) throw new Error('Item not found');
+  const next: WishlistItem = { ...current, is_group_gift: true, organiser_name: name };
+  items = items.map((item) => (item.id === itemId ? next : item));
+  saveBundle();
+  return withPledges(next);
+}
+
+export function setDemoPayInstructions(itemId: string, payInstructions: string): WishlistItem {
+  const current = items.find((item) => item.id === itemId);
+  if (!current) throw new Error('Item not found');
+  const next: WishlistItem = { ...current, pay_instructions: payInstructions.trim() || null };
+  items = items.map((item) => (item.id === itemId ? next : item));
+  saveBundle();
+  return withPledges(next);
+}
+
+export function setDemoDelivery(
+  itemId: string,
+  method: DeliveryMethod,
+  note?: string | null,
+): WishlistItem {
+  const current = items.find((item) => item.id === itemId);
+  if (!current) throw new Error('Item not found');
+  const next: WishlistItem = {
+    ...current,
+    delivery_method: method,
+    delivery_note: note?.trim() || null,
+  };
+  items = items.map((item) => (item.id === itemId ? next : item));
+  saveBundle();
+  return withPledges(next);
+}
+
+export function listDemoNotices(token?: string) {
+  const scoped = token ? listDemoSharedItems(token) : listDemoItems();
+  const ids = new Set(scoped.map((item) => item.id));
+  return notices.filter((row) => ids.has(row.item_id)).map((row) => ({ ...row }));
 }
 
 export function setDemoRevealAt(itemId: string, revealAt: string): WishlistItem {
@@ -622,6 +805,7 @@ export function addDemoPledge(itemId: string, amount: number, displayName?: stri
     ...current,
     is_group_gift: true,
     reveal_at: current.reveal_at ?? shiftLocalDate(1),
+    organiser_name: current.organiser_name ?? displayName?.trim() ?? null,
   });
   items = items.map((item) => (item.id === itemId ? next : item));
   saveBundle();
@@ -631,12 +815,12 @@ export function addDemoPledge(itemId: string, amount: number, displayName?: stri
 export function markDemoItemFunded(itemId: string): WishlistItem {
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
-  const next: WishlistItem = {
+  const next = recordReadyToBuyNotice({
     ...current,
     is_group_gift: true,
     funded_at: current.funded_at ?? now(),
     reveal_at: current.reveal_at ?? shiftLocalDate(1),
-  };
+  });
   items = items.map((item) => (item.id === itemId ? next : item));
   saveBundle();
   return withPledges(next);
@@ -668,5 +852,6 @@ export function resetDemoStore() {
   items = fallback.items;
   occasions = fallback.occasions;
   pledges = fallback.pledges;
+  notices = fallback.notices;
   saveBundle();
 }

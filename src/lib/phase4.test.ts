@@ -46,6 +46,8 @@ describe('Phase 4 soft-launch stubs', () => {
     assert.equal(socks.reserved_by, null);
     assert.equal(espresso.reveal, undefined);
     assert.ok(grinder.reveal);
+    assert.equal(espresso.pay_instructions, null);
+    assert.equal(grinder.pay_instructions, null);
     assert.equal(ownerPayloadLeaksGiftProgress(socks), null);
     assert.equal(ownerPayloadLeaksGiftProgress(espresso), null);
     assert.equal(ownerPayloadLeaksGiftProgress(grinder), null);

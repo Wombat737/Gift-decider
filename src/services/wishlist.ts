@@ -8,26 +8,33 @@ import {
   getDemoSharedMeta,
   isDemoShareToken,
   listDemoItems,
+  listDemoNotices,
   listDemoOccasions,
   listDemoSharedItems,
   markDemoItemFunded,
+  setDemoDelivery,
   setDemoGroupGift,
   setDemoItemStatus,
   setDemoLinkDead,
+  setDemoOrganiser,
+  setDemoPayInstructions,
   setDemoRevealAt,
   simulateDemoFunded,
   simulateDemoReveal,
   updateDemoItem,
   demoWishlist,
 } from '@/lib/demo-store';
-import { asRevealDate, shiftLocalDate } from '@/lib/pledges';
+import { asDeliveryMethod, asRevealDate, readyToBuyEmailPreview, shiftLocalDate } from '@/lib/pledges';
 import { looksLikeDeadStubUrl } from '@/lib/link-health';
 import { hideReservationFromOwner, ownerSafeItem } from '@/lib/surprise-safe';
+import { env } from '@/lib/env';
 import type {
+  DeliveryMethod,
   ItemPledge,
   ItemStatus,
   NewWishlistItem,
   Occasion,
+  OrganiserNotice,
   SharedWishlist,
   UpdateWishlistItem,
   Wishlist,
@@ -46,10 +53,11 @@ type OwnedRevealRow = {
   reveal_at: string | null;
 };
 
-function mergePledges(items: WishlistItem[], pledges: ItemPledge[]): WishlistItem[] {
+function mergePledges(items: WishlistItem[], pledges: ItemPledge[], noticeRows: OrganiserNotice[] = []): WishlistItem[] {
   return items.map((item) => ({
     ...item,
     pledges: pledges.filter((pledge) => pledge.item_id === item.id),
+    notices: noticeRows.filter((row) => row.item_id === item.id),
   }));
 }
 
@@ -74,6 +82,11 @@ function asOwnedRow(row: Record<string, unknown>): WishlistItem {
     funded_at: null,
     reveal_at: null,
     buy_url_dead: false,
+    organiser_name: null,
+    pay_instructions: null,
+    delivery_method: null,
+    delivery_note: null,
+    ready_to_buy_notified_at: null,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
@@ -308,7 +321,11 @@ export async function getSharedWishlist(token: string): Promise<SharedWishlist |
   return (row as SharedWishlist) ?? null;
 }
 
-function asGiverItem(row: WishlistItem, pledges: ItemPledge[] = []): WishlistItem {
+function asGiverItem(
+  row: WishlistItem,
+  pledges: ItemPledge[] = [],
+  noticeRows: OrganiserNotice[] = [],
+): WishlistItem {
   return {
     ...row,
     tags: row.tags ?? [],
@@ -321,8 +338,19 @@ function asGiverItem(row: WishlistItem, pledges: ItemPledge[] = []): WishlistIte
     funded_at: row.funded_at ?? null,
     reveal_at: asRevealDate(row.reveal_at),
     buy_url_dead: Boolean(row.buy_url_dead),
+    organiser_name: row.organiser_name ?? null,
+    pay_instructions: row.pay_instructions ?? null,
+    delivery_method: asDeliveryMethod(row.delivery_method),
+    delivery_note: row.delivery_note ?? null,
+    ready_to_buy_notified_at: row.ready_to_buy_notified_at ?? null,
     pledges: pledges.filter((pledge) => pledge.item_id === row.id),
+    notices: noticeRows.filter((rowNotice) => rowNotice.item_id === row.id),
   };
+}
+
+async function loadSharedGiverExtras(token: string) {
+  const [pledges, noticeRows] = await Promise.all([listSharedPledges(token), listSharedNotices(token)]);
+  return { pledges, noticeRows };
 }
 
 export async function getSharedItems(token: string): Promise<WishlistItem[]> {
@@ -330,12 +358,26 @@ export async function getSharedItems(token: string): Promise<WishlistItem[]> {
     return listDemoSharedItems(token);
   }
 
-  const [{ data, error }, pledges] = await Promise.all([
+  const [{ data, error }, pledges, noticeRows] = await Promise.all([
     supabase!.rpc('get_shared_wishlist_items', { p_token: token }),
     listSharedPledges(token),
+    listSharedNotices(token),
   ]);
   if (error) throw error;
-  return mergePledges(((data ?? []) as WishlistItem[]).map((row) => asGiverItem(row)), pledges);
+  return mergePledges(((data ?? []) as WishlistItem[]).map((row) => asGiverItem(row)), pledges, noticeRows);
+}
+
+export async function listSharedNotices(token: string): Promise<OrganiserNotice[]> {
+  if (useDemoShare(token)) {
+    return listDemoNotices(token);
+  }
+
+  const { data, error } = await supabase!.rpc('list_shared_organiser_notices', { p_token: token });
+  if (error) throw error;
+  return ((data ?? []) as OrganiserNotice[]).map((row) => ({
+    ...row,
+    kind: 'ready_to_buy',
+  }));
 }
 
 export async function listSharedPledges(token: string): Promise<ItemPledge[]> {
@@ -369,8 +411,8 @@ export async function setSharedItemStatus(
   });
 
   if (error) throw error;
-  const pledges = await listSharedPledges(token);
-  return asGiverItem(data as WishlistItem, pledges);
+  const { pledges, noticeRows } = await loadSharedGiverExtras(token);
+  return asGiverItem(data as WishlistItem, pledges, noticeRows);
 }
 
 export async function setSharedGroupGift(
@@ -378,9 +420,11 @@ export async function setSharedGroupGift(
   itemId: string,
   isGroupGift: boolean,
   revealAt?: string | null,
+  organiserName?: string | null,
+  payInstructions?: string | null,
 ): Promise<WishlistItem> {
   if (useDemoShare(token)) {
-    return setDemoGroupGift(itemId, isGroupGift, revealAt);
+    return setDemoGroupGift(itemId, isGroupGift, revealAt, organiserName, payInstructions);
   }
 
   const { data, error } = await supabase!.rpc('set_shared_item_group_gift', {
@@ -388,10 +432,97 @@ export async function setSharedGroupGift(
     p_item_id: itemId,
     p_is_group_gift: isGroupGift,
     p_reveal_at: isGroupGift ? (asRevealDate(revealAt) ?? shiftLocalDate(1)) : null,
+    p_organiser_name: organiserName ?? null,
+    p_pay_instructions: payInstructions ?? null,
   });
   if (error) throw error;
-  const pledges = await listSharedPledges(token);
-  return asGiverItem(data as WishlistItem, pledges);
+  const { pledges, noticeRows } = await loadSharedGiverExtras(token);
+  return asGiverItem(data as WishlistItem, pledges, noticeRows);
+}
+
+export async function setSharedOrganiser(token: string, itemId: string, organiserName: string): Promise<WishlistItem> {
+  if (useDemoShare(token)) {
+    return setDemoOrganiser(itemId, organiserName);
+  }
+  const { data, error } = await supabase!.rpc('set_shared_item_organiser', {
+    p_token: token,
+    p_item_id: itemId,
+    p_organiser_name: organiserName,
+  });
+  if (error) throw error;
+  const { pledges, noticeRows } = await loadSharedGiverExtras(token);
+  return asGiverItem(data as WishlistItem, pledges, noticeRows);
+}
+
+export async function setSharedPayInstructions(
+  token: string,
+  itemId: string,
+  payInstructions: string,
+): Promise<WishlistItem> {
+  if (useDemoShare(token)) {
+    return setDemoPayInstructions(itemId, payInstructions);
+  }
+  const { data, error } = await supabase!.rpc('set_shared_item_pay_instructions', {
+    p_token: token,
+    p_item_id: itemId,
+    p_pay_instructions: payInstructions,
+  });
+  if (error) throw error;
+  const { pledges, noticeRows } = await loadSharedGiverExtras(token);
+  return asGiverItem(data as WishlistItem, pledges, noticeRows);
+}
+
+export async function setSharedDelivery(
+  token: string,
+  itemId: string,
+  method: DeliveryMethod,
+  note?: string | null,
+): Promise<WishlistItem> {
+  if (useDemoShare(token)) {
+    return setDemoDelivery(itemId, method, note);
+  }
+  const { data, error } = await supabase!.rpc('set_shared_item_delivery', {
+    p_token: token,
+    p_item_id: itemId,
+    p_delivery_method: method,
+    p_delivery_note: note ?? null,
+  });
+  if (error) throw error;
+  const { pledges, noticeRows } = await loadSharedGiverExtras(token);
+  return asGiverItem(data as WishlistItem, pledges, noticeRows);
+}
+
+async function sendReadyToBuyEmail(item: WishlistItem) {
+  const preview = readyToBuyEmailPreview(item);
+  const functionUrl = env.supabaseUrl
+    ? `${env.supabaseUrl.replace(/\/$/, '')}/functions/v1/notify-organiser-ready-to-buy`
+    : '';
+  if (!env.isSupabaseConfigured || !functionUrl) {
+    return preview;
+  }
+  try {
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: env.supabasePublishableKey,
+      },
+      body: JSON.stringify({
+        item_title: item.title,
+        organiser_name: item.organiser_name,
+        pay_instructions: item.pay_instructions,
+        reveal_at: item.reveal_at,
+      }),
+    });
+    if (!response.ok) return preview;
+    const payload = (await response.json()) as { subject?: string; text?: string };
+    return {
+      subject: payload.subject ?? preview.subject,
+      text: payload.text ?? preview.text,
+    };
+  } catch {
+    return preview;
+  }
 }
 
 export async function setSharedRevealAt(token: string, itemId: string, revealAt: string): Promise<WishlistItem> {
@@ -408,8 +539,8 @@ export async function setSharedRevealAt(token: string, itemId: string, revealAt:
     p_reveal_at: date,
   });
   if (error) throw error;
-  const pledges = await listSharedPledges(token);
-  return asGiverItem(data as WishlistItem, pledges);
+  const { pledges, noticeRows } = await loadSharedGiverExtras(token);
+  return asGiverItem(data as WishlistItem, pledges, noticeRows);
 }
 
 export async function addSharedPledge(
@@ -435,7 +566,9 @@ export async function addSharedPledge(
 
 export async function markSharedItemFunded(token: string, itemId: string): Promise<WishlistItem> {
   if (useDemoShare(token)) {
-    return markDemoItemFunded(itemId);
+    const item = markDemoItemFunded(itemId);
+    await sendReadyToBuyEmail(item);
+    return item;
   }
 
   const { data, error } = await supabase!.rpc('mark_shared_item_funded', {
@@ -443,13 +576,17 @@ export async function markSharedItemFunded(token: string, itemId: string): Promi
     p_item_id: itemId,
   });
   if (error) throw error;
-  const pledges = await listSharedPledges(token);
-  return asGiverItem(data as WishlistItem, pledges);
+  const { pledges, noticeRows } = await loadSharedGiverExtras(token);
+  const item = asGiverItem(data as WishlistItem, pledges, noticeRows);
+  await sendReadyToBuyEmail(item);
+  return item;
 }
 
 export async function simulateSharedFunded(token: string, itemId: string): Promise<WishlistItem> {
   if (useDemoShare(token)) {
-    return simulateDemoFunded(itemId, 'the group (demo)');
+    const item = simulateDemoFunded(itemId, 'the group (demo)');
+    await sendReadyToBuyEmail(item);
+    return item;
   }
   return markSharedItemFunded(token, itemId);
 }
@@ -477,8 +614,8 @@ export async function setSharedLinkDead(token: string, itemId: string, dead: boo
     p_dead: dead,
   });
   if (error) throw error;
-  const pledges = await listSharedPledges(token);
-  return asGiverItem(data as WishlistItem, pledges);
+  const { pledges, noticeRows } = await loadSharedGiverExtras(token);
+  return asGiverItem(data as WishlistItem, pledges, noticeRows);
 }
 
 /** Demo stub: mark dead when the URL looks like our broken-link fixture. */
