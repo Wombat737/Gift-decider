@@ -47,7 +47,9 @@ export default function GiverShareScreen() {
         <ThemedText type="heading">{meta?.title ?? 'Shared wishlist'}</ThemedText>
         <ThemedText themeColor="textSecondary">
           {meta
-            ? `For ${meta.owner_display_name || meta.owner_handle || 'a friend'}. Tap a photo to reserve or mark it bought.`
+            ? `For ${meta.owner_display_name || meta.owner_handle || 'a friend'}${
+                meta.occasion_title ? ` · ${meta.occasion_title}` : ''
+              }. Tap a photo to reserve, chip in, or find it in AU stores. Taken/bought stays between givers — no names.`
             : loading
               ? 'Opening link…'
               : 'This share token did not match a list.'}

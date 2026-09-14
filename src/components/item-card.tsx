@@ -4,7 +4,9 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
-import { statusLabel } from '@/lib/format';
+import { giverConfidence } from '@/lib/confidence';
+import { giverStatusLabel } from '@/lib/format';
+import { isFunded } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -12,14 +14,20 @@ type ItemCardProps = {
   item: WishlistItem;
   href?: Href;
   onPress?: () => void;
-  /** Giver-only. Owners never see reserve/purchased — surprise gifts. */
+  /** Giver-only. Owners never see reserve/purchased/pledges — surprise gifts. */
   showStatus?: boolean;
 };
 
 export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardProps) {
   const theme = useTheme();
+  const funded = showStatus && isFunded(item);
   const tone =
-    item.status === 'purchased' ? theme.success : item.status === 'reserved' ? theme.reserved : theme.accent;
+    funded || item.status === 'purchased'
+      ? theme.success
+      : item.status === 'reserved'
+        ? theme.reserved
+        : theme.accent;
+  const confidence = showStatus ? giverConfidence(item) : null;
 
   const body = (
     <>
@@ -30,11 +38,28 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
       />
       <View style={styles.meta}>
         <ThemedText type="smallBold" numberOfLines={2}>
+          {item.no_substitution ? '🔒 ' : ''}
           {item.title || 'Untitled gift'}
         </ThemedText>
+        {item.item_kind === 'vibe' ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            Vibe
+          </ThemedText>
+        ) : null}
+        {item.tags.length > 0 ? (
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+            {item.tags.join(' · ')}
+          </ThemedText>
+        ) : null}
         {showStatus ? (
           <ThemedText type="small" style={{ color: tone }}>
-            {statusLabel(item.status)}
+            {giverStatusLabel(item.status, funded)}
+            {item.is_group_gift && !funded ? ' · group' : ''}
+          </ThemedText>
+        ) : null}
+        {confidence ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            {confidence.label}
           </ThemedText>
         ) : null}
       </View>

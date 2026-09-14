@@ -16,7 +16,7 @@ export default function AppLayout() {
       <Stack.Screen name="wishlist" options={{ title: 'My wishlist' }} />
       <Stack.Screen name="add" options={{ title: 'Add item' }} />
       <Stack.Screen name="paste" options={{ title: 'Paste Instagram URL' }} />
-      <Stack.Screen name="share" options={{ title: 'Share & invite' }} />
+      <Stack.Screen name="share" options={{ title: 'Share & occasions' }} />
       <Stack.Screen name="item/[id]" options={{ title: 'Item' }} />
     </Stack>
   );

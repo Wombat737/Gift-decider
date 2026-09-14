@@ -46,7 +46,7 @@ export default function SignInScreen() {
         </ThemedText>
         <ThemedText type="title">Pick gifts from a living photo wishlist.</ThemedText>
         <ThemedText themeColor="textSecondary">
-          Recipients pin photos. Givers open a read-only link and reserve or mark purchased.
+          Recipients pin photos and vibes. Givers open a read-only link — reserve, chip in, shop AU. You won’t see what they chose.
         </ThemedText>
       </View>
 
