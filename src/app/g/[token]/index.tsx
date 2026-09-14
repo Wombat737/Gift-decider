@@ -63,7 +63,7 @@ export default function GiverShareScreen() {
       <View style={styles.grid}>
         {items.map((item) => (
           <View key={item.id} style={styles.cell}>
-            <ItemCard item={item} href={`/g/${token}/${item.id}`} />
+            <ItemCard item={item} href={`/g/${token}/${item.id}`} showStatus />
           </View>
         ))}
       </View>

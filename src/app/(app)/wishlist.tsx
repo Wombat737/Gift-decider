@@ -18,7 +18,7 @@ export default function WishlistGridScreen() {
       <View style={styles.header}>
         <ThemedText type="heading">What you actually want</ThemedText>
         <ThemedText themeColor="textSecondary">
-          Photo-first list for {user?.email ?? 'you'}. Givers never see who else reserved what unless you tell them.
+          Photo-first list for {user?.email ?? 'you'}. Friends pick from the shared link — you won’t see who chose what.
         </ThemedText>
       </View>
 

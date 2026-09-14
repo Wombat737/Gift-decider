@@ -46,7 +46,7 @@ export default function ShareScreen() {
   return (
     <Screen>
       <ThemedText themeColor="textSecondary">
-        Givers open this read-only link. They can reserve or mark purchased without making an account.
+        Friends open this read-only link and pick a gift. You won’t see what they chose — that’s the surprise.
       </ThemedText>
 
       <ThemedView type="backgroundElement" style={styles.card}>

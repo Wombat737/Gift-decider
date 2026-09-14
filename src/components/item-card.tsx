@@ -12,9 +12,11 @@ type ItemCardProps = {
   item: WishlistItem;
   href?: Href;
   onPress?: () => void;
+  /** Giver-only. Owners never see reserve/purchased — surprise gifts. */
+  showStatus?: boolean;
 };
 
-export function ItemCard({ item, href, onPress }: ItemCardProps) {
+export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardProps) {
   const theme = useTheme();
   const tone =
     item.status === 'purchased' ? theme.success : item.status === 'reserved' ? theme.reserved : theme.accent;
@@ -30,9 +32,11 @@ export function ItemCard({ item, href, onPress }: ItemCardProps) {
         <ThemedText type="smallBold" numberOfLines={2}>
           {item.title || 'Untitled gift'}
         </ThemedText>
-        <ThemedText type="small" style={{ color: tone }}>
-          {statusLabel(item.status)}
-        </ThemedText>
+        {showStatus ? (
+          <ThemedText type="small" style={{ color: tone }}>
+            {statusLabel(item.status)}
+          </ThemedText>
+        ) : null}
       </View>
     </>
   );

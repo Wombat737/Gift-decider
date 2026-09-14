@@ -17,6 +17,16 @@ import type {
   WishlistMember,
 } from '@/lib/types';
 
+/** Owner/recipient payloads must not include reservation fields (surprise gifts). */
+export function hideReservationFromOwner(item: WishlistItem): WishlistItem {
+  return {
+    ...item,
+    status: 'available',
+    reserved_by: null,
+    reserved_at: null,
+  };
+}
+
 export async function getOwnedWishlist(): Promise<Wishlist | null> {
   if (!supabase) return demoWishlist;
 
@@ -32,7 +42,7 @@ export async function getOwnedWishlist(): Promise<Wishlist | null> {
 }
 
 export async function listOwnedItems(): Promise<WishlistItem[]> {
-  if (!supabase) return listDemoItems();
+  if (!supabase) return listDemoItems().map(hideReservationFromOwner);
 
   const wishlist = await getOwnedWishlist();
   if (!wishlist) return [];
@@ -44,11 +54,14 @@ export async function listOwnedItems(): Promise<WishlistItem[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return (data ?? []) as WishlistItem[];
+  return ((data ?? []) as WishlistItem[]).map(hideReservationFromOwner);
 }
 
 export async function getOwnedItem(itemId: string): Promise<WishlistItem | null> {
-  if (!supabase) return getDemoItem(itemId);
+  if (!supabase) {
+    const item = getDemoItem(itemId);
+    return item ? hideReservationFromOwner(item) : null;
+  }
 
   const { data, error } = await supabase
     .from('wishlist_items')
@@ -57,11 +70,11 @@ export async function getOwnedItem(itemId: string): Promise<WishlistItem | null>
     .maybeSingle();
 
   if (error) throw error;
-  return data as WishlistItem | null;
+  return data ? hideReservationFromOwner(data as WishlistItem) : null;
 }
 
 export async function createItem(input: NewWishlistItem): Promise<WishlistItem> {
-  if (!supabase) return addDemoItem(input);
+  if (!supabase) return hideReservationFromOwner(addDemoItem(input));
 
   const wishlist = await getOwnedWishlist();
   if (!wishlist) throw new Error('No wishlist yet — sign in again after applying migrations.');
@@ -83,7 +96,7 @@ export async function createItem(input: NewWishlistItem): Promise<WishlistItem> 
     .single();
 
   if (error) throw error;
-  return data as WishlistItem;
+  return hideReservationFromOwner(data as WishlistItem);
 }
 
 export async function listInvites(): Promise<WishlistMember[]> {

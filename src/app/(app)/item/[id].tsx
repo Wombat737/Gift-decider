@@ -8,11 +8,8 @@ import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Radius, Spacing } from '@/constants/theme';
-import { statusLabel } from '@/lib/format';
-import { useTheme } from '@/hooks/use-theme';
 
 export default function ItemDetailScreen() {
-  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { items } = useWishlist();
   const item = items.find((entry) => entry.id === id);
@@ -25,9 +22,6 @@ export default function ItemDetailScreen() {
     );
   }
 
-  const tone =
-    item.status === 'purchased' ? theme.success : item.status === 'reserved' ? theme.reserved : theme.accent;
-
   return (
     <Screen>
       <Image
@@ -38,10 +32,6 @@ export default function ItemDetailScreen() {
 
       <View style={styles.block}>
         <ThemedText type="heading">{item.title || 'Untitled gift'}</ThemedText>
-        <ThemedText type="smallBold" style={{ color: tone }}>
-          {statusLabel(item.status)}
-          {item.reserved_by ? ` · ${item.reserved_by}` : ''}
-        </ThemedText>
       </View>
 
       {item.notes ? <ThemedText>{item.notes}</ThemedText> : null}
@@ -67,10 +57,6 @@ export default function ItemDetailScreen() {
       {item.buy_url ? (
         <Button label="Open buy link" variant="secondary" onPress={() => void Linking.openURL(item.buy_url!)} />
       ) : null}
-
-      <ThemedText type="small" themeColor="textSecondary">
-        Givers reserve or mark purchased from the shared link — this screen is the owner view.
-      </ThemedText>
     </Screen>
   );
 }

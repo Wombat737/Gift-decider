@@ -4,6 +4,7 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 
 - Recipients curate photos + notes + an optional buy URL
 - Givers open a shared read-only link and can reserve or mark purchased
+- **Surprise gifts:** reserved / purchased status is **giver-only**. Owner screens never show it.
 - Instagram v1: paste a public post URL → **preview stub** → pin as an item
 - AI matches are **out of this scaffold** (Phase 3)
 
@@ -145,12 +146,12 @@ npx supabase functions deploy preview-url
 | --- | --- | --- |
 | `/` | Anyone | Redirects to sign-in or `/wishlist` |
 | `/sign-in` | Anyone | Magic link + Apple/Google placeholders + Explore demo |
-| `/wishlist` | Recipient | Wishlist photo grid |
+| `/wishlist` | Recipient | Wishlist photo grid (no reserve/purchased badges) |
 | `/add` | Recipient | Manual item |
 | `/paste` | Recipient | Paste Instagram URL → stub preview → pin |
-| `/item/[id]` | Recipient | Item detail |
+| `/item/[id]` | Recipient | Item detail (no reserve/purchased state) |
 | `/share` | Recipient | Copy share link, stub email invite |
-| `/g/[token]` | Giver | Read-only list |
+| `/g/[token]` | Giver | Read-only list **with** reserve/purchased |
 | `/g/[token]/[itemId]` | Giver | Reserve / purchased |
 | `/auth/callback` | Auth | Magic-link landing stub |
 
