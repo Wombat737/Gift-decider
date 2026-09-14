@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
+import { Card } from '@/components/card';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Radius, Spacing } from '@/constants/theme';
 import { formatAud, parseAud } from '@/lib/format';
 import { isFunded, pledgeRemaining, pledgeTotal } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
@@ -52,7 +50,10 @@ export function PledgePanel({
   }
 
   return (
-    <ThemedView type="backgroundElement" style={styles.card}>
+    <Card>
+      <ThemedText type="eyebrow" themeColor="accent">
+        Givers only
+      </ThemedText>
       <ThemedText type="smallBold">Group gift · honour system</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
         Chip-in is giver-only until funded. Then they see who it’s from — not the dollar amounts.
@@ -118,14 +119,6 @@ export function PledgePanel({
           {error}
         </ThemedText>
       ) : null}
-    </ThemedView>
+    </Card>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: Radius.lg,
-    padding: Spacing.three,
-    gap: Spacing.two,
-  },
-});

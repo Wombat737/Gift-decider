@@ -13,12 +13,14 @@ export function DemoBanner() {
   if (!demo) return null;
 
   return (
-    <ThemedView type="backgroundElement" style={styles.banner}>
-      <ThemedText type="smallBold">Demo mode</ThemedText>
+    <ThemedView type="accentMuted" style={styles.banner}>
+      <ThemedText type="eyebrow" themeColor="accent">
+        Demo for mates
+      </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
         {env.isSupabaseConfigured
-          ? 'Signed in locally — data stays on this device.'
-          : 'Supabase env is empty. Screens use sample data so you can click around — including funded reveal and dead-link heal.'}
+          ? 'Signed in locally — data stays on this device. Owner screens stay unspoiled.'
+          : 'No Supabase needed. Owner screens never show who reserved or chipped in until a group gift is funded.'}
       </ThemedText>
     </ThemedView>
   );
@@ -29,6 +31,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two + 2,
-    gap: 2,
+    gap: Spacing.one,
   },
 });

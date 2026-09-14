@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 function read(name: string) {
   return (process.env[name] ?? '').trim();
 }
@@ -31,10 +29,13 @@ export const env = {
   openaiApiKey: read('EXPO_PUBLIC_OPENAI_API_KEY'),
   llmUrl: read('EXPO_PUBLIC_LLM_URL'),
   llmModel: read('EXPO_PUBLIC_LLM_MODEL') || 'gpt-4o-mini',
+  privacyPolicyUrl: read('EXPO_PUBLIC_PRIVACY_POLICY_URL'),
+  supportEmail: read('EXPO_PUBLIC_SUPPORT_EMAIL') || 'hello@giftdecider.app',
+  analyticsEnabled: flag('EXPO_PUBLIC_ANALYTICS_ENABLED'),
 };
 
 export function publicOrigin() {
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin) {
+  if (typeof window !== 'undefined' && window.location?.origin) {
     const href = typeof document !== 'undefined' ? document.querySelector('base')?.getAttribute('href') : null;
     const prefix = !href || href === '/' ? '' : href.replace(/\/$/, '');
     return `${window.location.origin}${prefix}`;

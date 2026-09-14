@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { Card } from '@/components/card';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { auBuyLinks } from '@/lib/au-buy';
 import { inspectBuyLink, linkHealthCopy, linkNeedsHeal } from '@/lib/link-health';
 import { substituteModeCopy } from '@/lib/substitutes';
@@ -40,10 +40,13 @@ export function LinkHealPanel({ item, busy, demo, onMarkDead, onDemoCheck }: Lin
   const showAlternates = !item.no_substitution && needsHeal;
 
   return (
-    <ThemedView type="backgroundElement" style={styles.card} accessibilityLabel="giver-link-heal">
+    <Card accessibilityLabel="giver-link-heal">
+      <ThemedText type="eyebrow" themeColor="accent">
+        Givers only
+      </ThemedText>
       <ThemedText type="smallBold">Buy link heal</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        Giver-only. They won’t see this. {substituteModeCopy(item)}
+        They won’t see this. {substituteModeCopy(item)}
       </ThemedText>
       <ThemedText
         type="smallBold"
@@ -109,16 +112,11 @@ export function LinkHealPanel({ item, busy, demo, onMarkDead, onDemoCheck }: Lin
           onPress={onDemoCheck}
         />
       ) : null}
-    </ThemedView>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: Radius.lg,
-    padding: Spacing.three,
-    gap: Spacing.two,
-  },
   block: {
     gap: Spacing.two,
   },

@@ -1,11 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 
-import { ItemCard } from '@/components/item-card';
+import { FlowHeader } from '@/components/flow-header';
+import { ItemGrid } from '@/components/item-grid';
+import { LegalLinks } from '@/components/legal-links';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
 import type { SharedWishlist, WishlistItem } from '@/lib/types';
 import { getSharedItems, getSharedWishlist } from '@/services/wishlist';
 
@@ -41,20 +41,22 @@ export default function GiverShareScreen() {
     void load();
   }, [load]);
 
+  const who = meta?.owner_display_name || meta?.owner_handle || 'a friend';
+  const occasion = meta?.occasion_title;
+
   return (
     <Screen>
-      <View style={styles.header}>
-        <ThemedText type="heading">{meta?.title ?? 'Shared wishlist'}</ThemedText>
-        <ThemedText themeColor="textSecondary">
-          {meta
-            ? `For ${meta.owner_display_name || meta.owner_handle || 'a friend'}${
-                meta.occasion_title ? ` · ${meta.occasion_title}` : ''
-              }. Tap a photo to reserve, chip in, or find it in AU stores. Taken/bought stays between givers — no names.`
+      <FlowHeader
+        role="giver"
+        title={meta?.title ?? (loading ? 'Opening link…' : 'Shared wishlist')}
+        subtitle={
+          meta
+            ? `For ${who}${occasion ? ` · ${occasion}` : ''}. Tap a photo to reserve, chip in, or find it in AU stores. Taken/bought stays between givers — no names. They won’t see this view.`
             : loading
               ? 'Opening link…'
-              : 'This share token did not match a list.'}
-        </ThemedText>
-      </View>
+              : 'This share token did not match a list.'
+        }
+      />
 
       {error ? (
         <ThemedText type="small" themeColor="accent">
@@ -62,28 +64,19 @@ export default function GiverShareScreen() {
         </ThemedText>
       ) : null}
 
-      <View style={styles.grid}>
-        {items.map((item) => (
-          <View key={item.id} style={styles.cell}>
-            <ItemCard item={item} href={`/g/${token}/${item.id}`} showStatus />
-          </View>
-        ))}
-      </View>
+      {!loading ? (
+        <ItemGrid
+          items={items}
+          showStatus
+          hrefFor={(item) => `/g/${token}/${item.id}`}
+          emptyTitle="Nothing in this pack"
+          emptyBody="This share link is valid but has no gifts yet. Ask them to pin a photo or assign items to the occasion."
+        />
+      ) : (
+        <ThemedText themeColor="textSecondary">Loading gifts…</ThemedText>
+      )}
+
+      <LegalLinks />
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    gap: Spacing.one,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -Spacing.one,
-  },
-  cell: {
-    width: '50%',
-    padding: Spacing.one,
-  },
-});

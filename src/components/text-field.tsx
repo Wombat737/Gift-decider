@@ -22,7 +22,7 @@ export function TextField({ label, hint, style, ...rest }: TextFieldProps) {
           {
             color: theme.text,
             backgroundColor: theme.backgroundElement,
-            borderColor: theme.backgroundSelected,
+            borderColor: theme.border,
           },
           rest.multiline && styles.multiline,
           style,
@@ -43,15 +43,15 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   input: {
-    minHeight: 48,
+    minHeight: 50,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.three,
     fontSize: 16,
     borderWidth: 1,
   },
   multiline: {
-    minHeight: 96,
-    paddingTop: Spacing.two + 4,
+    minHeight: 104,
+    paddingTop: Spacing.two + 6,
     textAlignVertical: 'top',
   },
 });

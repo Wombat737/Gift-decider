@@ -14,6 +14,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { VibeChips } from '@/components/vibe-chips';
 import { Radius, Spacing } from '@/constants/theme';
+import { track } from '@/lib/analytics';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { giverStatusLabel } from '@/lib/format';
 import { isFunded } from '@/lib/pledges';
@@ -63,6 +64,7 @@ export default function GiverItemScreen() {
     setBusy(true);
     try {
       setItem(await setSharedItemStatus(token, item.id, status, name.trim() || undefined));
+      track('giver_status', { status });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update item');
     } finally {
@@ -172,6 +174,9 @@ export default function GiverItemScreen() {
         contentFit="cover"
       />
       <View style={styles.block}>
+        <ThemedText type="eyebrow" themeColor="accent">
+          Giver view · they won’t see this
+        </ThemedText>
         <ThemedText type="heading">{item.title || 'Untitled gift'}</ThemedText>
         <ThemedText type="smallBold" style={{ color: tone }}>
           {giverStatusLabel(item.status, funded)}

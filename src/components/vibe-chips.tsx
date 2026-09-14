@@ -39,11 +39,13 @@ export function VibeChips({ tags, selected, onToggle }: VibeChipsProps) {
             style={[
               styles.chip,
               {
-                backgroundColor: active ? theme.backgroundSelected : theme.backgroundElement,
-                borderColor: active ? theme.text : theme.backgroundSelected,
+                backgroundColor: active ? theme.accentMuted : theme.backgroundElement,
+                borderColor: active ? theme.accent : theme.border,
               },
             ]}>
-            <ThemedText type="small">{tag}</ThemedText>
+            <ThemedText type="small" style={{ color: active ? theme.accent : theme.text }}>
+              {tag}
+            </ThemedText>
           </ChipWrap>
         );
       })}
@@ -72,6 +74,7 @@ export function FilterChips({ options, value, onChange }: FilterChipsProps) {
               styles.chip,
               {
                 backgroundColor: active ? theme.accent : theme.backgroundElement,
+                borderColor: active ? theme.accent : theme.border,
               },
             ]}>
             <ThemedText type="smallBold" style={{ color: active ? theme.accentText : theme.text }}>
@@ -88,14 +91,13 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.one + 2,
+    gap: Spacing.one + 4,
   },
   chip: {
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.two + 2,
-    paddingVertical: Spacing.one + 2,
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one + 3,
     borderWidth: 1,
-    borderColor: 'transparent',
     ...Platform.select({ web: { cursor: 'pointer' as const } }),
   },
 });

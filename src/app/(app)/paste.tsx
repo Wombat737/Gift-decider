@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { Card } from '@/components/card';
+import { FlowHeader } from '@/components/flow-header';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { useWishlist } from '@/context/wishlist-context';
 import { Radius, Spacing } from '@/constants/theme';
 import type { LinkPreview } from '@/lib/types';
@@ -54,9 +55,11 @@ export default function PasteInstagramScreen() {
 
   return (
     <Screen>
-      <ThemedText themeColor="textSecondary">
-        Instagram v1: paste a public post URL, preview a stub, pin it. Add vibes on the item after. No Meta OAuth, no Saves API, no scrapers.
-      </ThemedText>
+      <FlowHeader
+        role="owner"
+        title="Paste a public post"
+        subtitle="Instagram v1: preview a stub, pin it, add vibes after. No Meta OAuth, no Saves API, no scrapers."
+      />
 
       <TextField
         label="Public Instagram URL"
@@ -71,7 +74,7 @@ export default function PasteInstagramScreen() {
       <Button label={busy ? 'Working…' : 'Preview stub'} disabled={busy} onPress={() => void onPreview()} />
 
       {preview ? (
-        <ThemedView type="backgroundElement" style={styles.preview}>
+        <Card padded={false} style={styles.preview}>
           {preview.image_url ? (
             <Image source={{ uri: preview.image_url }} style={styles.image} contentFit="cover" />
           ) : null}
@@ -84,9 +87,9 @@ export default function PasteInstagramScreen() {
             <ThemedText type="small" themeColor="textSecondary">
               {preview.url}
             </ThemedText>
+            <Button label="Pin as wishlist item" onPress={() => void onPin()} disabled={busy} />
           </View>
-          <Button label="Pin as wishlist item" onPress={() => void onPin()} disabled={busy} />
-        </ThemedView>
+        </Card>
       ) : null}
 
       {error ? (
@@ -112,6 +115,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     paddingHorizontal: Spacing.three,
-    gap: Spacing.one,
+    paddingBottom: Spacing.three,
+    gap: Spacing.two,
   },
 });

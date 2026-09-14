@@ -2,13 +2,17 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { BrandMark } from '@/components/brand-mark';
 import { Button } from '@/components/button';
+import { Card } from '@/components/card';
+import { LegalLinks } from '@/components/legal-links';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/context/auth-context';
-import { env } from '@/lib/env';
 import { Spacing } from '@/constants/theme';
+import { track } from '@/lib/analytics';
+import { env } from '@/lib/env';
 
 export default function SignInScreen() {
   const { signInWithMagicLink, signInDemo, signInWithApple, signInWithGoogle } = useAuth();
@@ -22,6 +26,7 @@ export default function SignInScreen() {
     try {
       const next = await signInWithMagicLink(email);
       setMessage(next);
+      track('magic_link_requested');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not send magic link');
     } finally {
@@ -41,14 +46,33 @@ export default function SignInScreen() {
   return (
     <Screen>
       <View style={styles.hero}>
-        <ThemedText type="smallBold" themeColor="accent">
+        <BrandMark size={56} />
+        <ThemedText type="eyebrow" themeColor="accent">
           Gift Decider
         </ThemedText>
         <ThemedText type="title">Pick gifts from a living photo wishlist.</ThemedText>
         <ThemedText themeColor="textSecondary">
-          Recipients pin photos and vibes. Givers open a read-only link — reserve, chip in, shop AU. You won’t see what they chose.
+          Recipients pin photos and vibes. Givers open a read-only link — reserve, chip in, shop AU. They
+          won’t see what you chose.
         </ThemedText>
       </View>
+
+      <Card>
+        <ThemedText type="smallBold">Show mates the demo</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          No install. Sample birthday and housewarming packs, surprise-safe owner screens, giver locks and
+          chip-ins. Best on a phone browser.
+        </ThemedText>
+        <Button
+          label="Explore demo"
+          accessibilityLabel="explore-demo"
+          onPress={() => {
+            track('demo_explore');
+            signInDemo();
+            router.replace('/wishlist');
+          }}
+        />
+      </Card>
 
       <TextField
         label="Email"
@@ -65,15 +89,11 @@ export default function SignInScreen() {
         }
       />
 
-      <Button label={busy ? 'Sending…' : 'Email me a magic link'} disabled={busy} onPress={() => void onMagicLink()} />
-
       <Button
-        label="Explore demo"
+        label={busy ? 'Sending…' : 'Email me a magic link'}
         variant="secondary"
-        onPress={() => {
-          signInDemo();
-          router.replace('/wishlist');
-        }}
+        disabled={busy}
+        onPress={() => void onMagicLink()}
       />
 
       <View style={styles.oauth}>
@@ -94,6 +114,8 @@ export default function SignInScreen() {
           {message}
         </ThemedText>
       ) : null}
+
+      <LegalLinks />
     </Screen>
   );
 }
@@ -101,7 +123,7 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   hero: {
     gap: Spacing.two,
-    paddingTop: Spacing.five,
+    paddingTop: Spacing.four,
     paddingBottom: Spacing.two,
   },
   oauth: {
