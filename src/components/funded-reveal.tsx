@@ -1,6 +1,6 @@
 import { Card } from '@/components/card';
 import { ThemedText } from '@/components/themed-text';
-import { formatContributorList } from '@/lib/pledges';
+import { formatContributorList, formatRevealDate } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
 
 export function FundedReveal({ item }: { item: WishlistItem }) {
@@ -8,11 +8,12 @@ export function FundedReveal({ item }: { item: WishlistItem }) {
   if (!reveal) return null;
 
   const who = formatContributorList(reveal.contributors);
+  const when = formatRevealDate(reveal.reveal_at);
 
   return (
     <Card accessibilityLabel="funded-group-reveal">
       <ThemedText type="eyebrow" themeColor="success">
-        Funded
+        From the group
       </ThemedText>
       <ThemedText type="smallBold">It’s from the group</ThemedText>
       <ThemedText>
@@ -21,7 +22,7 @@ export function FundedReveal({ item }: { item: WishlistItem }) {
           : `Who chipped in: ${who}.`}
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        This only shows once the group gift is funded — not while it’s in flight.
+        This shows on the reveal date givers picked ({when}) — not as soon as the group gift is funded.
       </ThemedText>
     </Card>
   );

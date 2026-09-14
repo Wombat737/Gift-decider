@@ -14,10 +14,13 @@ import {
   setDemoGroupGift,
   setDemoItemStatus,
   setDemoLinkDead,
+  setDemoRevealAt,
   simulateDemoFunded,
+  simulateDemoReveal,
   updateDemoItem,
   demoWishlist,
 } from '@/lib/demo-store';
+import { asRevealDate, shiftLocalDate } from '@/lib/pledges';
 import { looksLikeDeadStubUrl } from '@/lib/link-health';
 import { hideReservationFromOwner, ownerSafeItem } from '@/lib/surprise-safe';
 import type {
@@ -35,12 +38,12 @@ import type {
 export { hideReservationFromOwner, ownerSafeItem };
 
 const OWNER_ITEM_SELECT =
-  'id, wishlist_id, image_path, image_url, title, notes, source_type, source_url, buy_url, tags, item_kind, size_hint, target_amount, occasion_id, no_substitution, funded_at, created_at';
+  'id, wishlist_id, image_path, image_url, title, notes, source_type, source_url, buy_url, tags, item_kind, size_hint, target_amount, occasion_id, no_substitution, created_at';
 
 type OwnedRevealRow = {
   item_id: string;
-  display_name: string;
-  funded_at: string | null;
+  display_name: string | null;
+  reveal_at: string | null;
 };
 
 function mergePledges(items: WishlistItem[], pledges: ItemPledge[]): WishlistItem[] {
@@ -68,7 +71,8 @@ function asOwnedRow(row: Record<string, unknown>): WishlistItem {
     occasion_id: (row.occasion_id as string | null) ?? null,
     no_substitution: Boolean(row.no_substitution),
     is_group_gift: false,
-    funded_at: (row.funded_at as string | null) ?? null,
+    funded_at: null,
+    reveal_at: null,
     buy_url_dead: false,
     status: 'available',
     reserved_by: null,
@@ -79,26 +83,28 @@ function asOwnedRow(row: Record<string, unknown>): WishlistItem {
 
 function withOwnedReveal(item: WishlistItem, rows: OwnedRevealRow[]): WishlistItem {
   const mine = rows.filter((row) => row.item_id === item.id);
-  const fundedAt = item.funded_at ?? mine[0]?.funded_at ?? null;
-  if (!fundedAt) {
-    return ownerSafeItem({ ...item, funded_at: null, pledges: undefined });
+  if (mine.length === 0) {
+    return ownerSafeItem({ ...item, funded_at: null, reveal_at: null, is_group_gift: false, pledges: undefined });
   }
+  const revealAt = asRevealDate(mine[0]?.reveal_at);
+  const named = mine.filter((row) => row.display_name != null);
   return ownerSafeItem({
     ...item,
-    funded_at: fundedAt,
-    pledges: mine.map((row, index) => ({
+    is_group_gift: true,
+    reveal_at: revealAt,
+    pledges: named.map((row, index) => ({
       id: `${item.id}-reveal-${index}`,
       item_id: item.id,
       amount: 0,
       display_name: row.display_name === 'Anonymous' ? null : row.display_name,
-      created_at: fundedAt,
+      created_at: revealAt ?? item.created_at,
     })),
   });
 }
 
-async function listOwnedFundedContributors(): Promise<OwnedRevealRow[]> {
+async function listOwnedRevealedContributors(): Promise<OwnedRevealRow[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.rpc('list_owned_funded_contributors');
+  const { data, error } = await supabase.rpc('list_owned_revealed_contributors');
   if (error) throw error;
   return (data ?? []) as OwnedRevealRow[];
 }
@@ -162,7 +168,7 @@ export async function listOwnedItems(): Promise<WishlistItem[]> {
     supabase.from('wishlist_items').select(OWNER_ITEM_SELECT).eq('wishlist_id', wishlist.id).order('created_at', {
       ascending: false,
     }),
-    listOwnedFundedContributors(),
+    listOwnedRevealedContributors(),
   ]);
 
   if (error) throw error;
@@ -177,7 +183,7 @@ export async function getOwnedItem(itemId: string): Promise<WishlistItem | null>
 
   const [{ data, error }, reveals] = await Promise.all([
     supabase.from('wishlist_items').select(OWNER_ITEM_SELECT).eq('id', itemId).maybeSingle(),
-    listOwnedFundedContributors(),
+    listOwnedRevealedContributors(),
   ]);
 
   if (error) throw error;
@@ -242,7 +248,7 @@ export async function updateOwnedItem(itemId: string, patch: UpdateWishlistItem)
     .single();
 
   if (error) throw error;
-  const reveals = await listOwnedFundedContributors();
+  const reveals = await listOwnedRevealedContributors();
   return withOwnedReveal(asOwnedRow(data as Record<string, unknown>), reveals);
 }
 
@@ -313,6 +319,7 @@ function asGiverItem(row: WishlistItem, pledges: ItemPledge[] = []): WishlistIte
     no_substitution: Boolean(row.no_substitution),
     is_group_gift: Boolean(row.is_group_gift),
     funded_at: row.funded_at ?? null,
+    reveal_at: asRevealDate(row.reveal_at),
     buy_url_dead: Boolean(row.buy_url_dead),
     pledges: pledges.filter((pledge) => pledge.item_id === row.id),
   };
@@ -366,15 +373,39 @@ export async function setSharedItemStatus(
   return asGiverItem(data as WishlistItem, pledges);
 }
 
-export async function setSharedGroupGift(token: string, itemId: string, isGroupGift: boolean): Promise<WishlistItem> {
+export async function setSharedGroupGift(
+  token: string,
+  itemId: string,
+  isGroupGift: boolean,
+  revealAt?: string | null,
+): Promise<WishlistItem> {
   if (useDemoShare(token)) {
-    return setDemoGroupGift(itemId, isGroupGift);
+    return setDemoGroupGift(itemId, isGroupGift, revealAt);
   }
 
   const { data, error } = await supabase!.rpc('set_shared_item_group_gift', {
     p_token: token,
     p_item_id: itemId,
     p_is_group_gift: isGroupGift,
+    p_reveal_at: isGroupGift ? (asRevealDate(revealAt) ?? shiftLocalDate(1)) : null,
+  });
+  if (error) throw error;
+  const pledges = await listSharedPledges(token);
+  return asGiverItem(data as WishlistItem, pledges);
+}
+
+export async function setSharedRevealAt(token: string, itemId: string, revealAt: string): Promise<WishlistItem> {
+  const date = asRevealDate(revealAt);
+  if (!date) throw new Error('Pick a reveal date');
+
+  if (useDemoShare(token)) {
+    return setDemoRevealAt(itemId, date);
+  }
+
+  const { data, error } = await supabase!.rpc('set_shared_item_reveal_at', {
+    p_token: token,
+    p_item_id: itemId,
+    p_reveal_at: date,
   });
   if (error) throw error;
   const pledges = await listSharedPledges(token);
@@ -421,6 +452,18 @@ export async function simulateSharedFunded(token: string, itemId: string): Promi
     return simulateDemoFunded(itemId, 'the group (demo)');
   }
   return markSharedItemFunded(token, itemId);
+}
+
+export async function simulateSharedReveal(
+  token: string,
+  itemId: string,
+  which: 'today' | 'yesterday' | 'next-week',
+): Promise<WishlistItem> {
+  if (useDemoShare(token)) {
+    return simulateDemoReveal(itemId, which);
+  }
+  const days = which === 'today' ? 0 : which === 'yesterday' ? -1 : 7;
+  return setSharedRevealAt(token, itemId, shiftLocalDate(days));
 }
 
 export async function setSharedLinkDead(token: string, itemId: string, dead: boolean): Promise<WishlistItem> {

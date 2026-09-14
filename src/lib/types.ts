@@ -34,10 +34,11 @@ export type ItemPledge = {
   created_at: string;
 };
 
-/** Owner-only, and only after a group gift is funded. Never includes amounts. */
+/** Owner-only, and only on/after the reveal date. Never includes amounts. */
 export type FundedReveal = {
   from_group: true;
   contributors: string[];
+  reveal_at: string | null;
 };
 
 export type LinkHealth = 'ok' | 'missing' | 'dead';
@@ -69,13 +70,15 @@ export type WishlistItem = {
   no_substitution: boolean;
   is_group_gift: boolean;
   funded_at: string | null;
+  /** Calendar date (YYYY-MM-DD). Owner sees who chipped in on/after this date — not when funded. */
+  reveal_at: string | null;
   buy_url_dead: boolean;
   status: ItemStatus;
   reserved_by: string | null;
   reserved_at: string | null;
   created_at: string;
   pledges?: ItemPledge[];
-  /** Set on owner payloads only after funded. Givers never need this. */
+  /** Set on owner payloads only on/after reveal_at. Givers never need this. */
   reveal?: FundedReveal;
 };
 

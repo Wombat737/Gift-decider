@@ -27,7 +27,9 @@ import {
   setSharedGroupGift,
   setSharedItemStatus,
   setSharedLinkDead,
+  setSharedRevealAt,
   simulateSharedFunded,
+  simulateSharedReveal,
 } from '@/services/wishlist';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -72,14 +74,27 @@ export default function GiverItemScreen() {
     }
   }
 
-  async function toggleGroup(enabled: boolean) {
+  async function toggleGroup(enabled: boolean, revealAt?: string | null) {
     if (!token || !item) return;
     setError(null);
     setBusy(true);
     try {
-      setItem(await setSharedGroupGift(token, item.id, enabled));
+      setItem(await setSharedGroupGift(token, item.id, enabled, revealAt));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update group gift');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSetRevealAt(revealAt: string) {
+    if (!token || !item) return;
+    setError(null);
+    setBusy(true);
+    try {
+      setItem(await setSharedRevealAt(token, item.id, revealAt));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save reveal date');
     } finally {
       setBusy(false);
     }
@@ -114,6 +129,19 @@ export default function GiverItemScreen() {
       setItem(await simulateSharedFunded(token, item.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not simulate funding');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSimulateReveal(which: 'today' | 'yesterday') {
+    if (!token || !item) return;
+    setError(null);
+    setBusy(true);
+    try {
+      setItem(await simulateSharedReveal(token, item.id, which));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not simulate reveal date');
     } finally {
       setBusy(false);
     }
@@ -215,10 +243,12 @@ export default function GiverItemScreen() {
         item={item}
         busy={busy}
         demo={demo}
-        onToggleGroup={(enabled) => void toggleGroup(enabled)}
+        onToggleGroup={(enabled, revealAt) => void toggleGroup(enabled, revealAt)}
+        onSetRevealAt={(revealAt) => void onSetRevealAt(revealAt)}
         onPledge={onPledge}
         onMarkFunded={() => void onMarkFunded()}
         onSimulateFunded={() => void onSimulateFunded()}
+        onSimulateReveal={(which) => void onSimulateReveal(which)}
       />
       <LinkHealPanel
         item={item}

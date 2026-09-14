@@ -53,7 +53,7 @@ export default function WishlistGridScreen() {
       <FlowHeader
         role="owner"
         title="What you actually want"
-        subtitle={`Photo-first list for ${user?.email ?? 'you'}. Friends pick from a share link — you won’t see reserves, pledges, or who bought what until a group gift is funded.`}
+        subtitle={`Photo-first list for ${user?.email ?? 'you'}. Friends pick from a share link — you won’t see reserves, pledges, or who bought what. Group gifts stay unspoiled until the reveal date.`}
       />
 
       <View style={styles.actions}>

@@ -39,9 +39,15 @@ describe('Phase 4 soft-launch stubs', () => {
 
   it('owner payloads stay surprise-safe after polish', () => {
     resetDemoStore();
-    const owner = ownerSafeItem(getDemoItem('demo-socks')!);
-    assert.equal(owner.status, 'available');
-    assert.equal(owner.reserved_by, null);
-    assert.equal(ownerPayloadLeaksGiftProgress(owner), null);
+    const socks = ownerSafeItem(getDemoItem('demo-socks')!);
+    const espresso = ownerSafeItem(getDemoItem('demo-espresso')!);
+    const grinder = ownerSafeItem(getDemoItem('demo-grinder')!);
+    assert.equal(socks.status, 'available');
+    assert.equal(socks.reserved_by, null);
+    assert.equal(espresso.reveal, undefined);
+    assert.ok(grinder.reveal);
+    assert.equal(ownerPayloadLeaksGiftProgress(socks), null);
+    assert.equal(ownerPayloadLeaksGiftProgress(espresso), null);
+    assert.equal(ownerPayloadLeaksGiftProgress(grinder), null);
   });
 });

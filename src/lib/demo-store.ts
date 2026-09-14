@@ -1,5 +1,5 @@
 import { slugToken } from '@/lib/format';
-import { isFunded, pledgeRemaining } from '@/lib/pledges';
+import { asRevealDate, isFunded, pledgeRemaining, shiftLocalDate } from '@/lib/pledges';
 import type {
   ItemPledge,
   ItemStatus,
@@ -14,7 +14,8 @@ import type {
 const DEMO_WISHLIST_ID = 'demo-wishlist';
 const DEMO_OWNER_ID = 'demo-user';
 export const DEMO_SHARE_TOKEN = 'demo';
-const STORAGE_KEY = 'giftdecider.demo.v3';
+const STORAGE_KEY = 'giftdecider.demo.v4';
+const LEGACY_V3_KEY = 'giftdecider.demo.v3';
 const LEGACY_V2_KEY = 'giftdecider.demo.v2';
 const LEGACY_ITEMS_KEY = 'giftdecider.demo-items.v1';
 
@@ -62,6 +63,7 @@ const seedItems: WishlistItem[] = [
     no_substitution: true,
     is_group_gift: false,
     funded_at: null,
+    reveal_at: null,
     buy_url_dead: false,
     status: 'available',
     reserved_by: null,
@@ -86,6 +88,7 @@ const seedItems: WishlistItem[] = [
     no_substitution: false,
     is_group_gift: false,
     funded_at: null,
+    reveal_at: null,
     buy_url_dead: false,
     status: 'reserved',
     reserved_by: 'Alex',
@@ -110,6 +113,7 @@ const seedItems: WishlistItem[] = [
     no_substitution: false,
     is_group_gift: false,
     funded_at: null,
+    reveal_at: null,
     buy_url_dead: false,
     status: 'available',
     reserved_by: null,
@@ -134,6 +138,7 @@ const seedItems: WishlistItem[] = [
     no_substitution: false,
     is_group_gift: false,
     funded_at: null,
+    reveal_at: null,
     buy_url_dead: false,
     status: 'purchased',
     reserved_by: 'Sam',
@@ -158,11 +163,37 @@ const seedItems: WishlistItem[] = [
     no_substitution: false,
     is_group_gift: true,
     funded_at: null,
+    reveal_at: shiftLocalDate(14),
     buy_url_dead: false,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
     created_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'demo-grinder',
+    wishlist_id: DEMO_WISHLIST_ID,
+    image_path: null,
+    image_url: 'https://picsum.photos/seed/giftdecider-grinder/800/800',
+    title: 'Burr coffee grinder',
+    notes: 'Stepless, not a blade. Pairs with the espresso machine if friends go in together.',
+    source_type: 'manual',
+    source_url: null,
+    buy_url: 'https://example.com/grinder',
+    tags: ['kitchen', 'coffee'],
+    item_kind: 'exact',
+    size_hint: null,
+    target_amount: 249,
+    occasion_id: 'demo-occasion-housewarming',
+    no_substitution: false,
+    is_group_gift: true,
+    funded_at: '2026-01-08T00:00:00.000Z',
+    reveal_at: shiftLocalDate(-1),
+    buy_url_dead: false,
+    status: 'available',
+    reserved_by: null,
+    reserved_at: null,
+    created_at: '2026-01-04T00:00:00.000Z',
   },
   {
     id: 'demo-throw',
@@ -182,6 +213,7 @@ const seedItems: WishlistItem[] = [
     no_substitution: false,
     is_group_gift: false,
     funded_at: null,
+    reveal_at: null,
     buy_url_dead: true,
     status: 'available',
     reserved_by: null,
@@ -204,6 +236,20 @@ const seedPledges: ItemPledge[] = [
     amount: 50,
     display_name: null,
     created_at: '2026-01-03T00:00:00.000Z',
+  },
+  {
+    id: 'demo-pledge-3',
+    item_id: 'demo-grinder',
+    amount: 120,
+    display_name: 'Sam',
+    created_at: '2026-01-05T00:00:00.000Z',
+  },
+  {
+    id: 'demo-pledge-4',
+    item_id: 'demo-grinder',
+    amount: 129,
+    display_name: null,
+    created_at: '2026-01-06T00:00:00.000Z',
   },
 ];
 
@@ -228,6 +274,7 @@ function occasionIdFor(raw: Partial<WishlistItem> & { id: string }) {
     raw.id === 'demo-book' ||
     raw.id === 'demo-plant' ||
     raw.id === 'demo-espresso' ||
+    raw.id === 'demo-grinder' ||
     raw.id === 'demo-throw'
   ) {
     return 'demo-occasion-housewarming';
@@ -235,7 +282,14 @@ function occasionIdFor(raw: Partial<WishlistItem> & { id: string }) {
   return null;
 }
 
+function defaultRevealAt(id: string) {
+  if (id === 'demo-espresso') return shiftLocalDate(14);
+  if (id === 'demo-grinder') return shiftLocalDate(-1);
+  return null;
+}
+
 function normalizeItem(raw: Partial<WishlistItem> & { id: string }): WishlistItem {
+  const isGroup = Boolean(raw.is_group_gift) || raw.id === 'demo-espresso' || raw.id === 'demo-grinder';
   return {
     id: raw.id,
     wishlist_id: raw.wishlist_id ?? DEMO_WISHLIST_ID,
@@ -252,8 +306,9 @@ function normalizeItem(raw: Partial<WishlistItem> & { id: string }): WishlistIte
     target_amount: typeof raw.target_amount === 'number' ? raw.target_amount : null,
     occasion_id: occasionIdFor(raw),
     no_substitution: Boolean(raw.no_substitution),
-    is_group_gift: Boolean(raw.is_group_gift) || raw.id === 'demo-espresso',
-    funded_at: raw.funded_at ?? null,
+    is_group_gift: isGroup,
+    funded_at: raw.funded_at ?? (raw.id === 'demo-grinder' ? '2026-01-08T00:00:00.000Z' : null),
+    reveal_at: asRevealDate(raw.reveal_at) ?? (isGroup ? defaultRevealAt(raw.id) ?? shiftLocalDate(1) : null),
     buy_url_dead: Boolean(raw.buy_url_dead) || raw.id === 'demo-throw',
     status: raw.status === 'reserved' || raw.status === 'purchased' ? raw.status : 'available',
     reserved_by: raw.reserved_by ?? null,
@@ -262,10 +317,16 @@ function normalizeItem(raw: Partial<WishlistItem> & { id: string }): WishlistIte
   };
 }
 
-function ensurePhase3Items(items: WishlistItem[]) {
+function ensureSeedItems(items: WishlistItem[]) {
   const known = new Set(items.map((item) => item.id));
   const extra = seedItems.filter((item) => !known.has(item.id)).map((item) => normalizeItem(item));
   return extra.length ? [...items, ...extra] : items;
+}
+
+function ensureSeedPledges(list: ItemPledge[]) {
+  const known = new Set(list.map((row) => row.id));
+  const extra = seedPledges.filter((row) => !known.has(row.id));
+  return extra.length ? [...list, ...extra] : list;
 }
 
 function fallbackBundle(): DemoBundle {
@@ -280,12 +341,12 @@ function parseBundle(raw: string): DemoBundle | null {
   try {
     const parsed = JSON.parse(raw) as Partial<DemoBundle>;
     if (!Array.isArray(parsed.items) || parsed.items.length === 0) return null;
-    const items = ensurePhase3Items(parsed.items.map((item) => normalizeItem(item)));
+    const items = ensureSeedItems(parsed.items.map((item) => normalizeItem(item)));
     const occasions =
       Array.isArray(parsed.occasions) && parsed.occasions.length > 0
         ? parsed.occasions
         : fallbackBundle().occasions;
-    const pledges = Array.isArray(parsed.pledges) ? parsed.pledges : fallbackBundle().pledges;
+    const pledges = ensureSeedPledges(Array.isArray(parsed.pledges) ? parsed.pledges : fallbackBundle().pledges);
     return { items, occasions, pledges };
   } catch {
     return null;
@@ -300,6 +361,9 @@ function loadBundle(): DemoBundle {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) return parseBundle(raw) ?? fallback;
 
+    const v3 = window.localStorage.getItem(LEGACY_V3_KEY);
+    if (v3) return parseBundle(v3) ?? fallback;
+
     const v2 = window.localStorage.getItem(LEGACY_V2_KEY);
     if (v2) return parseBundle(v2) ?? fallback;
 
@@ -307,7 +371,7 @@ function loadBundle(): DemoBundle {
     if (legacy) {
       const parsed = JSON.parse(legacy) as Partial<WishlistItem>[];
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const items = ensurePhase3Items(
+        const items = ensureSeedItems(
           parsed.filter((row) => row && row.id).map((row) => normalizeItem(row as WishlistItem)),
         );
         return { items, occasions: fallback.occasions, pledges: fallback.pledges };
@@ -359,7 +423,12 @@ function maybeFund(item: WishlistItem): WishlistItem {
   if (item.funded_at) return item;
   const withCurrent = withPledges(item);
   if (!isFunded(withCurrent)) return item;
-  return { ...item, funded_at: now(), is_group_gift: true };
+  return {
+    ...item,
+    funded_at: now(),
+    is_group_gift: true,
+    reveal_at: item.reveal_at ?? shiftLocalDate(1),
+  };
 }
 
 export function resolveDemoShare(token: string): { occasion: Occasion | null } | null {
@@ -427,6 +496,7 @@ export function addDemoItem(input: NewWishlistItem): WishlistItem {
     no_substitution: input.no_substitution ?? false,
     is_group_gift: false,
     funded_at: null,
+    reveal_at: null,
     buy_url_dead: false,
     status: 'available',
     reserved_by: null,
@@ -499,13 +569,40 @@ export function setDemoItemStatus(itemId: string, status: ItemStatus, reservedBy
   return withPledges(next);
 }
 
-export function setDemoGroupGift(itemId: string, isGroupGift: boolean): WishlistItem {
+export function setDemoGroupGift(itemId: string, isGroupGift: boolean, revealAt?: string | null): WishlistItem {
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
-  const next: WishlistItem = { ...current, is_group_gift: isGroupGift };
+  if (isGroupGift) {
+    const date = asRevealDate(revealAt) ?? current.reveal_at ?? shiftLocalDate(1);
+    if (!date) throw new Error('Pick a reveal date');
+    const next: WishlistItem = { ...current, is_group_gift: true, reveal_at: date };
+    items = items.map((item) => (item.id === itemId ? next : item));
+    saveBundle();
+    return withPledges(next);
+  }
+  const next: WishlistItem = { ...current, is_group_gift: false, reveal_at: null };
   items = items.map((item) => (item.id === itemId ? next : item));
   saveBundle();
   return withPledges(next);
+}
+
+export function setDemoRevealAt(itemId: string, revealAt: string): WishlistItem {
+  const date = asRevealDate(revealAt);
+  if (!date) throw new Error('Pick a reveal date');
+  const current = items.find((item) => item.id === itemId);
+  if (!current) throw new Error('Item not found');
+  const next: WishlistItem = { ...current, is_group_gift: true, reveal_at: date };
+  items = items.map((item) => (item.id === itemId ? next : item));
+  saveBundle();
+  return withPledges(next);
+}
+
+export type DemoRevealShift = 'today' | 'yesterday' | 'next-week';
+
+/** Demo-only: jump the reveal calendar date so owner reveal can be walked. */
+export function simulateDemoReveal(itemId: string, which: DemoRevealShift): WishlistItem {
+  const days = which === 'today' ? 0 : which === 'yesterday' ? -1 : 7;
+  return setDemoRevealAt(itemId, shiftLocalDate(days));
 }
 
 export function addDemoPledge(itemId: string, amount: number, displayName?: string | null): ItemPledge {
@@ -521,7 +618,11 @@ export function addDemoPledge(itemId: string, amount: number, displayName?: stri
     created_at: now(),
   };
   pledges = [...pledges, pledge];
-  const next = maybeFund({ ...current, is_group_gift: true });
+  const next = maybeFund({
+    ...current,
+    is_group_gift: true,
+    reveal_at: current.reveal_at ?? shiftLocalDate(1),
+  });
   items = items.map((item) => (item.id === itemId ? next : item));
   saveBundle();
   return { ...pledge };
@@ -534,6 +635,7 @@ export function markDemoItemFunded(itemId: string): WishlistItem {
     ...current,
     is_group_gift: true,
     funded_at: current.funded_at ?? now(),
+    reveal_at: current.reveal_at ?? shiftLocalDate(1),
   };
   items = items.map((item) => (item.id === itemId ? next : item));
   saveBundle();

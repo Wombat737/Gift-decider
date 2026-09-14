@@ -1,4 +1,4 @@
-import { contributorLabel, isFunded } from '@/lib/pledges';
+import { contributorLabel, isRevealedToOwner } from '@/lib/pledges';
 import type { FundedReveal, WishlistItem } from '@/lib/types';
 
 function revealFromItem(item: WishlistItem): FundedReveal {
@@ -6,16 +6,17 @@ function revealFromItem(item: WishlistItem): FundedReveal {
   return {
     from_group: true,
     contributors,
+    reveal_at: item.reveal_at,
   };
 }
 
 /**
  * Recipient/owner payload. Strips in-flight spoilers (reserve, purchase, pledges,
- * group progress, dead-link heal). After a group gift is funded, attaches who
- * chipped in — names only, never amounts.
+ * group progress, dead-link heal, funded state). On/after the reveal date for a
+ * group gift, attaches who chipped in — names only, never amounts.
  */
 export function ownerSafeItem(item: WishlistItem): WishlistItem {
-  const funded = isFunded(item);
+  const revealed = isRevealedToOwner(item);
 
   return {
     ...item,
@@ -25,9 +26,10 @@ export function ownerSafeItem(item: WishlistItem): WishlistItem {
     reserved_at: null,
     is_group_gift: false,
     buy_url_dead: false,
-    funded_at: funded ? (item.funded_at ?? item.created_at) : null,
+    funded_at: null,
+    reveal_at: revealed ? item.reveal_at : null,
     pledges: undefined,
-    reveal: funded ? revealFromItem(item) : undefined,
+    reveal: revealed ? revealFromItem(item) : undefined,
   };
 }
 
@@ -43,8 +45,8 @@ export function ownerPayloadLeaksGiftProgress(item: WishlistItem) {
   if (item.is_group_gift) return 'is_group_gift';
   if (item.buy_url_dead) return 'buy_url_dead';
   if (item.pledges) return 'pledges';
-  if (!isFunded(item) && item.reveal) return 'early_reveal';
-  if (!isFunded(item) && item.funded_at) return 'early_funded_at';
+  if (item.funded_at) return 'funded_at';
+  if (!item.reveal && item.reveal_at) return 'early_reveal_at';
   if (item.reveal?.contributors.some((name) => /\d/.test(name) && /\$|aud/i.test(name))) return 'amount_in_name';
   return null;
 }

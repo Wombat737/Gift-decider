@@ -1,5 +1,42 @@
 import type { ItemPledge, WishlistItem } from '@/lib/types';
 
+/** Local calendar date as YYYY-MM-DD (MVP compare; not timezone-aware). */
+export function localDateISO(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function shiftLocalDate(days: number, from = new Date()) {
+  return localDateISO(new Date(from.getFullYear(), from.getMonth(), from.getDate() + days));
+}
+
+export function asRevealDate(value: string | null | undefined) {
+  if (!value) return null;
+  const match = value.trim().match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : null;
+}
+
+export function formatRevealDate(value: string | null | undefined) {
+  const iso = asRevealDate(value);
+  if (!iso) return 'the reveal date';
+  const [year, month, day] = iso.split('-').map((part) => Number(part));
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+export function isRevealDue(item: Pick<WishlistItem, 'reveal_at'>, now = new Date()) {
+  const iso = asRevealDate(item.reveal_at);
+  if (!iso) return false;
+  return localDateISO(now) >= iso;
+}
+
+/** Owner sees who chipped in only for a group gift on/after reveal_at — funded does not unlock it. */
+export function isRevealedToOwner(item: WishlistItem, now = new Date()) {
+  return Boolean(item.is_group_gift) && isRevealDue(item, now);
+}
+
 export function itemPledges(item: WishlistItem): ItemPledge[] {
   return item.pledges ?? [];
 }

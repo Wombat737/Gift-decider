@@ -20,7 +20,7 @@ export function DemoBanner() {
       <ThemedText type="small" themeColor="textSecondary">
         {env.isSupabaseConfigured
           ? 'Signed in locally — data stays on this device. Owner screens stay unspoiled.'
-          : 'No Supabase needed. Owner screens never show who reserved or chipped in until a group gift is funded.'}
+          : 'No Supabase needed. Owner screens never show who reserved or chipped in until the group-gift reveal date.'}
       </ThemedText>
     </ThemedView>
   );
