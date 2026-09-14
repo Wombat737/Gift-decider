@@ -27,6 +27,10 @@ export const env = {
   googleWebClientId: read('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID'),
   googleIosClientId: read('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID'),
   googleAndroidClientId: read('EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID'),
+  /** Optional. Exposed in the web bundle if set — prefer the Edge Function in production. */
+  openaiApiKey: read('EXPO_PUBLIC_OPENAI_API_KEY'),
+  llmUrl: read('EXPO_PUBLIC_LLM_URL'),
+  llmModel: read('EXPO_PUBLIC_LLM_MODEL') || 'gpt-4o-mini',
 };
 
 export function publicOrigin() {

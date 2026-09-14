@@ -34,6 +34,23 @@ export type ItemPledge = {
   created_at: string;
 };
 
+/** Owner-only, and only after a group gift is funded. Never includes amounts. */
+export type FundedReveal = {
+  from_group: true;
+  contributors: string[];
+};
+
+export type LinkHealth = 'ok' | 'missing' | 'dead';
+
+export type GiftSubstitute = {
+  id: string;
+  title: string;
+  reason: string;
+  query: string;
+  exactSku: boolean;
+  vibeTags: string[];
+};
+
 export type WishlistItem = {
   id: string;
   wishlist_id: string;
@@ -51,11 +68,15 @@ export type WishlistItem = {
   occasion_id: string | null;
   no_substitution: boolean;
   is_group_gift: boolean;
+  funded_at: string | null;
+  buy_url_dead: boolean;
   status: ItemStatus;
   reserved_by: string | null;
   reserved_at: string | null;
   created_at: string;
   pledges?: ItemPledge[];
+  /** Set on owner payloads only after funded. Givers never need this. */
+  reveal?: FundedReveal;
 };
 
 export type WishlistMember = {

@@ -61,7 +61,7 @@ export default function ShareScreen() {
   return (
     <Screen>
       <ThemedText themeColor="textSecondary">
-        Whole-list or occasion packs. Friends open a read-only link. You won’t see what they reserved, pledged, or bought.
+        Whole-list or occasion packs. Friends open a read-only link. You won’t see reserves or chip-in progress until a group gift is funded.
       </ThemedText>
 
       <ThemedView type="backgroundElement" style={styles.card}>

@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { Button } from '@/components/button';
 import { FilterChips } from '@/components/vibe-chips';
@@ -13,8 +13,14 @@ import { Spacing } from '@/constants/theme';
 
 export default function WishlistGridScreen() {
   const { user, signOut } = useAuth();
-  const { items, occasions, loading, error } = useWishlist();
+  const { items, occasions, loading, error, refresh } = useWishlist();
   const [occasionId, setOccasionId] = useState('all');
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   const visible = useMemo(() => {
     if (occasionId === 'all') return items;
@@ -27,7 +33,8 @@ export default function WishlistGridScreen() {
       <View style={styles.header}>
         <ThemedText type="heading">What you actually want</ThemedText>
         <ThemedText themeColor="textSecondary">
-          Photo-first list for {user?.email ?? 'you'}. Friends pick from a share link — you won’t see reserves, pledges, or who bought what.
+          Photo-first list for {user?.email ?? 'you'}. Friends pick from a share link — you won’t see
+          reserves, pledges, or who bought what until a group gift is funded.
         </ThemedText>
       </View>
 

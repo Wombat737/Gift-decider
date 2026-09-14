@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { AuBuyLinks } from '@/components/au-buy-links';
 import { Button } from '@/components/button';
 import { ConfidenceBadge } from '@/components/confidence-badge';
+import { LinkHealPanel } from '@/components/link-heal-panel';
 import { NoSubLock } from '@/components/no-sub-lock';
 import { PledgePanel } from '@/components/pledge-panel';
 import { Screen } from '@/components/screen';
@@ -13,14 +14,19 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { VibeChips } from '@/components/vibe-chips';
 import { Radius, Spacing } from '@/constants/theme';
+import { isDemoShareToken } from '@/lib/demo-store';
 import { giverStatusLabel } from '@/lib/format';
 import { isFunded } from '@/lib/pledges';
 import type { ItemStatus, WishlistItem } from '@/lib/types';
 import {
   addSharedPledge,
   getSharedItems,
+  markSharedItemFunded,
+  runDemoLinkCheck,
   setSharedGroupGift,
   setSharedItemStatus,
+  setSharedLinkDead,
+  simulateSharedFunded,
 } from '@/services/wishlist';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -85,6 +91,58 @@ export default function GiverItemScreen() {
     setItem(next ?? { ...item, is_group_gift: true, pledges: [...(item.pledges ?? []), pledge] });
   }
 
+  async function onMarkFunded() {
+    if (!token || !item) return;
+    setError(null);
+    setBusy(true);
+    try {
+      setItem(await markSharedItemFunded(token, item.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not mark funded');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSimulateFunded() {
+    if (!token || !item) return;
+    setError(null);
+    setBusy(true);
+    try {
+      setItem(await simulateSharedFunded(token, item.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not simulate funding');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onMarkDead(dead: boolean) {
+    if (!token || !item) return;
+    setError(null);
+    setBusy(true);
+    try {
+      setItem(await setSharedLinkDead(token, item.id, dead));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update link');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onDemoCheck() {
+    if (!token || !item) return;
+    setError(null);
+    setBusy(true);
+    try {
+      setItem(await runDemoLinkCheck(token, item));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not check link');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading && !item) {
     return (
       <Screen>
@@ -102,6 +160,7 @@ export default function GiverItemScreen() {
   }
 
   const funded = isFunded(item);
+  const demo = Boolean(token && isDemoShareToken(token));
   const tone = funded || item.status === 'purchased' ? theme.success : item.status === 'reserved' ? theme.reserved : theme.accent;
   const taken = item.status === 'reserved' || item.status === 'purchased';
 
@@ -147,7 +206,22 @@ export default function GiverItemScreen() {
       <Button label="Mark purchased" variant="secondary" disabled={busy} onPress={() => void updateStatus('purchased')} />
       <Button label="Release hold" variant="ghost" disabled={busy} onPress={() => void updateStatus('available')} />
 
-      <PledgePanel item={item} busy={busy} onToggleGroup={(enabled) => void toggleGroup(enabled)} onPledge={onPledge} />
+      <PledgePanel
+        item={item}
+        busy={busy}
+        demo={demo}
+        onToggleGroup={(enabled) => void toggleGroup(enabled)}
+        onPledge={onPledge}
+        onMarkFunded={() => void onMarkFunded()}
+        onSimulateFunded={() => void onSimulateFunded()}
+      />
+      <LinkHealPanel
+        item={item}
+        busy={busy}
+        demo={demo}
+        onMarkDead={(dead) => void onMarkDead(dead)}
+        onDemoCheck={() => void onDemoCheck()}
+      />
       <AuBuyLinks item={item} />
 
       {error ? (

@@ -1,9 +1,10 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { FundedReveal } from '@/components/funded-reveal';
 import { ItemFields, type ItemFieldsValue } from '@/components/item-fields';
 import { NoSubLock } from '@/components/no-sub-lock';
 import { Screen } from '@/components/screen';
@@ -15,9 +16,15 @@ import { parseAud } from '@/lib/format';
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { items, occasions, saveItem } = useWishlist();
+  const { items, occasions, saveItem, refresh } = useWishlist();
   const item = items.find((entry) => entry.id === id);
   const occasion = occasions.find((row) => row.id === item?.occasion_id);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,6 +140,8 @@ export default function ItemDetailScreen() {
           {item.no_substitution ? <NoSubLock /> : null}
 
           {item.tags.length > 0 ? <VibeChips tags={item.tags} /> : null}
+
+          <FundedReveal item={item} />
 
           {item.source_url ? (
             <ThemedText type="small" themeColor="textSecondary">

@@ -1,4 +1,5 @@
 import { slugToken } from '@/lib/format';
+import { isFunded, pledgeRemaining } from '@/lib/pledges';
 import type {
   ItemPledge,
   ItemStatus,
@@ -13,7 +14,8 @@ import type {
 const DEMO_WISHLIST_ID = 'demo-wishlist';
 const DEMO_OWNER_ID = 'demo-user';
 export const DEMO_SHARE_TOKEN = 'demo';
-const STORAGE_KEY = 'giftdecider.demo.v2';
+const STORAGE_KEY = 'giftdecider.demo.v3';
+const LEGACY_V2_KEY = 'giftdecider.demo.v2';
 const LEGACY_ITEMS_KEY = 'giftdecider.demo-items.v1';
 
 function now() {
@@ -59,6 +61,8 @@ const seedItems: WishlistItem[] = [
     occasion_id: 'demo-occasion-birthday',
     no_substitution: true,
     is_group_gift: false,
+    funded_at: null,
+    buy_url_dead: false,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
@@ -81,6 +85,8 @@ const seedItems: WishlistItem[] = [
     occasion_id: 'demo-occasion-birthday',
     no_substitution: false,
     is_group_gift: false,
+    funded_at: null,
+    buy_url_dead: false,
     status: 'reserved',
     reserved_by: 'Alex',
     reserved_at: '2026-01-01T00:00:00.000Z',
@@ -103,6 +109,8 @@ const seedItems: WishlistItem[] = [
     occasion_id: 'demo-occasion-housewarming',
     no_substitution: false,
     is_group_gift: false,
+    funded_at: null,
+    buy_url_dead: false,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
@@ -125,6 +133,8 @@ const seedItems: WishlistItem[] = [
     occasion_id: 'demo-occasion-housewarming',
     no_substitution: false,
     is_group_gift: false,
+    funded_at: null,
+    buy_url_dead: false,
     status: 'purchased',
     reserved_by: 'Sam',
     reserved_at: '2026-01-01T00:00:00.000Z',
@@ -147,6 +157,32 @@ const seedItems: WishlistItem[] = [
     occasion_id: 'demo-occasion-housewarming',
     no_substitution: false,
     is_group_gift: true,
+    funded_at: null,
+    buy_url_dead: false,
+    status: 'available',
+    reserved_by: null,
+    reserved_at: null,
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'demo-throw',
+    wishlist_id: DEMO_WISHLIST_ID,
+    image_path: null,
+    image_url: 'https://picsum.photos/seed/giftdecider-throw/800/800',
+    title: 'Washed linen throw',
+    notes: 'Oatmeal or sage. Nothing neon. The listing they saved is gone.',
+    source_type: 'url',
+    source_url: 'https://example.com/dead-link/linen-throw',
+    buy_url: 'https://example.com/dead-link/linen-throw',
+    tags: ['cozy', 'home', 'soft'],
+    item_kind: 'vibe',
+    size_hint: null,
+    target_amount: null,
+    occasion_id: 'demo-occasion-housewarming',
+    no_substitution: false,
+    is_group_gift: false,
+    funded_at: null,
+    buy_url_dead: true,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
@@ -159,7 +195,7 @@ const seedPledges: ItemPledge[] = [
     id: 'demo-pledge-1',
     item_id: 'demo-espresso',
     amount: 80,
-    display_name: null,
+    display_name: 'Alex',
     created_at: '2026-01-02T00:00:00.000Z',
   },
   {
@@ -185,15 +221,21 @@ function cloneItems(list: WishlistItem[]) {
   return list.map((item) => ({ ...item, tags: [...item.tags] }));
 }
 
-function normalizeItem(raw: Partial<WishlistItem> & { id: string }): WishlistItem {
-  const occasionId =
-    raw.occasion_id ??
-    (raw.id === 'demo-mug' || raw.id === 'demo-socks'
-      ? 'demo-occasion-birthday'
-      : raw.id === 'demo-book' || raw.id === 'demo-plant' || raw.id === 'demo-espresso'
-        ? 'demo-occasion-housewarming'
-        : null);
+function occasionIdFor(raw: Partial<WishlistItem> & { id: string }) {
+  if (raw.occasion_id) return raw.occasion_id;
+  if (raw.id === 'demo-mug' || raw.id === 'demo-socks') return 'demo-occasion-birthday';
+  if (
+    raw.id === 'demo-book' ||
+    raw.id === 'demo-plant' ||
+    raw.id === 'demo-espresso' ||
+    raw.id === 'demo-throw'
+  ) {
+    return 'demo-occasion-housewarming';
+  }
+  return null;
+}
 
+function normalizeItem(raw: Partial<WishlistItem> & { id: string }): WishlistItem {
   return {
     id: raw.id,
     wishlist_id: raw.wishlist_id ?? DEMO_WISHLIST_ID,
@@ -208,9 +250,11 @@ function normalizeItem(raw: Partial<WishlistItem> & { id: string }): WishlistIte
     item_kind: raw.item_kind === 'vibe' ? 'vibe' : 'exact',
     size_hint: raw.size_hint ?? null,
     target_amount: typeof raw.target_amount === 'number' ? raw.target_amount : null,
-    occasion_id: occasionId,
+    occasion_id: occasionIdFor(raw),
     no_substitution: Boolean(raw.no_substitution),
     is_group_gift: Boolean(raw.is_group_gift) || raw.id === 'demo-espresso',
+    funded_at: raw.funded_at ?? null,
+    buy_url_dead: Boolean(raw.buy_url_dead) || raw.id === 'demo-throw',
     status: raw.status === 'reserved' || raw.status === 'purchased' ? raw.status : 'available',
     reserved_by: raw.reserved_by ?? null,
     reserved_at: raw.reserved_at ?? null,
@@ -218,40 +262,55 @@ function normalizeItem(raw: Partial<WishlistItem> & { id: string }): WishlistIte
   };
 }
 
-function loadBundle(): DemoBundle {
-  const fallback: DemoBundle = {
+function ensurePhase3Items(items: WishlistItem[]) {
+  const known = new Set(items.map((item) => item.id));
+  const extra = seedItems.filter((item) => !known.has(item.id)).map((item) => normalizeItem(item));
+  return extra.length ? [...items, ...extra] : items;
+}
+
+function fallbackBundle(): DemoBundle {
+  return {
     items: cloneItems(seedItems),
     occasions: demoOccasionsSeed.map((row) => ({ ...row })),
     pledges: seedPledges.map((row) => ({ ...row })),
   };
+}
 
+function parseBundle(raw: string): DemoBundle | null {
+  try {
+    const parsed = JSON.parse(raw) as Partial<DemoBundle>;
+    if (!Array.isArray(parsed.items) || parsed.items.length === 0) return null;
+    const items = ensurePhase3Items(parsed.items.map((item) => normalizeItem(item)));
+    const occasions =
+      Array.isArray(parsed.occasions) && parsed.occasions.length > 0
+        ? parsed.occasions
+        : fallbackBundle().occasions;
+    const pledges = Array.isArray(parsed.pledges) ? parsed.pledges : fallbackBundle().pledges;
+    return { items, occasions, pledges };
+  } catch {
+    return null;
+  }
+}
+
+function loadBundle(): DemoBundle {
+  const fallback = fallbackBundle();
   if (!canUseStorage()) return fallback;
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<DemoBundle>;
-      const items = Array.isArray(parsed.items) ? parsed.items.map((item) => normalizeItem(item)) : fallback.items;
-      const occasions = Array.isArray(parsed.occasions) && parsed.occasions.length > 0 ? parsed.occasions : fallback.occasions;
-      const pledges = Array.isArray(parsed.pledges) ? parsed.pledges : fallback.pledges;
-      return { items, occasions, pledges };
-    }
+    if (raw) return parseBundle(raw) ?? fallback;
+
+    const v2 = window.localStorage.getItem(LEGACY_V2_KEY);
+    if (v2) return parseBundle(v2) ?? fallback;
 
     const legacy = window.localStorage.getItem(LEGACY_ITEMS_KEY);
     if (legacy) {
       const parsed = JSON.parse(legacy) as Partial<WishlistItem>[];
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const items = parsed.filter((row) => row && row.id).map((row) => normalizeItem(row as WishlistItem));
-        const knownIds = new Set(items.map((item) => item.id));
-        const espresso = seedItems.find((item) => item.id === 'demo-espresso');
-        if (espresso && !knownIds.has('demo-espresso')) {
-          items.push(normalizeItem(espresso));
-        }
-        return {
-          items,
-          occasions: fallback.occasions,
-          pledges: fallback.pledges,
-        };
+        const items = ensurePhase3Items(
+          parsed.filter((row) => row && row.id).map((row) => normalizeItem(row as WishlistItem)),
+        );
+        return { items, occasions: fallback.occasions, pledges: fallback.pledges };
       }
     }
   } catch {
@@ -294,6 +353,13 @@ function withPledges(item: WishlistItem): WishlistItem {
     tags: [...item.tags],
     pledges: pledges.filter((pledge) => pledge.item_id === item.id).map((pledge) => ({ ...pledge })),
   };
+}
+
+function maybeFund(item: WishlistItem): WishlistItem {
+  if (item.funded_at) return item;
+  const withCurrent = withPledges(item);
+  if (!isFunded(withCurrent)) return item;
+  return { ...item, funded_at: now(), is_group_gift: true };
 }
 
 export function resolveDemoShare(token: string): { occasion: Occasion | null } | null {
@@ -360,6 +426,8 @@ export function addDemoItem(input: NewWishlistItem): WishlistItem {
     occasion_id: input.occasion_id ?? null,
     no_substitution: input.no_substitution ?? false,
     is_group_gift: false,
+    funded_at: null,
+    buy_url_dead: false,
     status: 'available',
     reserved_by: null,
     reserved_at: null,
@@ -388,6 +456,7 @@ export function updateDemoItem(itemId: string, patch: UpdateWishlistItem): Wishl
     target_amount: patch.target_amount === undefined ? current.target_amount : patch.target_amount,
     occasion_id: patch.occasion_id === undefined ? current.occasion_id : patch.occasion_id,
     no_substitution: patch.no_substitution ?? current.no_substitution,
+    buy_url_dead: patch.buy_url !== undefined && patch.buy_url !== current.buy_url ? false : current.buy_url_dead,
   };
 
   items = items.map((item) => (item.id === itemId ? next : item));
@@ -452,9 +521,50 @@ export function addDemoPledge(itemId: string, amount: number, displayName?: stri
     created_at: now(),
   };
   pledges = [...pledges, pledge];
-  if (!current.is_group_gift) {
-    items = items.map((item) => (item.id === itemId ? { ...item, is_group_gift: true } : item));
-  }
+  const next = maybeFund({ ...current, is_group_gift: true });
+  items = items.map((item) => (item.id === itemId ? next : item));
   saveBundle();
   return { ...pledge };
+}
+
+export function markDemoItemFunded(itemId: string): WishlistItem {
+  const current = items.find((item) => item.id === itemId);
+  if (!current) throw new Error('Item not found');
+  const next: WishlistItem = {
+    ...current,
+    is_group_gift: true,
+    funded_at: current.funded_at ?? now(),
+  };
+  items = items.map((item) => (item.id === itemId ? next : item));
+  saveBundle();
+  return withPledges(next);
+}
+
+/** Demo-only: chip in whatever is left (or $1) and mark funded. */
+export function simulateDemoFunded(itemId: string, displayName?: string | null): WishlistItem {
+  const current = getDemoItem(itemId);
+  if (!current) throw new Error('Item not found');
+  if (!isFunded(current)) {
+    const remaining = pledgeRemaining(current);
+    const amount = remaining != null && remaining > 0 ? remaining : 1;
+    addDemoPledge(itemId, amount, displayName ?? 'the group (demo)');
+  }
+  return markDemoItemFunded(itemId);
+}
+
+export function setDemoLinkDead(itemId: string, dead: boolean): WishlistItem {
+  const current = items.find((item) => item.id === itemId);
+  if (!current) throw new Error('Item not found');
+  const next: WishlistItem = { ...current, buy_url_dead: dead };
+  items = items.map((item) => (item.id === itemId ? next : item));
+  saveBundle();
+  return withPledges(next);
+}
+
+export function resetDemoStore() {
+  const fallback = fallbackBundle();
+  items = fallback.items;
+  occasions = fallback.occasions;
+  pledges = fallback.pledges;
+  saveBundle();
 }
