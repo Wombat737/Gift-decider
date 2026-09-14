@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Link, type Href } from 'expo-router';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -9,16 +10,17 @@ import { useTheme } from '@/hooks/use-theme';
 
 type ItemCardProps = {
   item: WishlistItem;
+  href?: Href;
   onPress?: () => void;
 };
 
-export function ItemCard({ item, onPress }: ItemCardProps) {
+export function ItemCard({ item, href, onPress }: ItemCardProps) {
   const theme = useTheme();
   const tone =
     item.status === 'purchased' ? theme.success : item.status === 'reserved' ? theme.reserved : theme.accent;
 
-  return (
-    <Pressable onPress={onPress} style={styles.card}>
+  const body = (
+    <>
       <Image
         source={{ uri: item.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
         style={styles.image}
@@ -32,6 +34,20 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
           {statusLabel(item.status)}
         </ThemedText>
       </View>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} style={styles.card}>
+        {body}
+      </Link>
+    );
+  }
+
+  return (
+    <Pressable onPress={onPress} style={styles.card}>
+      {body}
     </Pressable>
   );
 }
@@ -40,6 +56,7 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     gap: Spacing.two,
+    ...Platform.select({ web: { cursor: 'pointer' as const } }),
   },
   image: {
     width: '100%',

@@ -63,7 +63,7 @@ function RootNavigator({
         contentStyle: { backgroundColor: headerBackground },
       }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="g/[token]" options={{ title: 'Shared wishlist' }} />
+      <Stack.Screen name="g/[token]" options={{ headerShown: false, title: 'Shared wishlist' }} />
       <Stack.Screen name="auth/callback" options={{ title: 'Signing in' }} />
       <Stack.Protected guard={!!user}>
         <Stack.Screen name="(app)" options={{ headerShown: false }} />

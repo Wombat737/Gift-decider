@@ -120,7 +120,8 @@ npx supabase functions deploy preview-url
 | `/paste` | Recipient | Paste Instagram URL → stub preview → pin |
 | `/item/[id]` | Recipient | Item detail |
 | `/share` | Recipient | Copy share link, stub email invite |
-| `/g/[token]` | Giver | Read-only list, reserve / purchased |
+| `/g/[token]` | Giver | Read-only list |
+| `/g/[token]/[itemId]` | Giver | Reserve / purchased |
 | `/auth/callback` | Auth | Magic-link landing stub |
 
 ## What’s stubbed (on purpose)

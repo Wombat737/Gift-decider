@@ -42,7 +42,7 @@ export default function WishlistGridScreen() {
         <View style={styles.grid}>
           {items.map((item) => (
             <View key={item.id} style={styles.cell}>
-              <ItemCard item={item} onPress={() => router.push(`/item/${item.id}`)} />
+              <ItemCard item={item} href={`/item/${item.id}`} />
             </View>
           ))}
         </View>

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, type PressableProps } from 'react-native';
+import { Platform, Pressable, StyleSheet, type PressableProps } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -38,5 +38,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.four,
+    ...Platform.select({ web: { cursor: 'pointer' as const } }),
   },
 });
