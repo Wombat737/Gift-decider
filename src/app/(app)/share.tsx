@@ -3,22 +3,25 @@ import { useState } from 'react';
 import { Platform, Share, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { Card } from '@/components/card';
+import { FlowHeader } from '@/components/flow-header';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { useWishlist } from '@/context/wishlist-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { track } from '@/lib/analytics';
 import { shareLink } from '@/lib/env';
+import { mateInviteMessage } from '@/lib/invite';
 import { inviteByEmail } from '@/services/wishlist';
 
-async function copyOrShareLink(link: string, setMessage: (value: string) => void) {
+async function copyOrShare(text: string, url: string, setMessage: (value: string) => void) {
   if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
-    await navigator.clipboard.writeText(link);
-    setMessage('Link copied.');
+    await navigator.clipboard.writeText(text);
+    setMessage('Invite copied — paste it to mates.');
     return;
   }
-  await Share.share({ message: `Pick a gift from my wishlist: ${link}`, url: link });
+  await Share.share({ message: text, url });
 }
 
 export default function ShareScreen() {
@@ -58,29 +61,43 @@ export default function ShareScreen() {
     }
   }
 
+  async function sharePack(token: string, title?: string | null) {
+    const packLink = shareLink(token);
+    track('share_link_copied', { token, occasion: title ?? 'whole-list' });
+    await copyOrShare(mateInviteMessage(packLink, title), packLink, setMessage);
+  }
+
   return (
     <Screen>
-      <ThemedText themeColor="textSecondary">
-        Whole-list or occasion packs. Friends open a read-only link. You won’t see reserves or chip-in progress until a group gift is funded.
-      </ThemedText>
+      <FlowHeader
+        role="owner"
+        title="Invite mates"
+        subtitle="Whole-list or occasion packs. Friends open a read-only link. You won’t see what they reserved, pledged, or bought until a group gift is funded."
+      />
 
-      <ThemedView type="backgroundElement" style={styles.card}>
-        <ThemedText type="smallBold">Whole wishlist</ThemedText>
+      <Card>
+        <ThemedText type="eyebrow" themeColor="accent">
+          Whole wishlist
+        </ThemedText>
+        <ThemedText type="smallBold">Every pinned gift</ThemedText>
         <ThemedText type="code">{link || 'Loading…'}</ThemedText>
         <View style={styles.row}>
-          <Button label="Copy / share link" onPress={() => link && void copyOrShareLink(link, setMessage)} />
+          <Button label="Copy invite" onPress={() => link && void sharePack(wishlist!.share_token)} />
           <Button
             label="Open giver view"
             variant="secondary"
             onPress={() => wishlist?.share_token && router.push(`/g/${wishlist.share_token}`)}
           />
         </View>
-      </ThemedView>
+      </Card>
 
-      <ThemedView type="backgroundElement" style={styles.card}>
-        <ThemedText type="smallBold">Occasion packs</ThemedText>
+      <Card>
+        <ThemedText type="eyebrow" themeColor="accent">
+          Occasion packs
+        </ThemedText>
+        <ThemedText type="smallBold">Birthday, housewarming, Christmas</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Birthday, Christmas, housewarming — each pack gets its own giver link.
+          Each pack gets its own giver link so mates only see the right gifts.
         </ThemedText>
         {occasions.length === 0 ? (
           <ThemedText type="small" themeColor="textSecondary">
@@ -97,7 +114,11 @@ export default function ShareScreen() {
                 </ThemedText>
                 <ThemedText type="code">{occasionLink}</ThemedText>
                 <View style={styles.row}>
-                  <Button label="Copy pack link" variant="secondary" onPress={() => void copyOrShareLink(occasionLink, setMessage)} />
+                  <Button
+                    label="Copy invite"
+                    variant="secondary"
+                    onPress={() => void sharePack(occasion.share_token, occasion.title)}
+                  />
                   <Button
                     label="Open giver view"
                     variant="ghost"
@@ -120,7 +141,7 @@ export default function ShareScreen() {
             {message}
           </ThemedText>
         ) : null}
-      </ThemedView>
+      </Card>
 
       <TextField
         label="Invite by email"
@@ -143,11 +164,6 @@ export default function ShareScreen() {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: Radius.lg,
-    padding: Spacing.three,
-    gap: Spacing.two,
-  },
   row: {
     gap: Spacing.two,
   },

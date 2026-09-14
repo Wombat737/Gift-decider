@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { Button } from '@/components/button';
+import { FlowHeader } from '@/components/flow-header';
 import { ItemFields, type ItemFieldsValue } from '@/components/item-fields';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
@@ -54,9 +55,11 @@ export default function AddItemScreen() {
 
   return (
     <Screen>
-      <ThemedText themeColor="textSecondary">
-        Pin an exact SKU or a taste/vibe. Givers see the board; they won’t tell you what they reserved.
-      </ThemedText>
+      <FlowHeader
+        role="owner"
+        title="Pin a gift"
+        subtitle="Exact SKU or a taste/vibe. Givers see the board; they won’t tell you what they reserved."
+      />
 
       <ItemFields value={fields} occasions={occasions} onChange={(patch) => setFields((current) => ({ ...current, ...patch }))} />
 

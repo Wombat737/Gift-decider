@@ -1,7 +1,7 @@
 {
   "name": "gift-decider",
   "main": "expo-router/entry",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "start": "expo start",
@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/lib/phase3.test.ts",
+    "test": "tsx --test src/lib/*.test.ts",
     "export:web": "expo export -p web",
     "serve:web": "expo serve",
     "predeploy": "EXPO_BASE_URL=/Gift-decider expo export -p web && node scripts/prepare-web-dist.js",

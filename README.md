@@ -8,7 +8,8 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 - **Surprise gifts:** reserved / purchased / pledge progress is **giver-only** while a gift is in flight
 - When a **group gift is funded**, the recipient finally sees **who it’s from** (names / Anonymous) — not the dollar amounts
 - Instagram v1: paste a public post URL → **preview stub** → pin as an item
-- Real Stripe/PayID, Meta Instagram OAuth, and store submit are **out of this phase** (Phase 4)
+- Soft-launch ready: polished UI, EAS build profiles, privacy + account-deletion stubs
+- Real Stripe/PayID, Meta Instagram OAuth, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
 
 This repo is a thrifty **Expo + Supabase** starter: screens navigate, schema + RLS exist, auth and Instagram are stubbed where production work still has to happen.
 
@@ -18,7 +19,7 @@ No install, no Expo CLI, no Supabase. Open this on your phone:
 
 **https://wombat737.github.io/Gift-decider/**
 
-Tap **Explore demo**, then walk the Phase 3 loop below (Phase 2 features are still there).
+Tap **Explore demo**, then walk the mate demo below (Phase 2–3 features are still there). The UI is polished for phone browsers — GitHub Pages is the primary share surface.
 
 Giver shortcuts (GitHub Pages subpath `/Gift-decider`):
 
@@ -46,7 +47,37 @@ npm install
 npm run deploy    # exports with EXPO_BASE_URL=/Gift-decider and pushes gh-pages
 ```
 
-## Phase 3 (what’s in this repo)
+## What to show mates (2 minutes)
+
+Send them the Pages demo on their phone, or sit together and tap:
+
+1. **Explore demo** — recipient grid. No Taken/Bought. Filter **Housewarming**.
+2. Open **Home espresso machine** — still unspoiled. Settings → Privacy / deletion stub if a mate asks “is this a real app?”
+3. **Share / occasions** → **Copy invite** (Birthday or Housewarming) or **Open giver view**.
+4. As a giver: confidence chips, AU search, soft-lock, espresso **Simulate funded (demo)**, linen throw dead-link heal.
+5. Flip back to the owner tab: espresso **From the group**; everything else still looks untouched.
+
+Direct giver links (keep the `/Gift-decider` prefix):
+
+- [Whole list](https://wombat737.github.io/Gift-decider/g/demo)
+- [Birthday](https://wombat737.github.io/Gift-decider/g/demo-birthday)
+- [Housewarming](https://wombat737.github.io/Gift-decider/g/demo-housewarming)
+- [Privacy stub](https://wombat737.github.io/Gift-decider/privacy)
+
+## Phase 4 (soft launch)
+
+Visual polish on the existing IA — owner vs giver pills, gift cards, empty states, invite copy. No information-architecture redesign. Surprise-safe behaviour is unchanged.
+
+| Piece | Where |
+| --- | --- |
+| **EAS profiles** | `eas.json` — `development` (dev client, internal APK), `preview` (internal APK / ad hoc for mates), `production` (AAB + autoIncrement) |
+| **App identity** | `app.json` — name Gift Decider, slug `gift-decider`, scheme `giftdecider`, terracotta gift icons/splash |
+| **Privacy + deletion** | `/privacy` (public) and **Settings** (signed-in). Deletion is a mailto stub (`EXPO_PUBLIC_SUPPORT_EMAIL`) |
+| **Analytics** | `src/lib/analytics.ts` — no-op unless `EXPO_PUBLIC_ANALYTICS_ENABLED=true` (console only). No paid account. |
+
+Store submit itself is **not** done here. Wombat still needs Apple Developer, Play Console, and payment.
+
+## Phase 3 (still here)
 
 Surprise-safe rule: the recipient/owner never sees reserved, purchased, who locked it, or chip-in **progress**. After a group gift is **funded**, they see that it’s from the group and **who chipped in** (display names, or Anonymous). They still never see dollar amounts.
 
@@ -135,6 +166,9 @@ Copy `.env.example` → `.env.local`. Restart Expo after edits.
 | `EXPO_PUBLIC_OPENAI_API_KEY` | Optional. Client-side LLM for substitute copy. Leave empty for the demo stub |
 | `EXPO_PUBLIC_LLM_URL` | Optional. POST endpoint that returns `{ suggestions: [{ title, reason }] }` |
 | `EXPO_PUBLIC_LLM_MODEL` | Optional. Defaults to `gpt-4o-mini` |
+| `EXPO_PUBLIC_PRIVACY_POLICY_URL` | Optional. Hosted policy. Empty uses in-app `/privacy` |
+| `EXPO_PUBLIC_SUPPORT_EMAIL` | Mailto inbox for account-deletion requests (default `hello@giftdecider.app`) |
+| `EXPO_PUBLIC_ANALYTICS_ENABLED` | `true` logs events to the console. Default off. No paid analytics product |
 
 Both Supabase values are meant to be public. **RLS is what keeps data private** — apply the migrations before pointing the app at a live project.
 
@@ -219,7 +253,9 @@ Without `OPENAI_API_KEY` in the function env it returns `{ "source": "stub", "su
 | `/add` | Recipient | Manual item, vibe board, occasion, lock, optional target $ |
 | `/paste` | Recipient | Paste Instagram URL → stub preview → pin |
 | `/item/[id]` | Recipient | Item detail + edit vibes. Funded reveal (names) when the group gift is funded |
-| `/share` | Recipient | Whole-list link, occasion packs, stub email invite |
+| `/share` | Recipient | Whole-list + occasion **Copy invite** (mate-ready text) |
+| `/settings` | Recipient | Privacy link, account-deletion mailto stub, sign out |
+| `/privacy` | Anyone | Store-listing privacy stub (works on `/Gift-decider/privacy`) |
 | `/g/[token]` | Giver | Read-only list **with** Taken/Bought (no names), confidence, link-issue flag |
 | `/g/[token]/[itemId]` | Giver | Soft lock, group pledges, mark funded, dead-link heal, AU buy helpers |
 | `/auth/callback` | Auth | Magic-link landing stub |
@@ -233,27 +269,65 @@ Without `OPENAI_API_KEY` in the function env it returns `{ "source": "stub", "su
 - **Camera / Storage upload** — add-item takes an image URL; bucket + RLS are ready
 - **AI matches / dead-link heal** — heuristic catalog + optional LLM. Demo is stubbed and offline-safe
 - **Funded reveal to recipient** — names / Anonymous after funded. No Stripe or PayID
-- **Real payments / store submit** — Phase 4
+- **Account deletion** — Settings mailto stub until a backend mailer exists
+- **Analytics** — no-op hook; optional console traces. No paid account
+- **Real payments** — honour-system pledges only. No Stripe or PayID
+- **Store submit** — EAS profiles are ready; Apple/Play upload needs Wombat’s accounts
 - **Affiliates** — AU helpers are plain search URLs (Amazon AU, Kmart, Target AU, Big W)
 
-## Next: EAS / Apple / Play
+## Soft launch checklist
 
-1. `npm i -g eas-cli` and `eas login`
-2. `eas init` in this repo (creates an Expo project)
-3. Optional: `eas integrations:supabase:connect` to write env vars onto EAS
-4. Development build (needed once Apple/Google native modules are added):
+Do this when you are ready for 10–20 mates on device. **Do not** pay Apple/Play from this PR — that is Wombat’s accounts.
 
-   ```bash
-   eas build --profile development --platform ios
-   eas build --profile development --platform android
-   ```
+### 1. Accounts
 
-5. **Apple Sign-In:** Apple Developer capability, App ID, Supabase → Sign in with Apple, then implement `expo-apple-authentication` (or Supabase’s guide). Flip `EXPO_PUBLIC_APPLE_AUTH_ENABLED=true`.
-6. **Google Sign-In:** Google Cloud OAuth clients (iOS/Android/web), SHA-1 for Android, Supabase → Google, then wire `expo-auth-session` / native Google Sign-In. Fill the `EXPO_PUBLIC_GOOGLE_*` ids.
-7. Store listings: privacy policy (wishlists + reservations), account deletion, and App Store / Play data safety forms.
-8. Production builds: `eas build --platform ios` / `--platform android`, then `eas submit`.
+- [ ] **Apple Developer** ($99/year) — enroll at [developer.apple.com](https://developer.apple.com). You’ll need this for TestFlight.
+- [ ] **Google Play Console** ($25 one-off) — [play.google.com/console](https://play.google.com/console). Internal testing track does not require a public listing.
+- [ ] **Expo / EAS** — `npm i -g eas-cli` then `eas login`. `eas init` in this repo (creates the EAS project; slug is `gift-decider`).
+- [ ] **Supabase production project** — [database.new](https://database.new), apply migrations in order, set `EXPO_PUBLIC_SUPABASE_*` on EAS (or `eas env:create`). Optional: `eas integrations:supabase:connect`.
+- [ ] **Privacy policy URL** — in-app `/privacy` is enough to start. Point `EXPO_PUBLIC_PRIVACY_POLICY_URL` at a hosted copy when you have a domain. App Store Connect and Play Data safety will ask for this URL.
+- [ ] **Support / deletion inbox** — set `EXPO_PUBLIC_SUPPORT_EMAIL` to an address you actually read.
 
-Expo Go is fine for this scaffold. Native Sign in with Apple / Google needs a **dev client**, not Expo Go.
+### 2. EAS Build
+
+`eas.json` already has **development**, **preview**, and **production**.
+
+```bash
+npx expo install expo-dev-client   # once, before the first development profile build
+eas build --profile development --platform ios
+eas build --profile development --platform android
+eas build --profile preview --platform all     # internal APK + ad hoc IPA for mates
+eas build --profile production --platform all  # store artifacts (AAB + IPA)
+```
+
+Preview is what you hand to mates before TestFlight. Production is what you submit.
+
+### 3. Invite 10–20 mates
+
+**Fastest (no stores):** send https://wombat737.github.io/Gift-decider/ plus a Birthday or Housewarming giver link. Phone browser. No install.
+
+**iOS TestFlight**
+
+1. App Store Connect → create the app (bundle `com.giftdecider.app`, name Gift Decider — name still parked).
+2. `eas submit --platform ios --profile production` (or upload the preview IPA if you only want internal).
+3. TestFlight → Internal Testing → add testers by Apple ID email. They install TestFlight, then your build.
+
+**Play internal testing**
+
+1. Play Console → create the app → Internal testing track.
+2. `eas submit --platform android --profile production` (submit profile uses `track: internal`).
+3. Create an email list of testers (up to 100 on internal). Share the opt-in link.
+
+**EAS internal distribution** (preview profile): Expo gives you a QR / URL. iOS needs each device UDID registered unless you use Apple’s ad hoc/enterprise flow.
+
+### 4. Store listing leftovers (not this PR)
+
+- Privacy policy URL + account deletion (Settings already stubs both)
+- App Store / Play data safety: wishlists, email, optional giver names on locks — no tracking SDK unless you turn analytics on
+- Apple Sign-In / Google Sign-In still placeholders; Expo Go is fine until you add a **dev client**
+- `ITSAppUsesNonExemptEncryption` is `false` in `app.json` so export-compliance is a checkbox, not a wait
+
+Expo Go is fine for the web/demo loop. Native Sign in with Apple / Google needs a **dev client**, not Expo Go.
 
 ## Layout
 
@@ -261,7 +335,7 @@ Expo Go is fine for this scaffold. Native Sign in with Apple / Google needs a **
 src/app/                 Expo Router screens
 src/context/             Auth + wishlist
 src/services/            Preview + wishlist API (Supabase or demo store)
-src/lib/                 Env, types, confidence, AU buy URLs, substitutes, demo store
+src/lib/                 Env, types, confidence, AU buy URLs, substitutes, analytics stub, demo store
 supabase/migrations/     Schema + RLS (init + phase2 + phase3)
 supabase/functions/      preview-url stub + optional improv-substitutes
 ```
@@ -272,7 +346,7 @@ supabase/functions/      preview-url stub + optional improv-substitutes
 npx expo start          # dev server
 npx expo start --web
 npx tsc --noEmit        # types
-npm test                # surprise-safe demo walk (node:test)
+npm test                # surprise-safe + soft-launch stubs (node:test)
 npm run export:web      # production SPA → dist/
 npm run deploy          # GitHub Pages (subpath /Gift-decider)
 ```

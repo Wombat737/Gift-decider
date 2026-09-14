@@ -1,18 +1,21 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useCallback, useMemo, useState } from 'react';
 
 import { Button } from '@/components/button';
 import { FilterChips } from '@/components/vibe-chips';
-import { ItemCard } from '@/components/item-card';
+import { FlowHeader } from '@/components/flow-header';
+import { ItemGrid } from '@/components/item-grid';
+import { LegalLinks } from '@/components/legal-links';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/context/auth-context';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
+import { track } from '@/lib/analytics';
 
 export default function WishlistGridScreen() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { items, occasions, loading, error, refresh } = useWishlist();
   const [occasionId, setOccasionId] = useState('all');
 
@@ -30,18 +33,40 @@ export default function WishlistGridScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <ThemedText type="heading">What you actually want</ThemedText>
-        <ThemedText themeColor="textSecondary">
-          Photo-first list for {user?.email ?? 'you'}. Friends pick from a share link — you won’t see
-          reserves, pledges, or who bought what until a group gift is funded.
-        </ThemedText>
-      </View>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              onPress={() => {
+                track('settings_opened', { source: 'wishlist_header' });
+                router.push('/settings');
+              }}
+              hitSlop={12}
+              style={styles.headerBtn}>
+              <ThemedText type="smallBold" themeColor="accent">
+                Settings
+              </ThemedText>
+            </Pressable>
+          ),
+        }}
+      />
+      <FlowHeader
+        role="owner"
+        title="What you actually want"
+        subtitle={`Photo-first list for ${user?.email ?? 'you'}. Friends pick from a share link — you won’t see reserves, pledges, or who bought what until a group gift is funded.`}
+      />
 
       <View style={styles.actions}>
         <Button label="Add item" onPress={() => router.push('/add')} />
         <Button label="Paste Instagram URL" variant="secondary" onPress={() => router.push('/paste')} />
-        <Button label="Share / occasions" variant="ghost" onPress={() => router.push('/share')} />
+        <Button
+          label="Share / occasions"
+          variant="ghost"
+          onPress={() => {
+            track('share_screen_opened');
+            router.push('/share');
+          }}
+        />
       </View>
 
       {occasions.length > 0 ? (
@@ -64,51 +89,28 @@ export default function WishlistGridScreen() {
 
       {loading ? <ThemedText themeColor="textSecondary">Loading…</ThemedText> : null}
 
-      {visible.length === 0 && !loading ? (
-        <ThemedText themeColor="textSecondary">
-          Nothing pinned yet. Add a photo, a vibe, or paste a public Instagram URL.
-        </ThemedText>
-      ) : (
-        <View style={styles.grid}>
-          {visible.map((item) => (
-            <View key={item.id} style={styles.cell}>
-              <ItemCard item={item} href={`/item/${item.id}`} />
-            </View>
-          ))}
-        </View>
-      )}
+      {!loading ? (
+        <ItemGrid
+          items={visible}
+          hrefFor={(item) => `/item/${item.id}`}
+          emptyTitle="Nothing pinned yet"
+          emptyBody="Add a photo, a vibe, or paste a public Instagram URL. Givers only see what you share."
+          emptyActionLabel="Add item"
+          onEmptyAction={() => router.push('/add')}
+        />
+      ) : null}
 
-      <Pressable
-        onPress={() => {
-          void signOut().then(() => router.replace('/sign-in'));
-        }}
-        style={styles.signOut}>
-        <ThemedText type="small" themeColor="textSecondary">
-          Sign out
-        </ThemedText>
-      </Pressable>
+      <LegalLinks includeSettings />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    gap: Spacing.one,
-  },
   actions: {
     gap: Spacing.two,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -Spacing.one,
-  },
-  cell: {
-    width: '50%',
-    padding: Spacing.one,
-  },
-  signOut: {
-    alignSelf: 'flex-start',
-    paddingVertical: Spacing.two,
+  headerBtn: {
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
   },
 });

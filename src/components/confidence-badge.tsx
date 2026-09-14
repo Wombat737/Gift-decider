@@ -14,7 +14,7 @@ export function ConfidenceBadge({ item }: { item: WishlistItem }) {
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.badge, { backgroundColor: theme.backgroundElement }]}>
+      <View style={[styles.badge, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
         <ThemedText type="smallBold" style={{ color }}>
           {confidence.label}
         </ThemedText>
@@ -32,8 +32,9 @@ const styles = StyleSheet.create({
   },
   badge: {
     alignSelf: 'flex-start',
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.two + 2,
-    paddingVertical: Spacing.one + 1,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one + 2,
   },
 });

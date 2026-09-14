@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 
+import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function AppLayout() {
@@ -11,6 +12,7 @@ export default function AppLayout() {
         headerShadowVisible: false,
         headerStyle: { backgroundColor: theme.background },
         headerTintColor: theme.text,
+        headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '700' },
         contentStyle: { backgroundColor: theme.background },
       }}>
       <Stack.Screen name="wishlist" options={{ title: 'My wishlist' }} />
@@ -18,6 +20,7 @@ export default function AppLayout() {
       <Stack.Screen name="paste" options={{ title: 'Paste Instagram URL' }} />
       <Stack.Screen name="share" options={{ title: 'Share & occasions' }} />
       <Stack.Screen name="item/[id]" options={{ title: 'Item' }} />
+      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
     </Stack>
   );
 }

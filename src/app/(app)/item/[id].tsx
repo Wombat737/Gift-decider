@@ -118,6 +118,9 @@ export default function ItemDetailScreen() {
       ) : (
         <>
           <View style={styles.block}>
+            <ThemedText type="eyebrow" themeColor="accent">
+              Your list · unspoiled
+            </ThemedText>
             <ThemedText type="heading">{item.title || 'Untitled gift'}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {item.item_kind === 'vibe' ? 'Taste / vibe' : 'Exact item'}

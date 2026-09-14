@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { WishlistProvider } from '@/context/wishlist-context';
+import { Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -68,9 +69,11 @@ function RootNavigator({
         headerShadowVisible: false,
         headerStyle: { backgroundColor: headerBackground },
         headerTintColor: headerTint,
+        headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '700' },
         contentStyle: { backgroundColor: headerBackground },
       }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
       <Stack.Screen name="g/[token]" options={{ headerShown: false, title: 'Shared wishlist' }} />
       <Stack.Screen name="auth/callback" options={{ title: 'Signing in' }} />
       <Stack.Protected guard={!!user}>

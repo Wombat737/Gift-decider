@@ -8,7 +8,12 @@ export function NoSubLock({ compact = false }: { compact?: boolean }) {
   const theme = useTheme();
 
   return (
-    <View style={[styles.row, compact && styles.compact, { backgroundColor: theme.backgroundElement }]}>
+    <View
+      style={[
+        styles.row,
+        compact && styles.compact,
+        { backgroundColor: theme.accentMuted, borderColor: theme.accent },
+      ]}>
       <ThemedText type="smallBold" themeColor="accent">
         🔒 {compact ? 'Locked' : 'No substitutes'}
       </ThemedText>
@@ -23,8 +28,9 @@ export function NoSubLock({ compact = false }: { compact?: boolean }) {
 
 const styles = StyleSheet.create({
   row: {
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.two + 2,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     gap: 2,
   },

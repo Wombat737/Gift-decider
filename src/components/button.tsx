@@ -13,7 +13,8 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
   const theme = useTheme();
   const background =
     variant === 'primary' ? theme.accent : variant === 'secondary' ? theme.backgroundElement : 'transparent';
-  const color = variant === 'primary' ? theme.accentText : theme.text;
+  const color = variant === 'primary' ? theme.accentText : variant === 'ghost' ? theme.accent : theme.text;
+  const borderColor = variant === 'secondary' ? theme.border : variant === 'ghost' ? 'transparent' : theme.accent;
 
   return (
     <Pressable
@@ -21,7 +22,11 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
       disabled={disabled}
       style={({ pressed }) => [
         styles.base,
-        { backgroundColor: background, opacity: disabled ? 0.45 : pressed ? 0.82 : 1 },
+        {
+          backgroundColor: background,
+          borderColor,
+          opacity: disabled ? 0.45 : pressed ? 0.84 : 1,
+        },
       ]}
       {...rest}>
       <ThemedText type="smallBold" style={{ color }}>
@@ -33,11 +38,12 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 48,
+    minHeight: 50,
     borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.four,
+    borderWidth: 1,
     ...Platform.select({ web: { cursor: 'pointer' as const } }),
   },
 });

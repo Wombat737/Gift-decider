@@ -8,7 +8,11 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: 'Missing' }} />
       <Screen>
-        <ThemedText type="heading">That screen is not in the scaffold.</ThemedText>
+        <ThemedText type="heading">That page isn’t in Gift Decider.</ThemedText>
+        <ThemedText themeColor="textSecondary">
+          If you opened a GitHub Pages link, check the /Gift-decider prefix. Demo giver URLs are /g/demo,
+          /g/demo-birthday, and /g/demo-housewarming.
+        </ThemedText>
         <Link href="/">
           <ThemedText type="link" themeColor="accent">
             Back to Gift Decider

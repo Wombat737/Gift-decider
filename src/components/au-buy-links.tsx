@@ -2,6 +2,7 @@ import * as Linking from 'expo-linking';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { Card } from '@/components/card';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { auBuyLinks } from '@/lib/au-buy';
@@ -11,7 +12,10 @@ export function AuBuyLinks({ item }: { item: WishlistItem }) {
   const links = auBuyLinks(item.title, item.tags);
 
   return (
-    <View style={styles.wrap}>
+    <Card>
+      <ThemedText type="eyebrow" themeColor="accent">
+        Australia
+      </ThemedText>
       <ThemedText type="smallBold">Find it in AU stores</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
         Search links for Amazon AU, Kmart, Target AU, and Big W. No affiliate tracking.
@@ -24,14 +28,11 @@ export function AuBuyLinks({ item }: { item: WishlistItem }) {
           <Button key={link.id} label={link.label} variant="ghost" onPress={() => void Linking.openURL(link.url)} />
         ))}
       </View>
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    gap: Spacing.two,
-  },
   buttons: {
     gap: Spacing.one,
   },

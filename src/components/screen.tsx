@@ -52,10 +52,11 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: MaxContentWidth,
     flexGrow: 1,
-    gap: Spacing.three,
+    gap: Spacing.three + 2,
   },
   padded: {
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
+    paddingBottom: Spacing.five,
   },
 });
