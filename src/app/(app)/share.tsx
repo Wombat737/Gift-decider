@@ -12,21 +12,22 @@ import { Radius, Spacing } from '@/constants/theme';
 import { shareLink } from '@/lib/env';
 import { inviteByEmail } from '@/services/wishlist';
 
-export default function ShareScreen() {
-  const { wishlist } = useWishlist();
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
-  const link = wishlist ? shareLink(wishlist.share_token) : '';
-
-  async function copyOrShare() {
-    if (!link) return;
-    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(link);
-      setMessage('Link copied.');
-      return;
-    }
-    await Share.share({ message: `Pick a gift from my wishlist: ${link}`, url: link });
+async function copyOrShareLink(link: string, setMessage: (value: string) => void) {
+  if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+    await navigator.clipboard.writeText(link);
+    setMessage('Link copied.');
+    return;
   }
+  await Share.share({ message: `Pick a gift from my wishlist: ${link}`, url: link });
+}
+
+export default function ShareScreen() {
+  const { wishlist, occasions, items, addOccasion } = useWishlist();
+  const [email, setEmail] = useState('');
+  const [occasionTitle, setOccasionTitle] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const link = wishlist ? shareLink(wishlist.share_token) : '';
 
   async function onInvite() {
     setMessage(null);
@@ -43,23 +44,77 @@ export default function ShareScreen() {
     }
   }
 
+  async function onCreateOccasion() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const occasion = await addOccasion(occasionTitle);
+      setOccasionTitle('');
+      setMessage(`Created ${occasion.title}. Share that pack so givers only see those items.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not create occasion');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <Screen>
       <ThemedText themeColor="textSecondary">
-        Friends open this read-only link and pick a gift. You won’t see what they chose — that’s the surprise.
+        Whole-list or occasion packs. Friends open a read-only link. You won’t see what they reserved, pledged, or bought.
       </ThemedText>
 
       <ThemedView type="backgroundElement" style={styles.card}>
-        <ThemedText type="smallBold">Shared link</ThemedText>
+        <ThemedText type="smallBold">Whole wishlist</ThemedText>
         <ThemedText type="code">{link || 'Loading…'}</ThemedText>
         <View style={styles.row}>
-          <Button label="Copy / share link" onPress={() => void copyOrShare()} />
+          <Button label="Copy / share link" onPress={() => link && void copyOrShareLink(link, setMessage)} />
           <Button
             label="Open giver view"
             variant="secondary"
             onPress={() => wishlist?.share_token && router.push(`/g/${wishlist.share_token}`)}
           />
         </View>
+      </ThemedView>
+
+      <ThemedView type="backgroundElement" style={styles.card}>
+        <ThemedText type="smallBold">Occasion packs</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          Birthday, Christmas, housewarming — each pack gets its own giver link.
+        </ThemedText>
+        {occasions.length === 0 ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            No packs yet.
+          </ThemedText>
+        ) : (
+          occasions.map((occasion) => {
+            const count = items.filter((item) => item.occasion_id === occasion.id).length;
+            const occasionLink = shareLink(occasion.share_token);
+            return (
+              <View key={occasion.id} style={styles.occasion}>
+                <ThemedText type="smallBold">
+                  {occasion.title} · {count} item{count === 1 ? '' : 's'}
+                </ThemedText>
+                <ThemedText type="code">{occasionLink}</ThemedText>
+                <View style={styles.row}>
+                  <Button label="Copy pack link" variant="secondary" onPress={() => void copyOrShareLink(occasionLink, setMessage)} />
+                  <Button
+                    label="Open giver view"
+                    variant="ghost"
+                    onPress={() => router.push(`/g/${occasion.share_token}`)}
+                  />
+                </View>
+              </View>
+            );
+          })
+        )}
+        <TextField
+          label="New occasion"
+          placeholder="Christmas"
+          value={occasionTitle}
+          onChangeText={setOccasionTitle}
+        />
+        <Button label={busy ? 'Saving…' : 'Create occasion pack'} disabled={busy} onPress={() => void onCreateOccasion()} />
       </ThemedView>
 
       <TextField
@@ -90,5 +145,9 @@ const styles = StyleSheet.create({
   },
   row: {
     gap: Spacing.two,
+  },
+  occasion: {
+    gap: Spacing.one,
+    paddingTop: Spacing.two,
   },
 });

@@ -55,7 +55,7 @@ export default function PasteInstagramScreen() {
   return (
     <Screen>
       <ThemedText themeColor="textSecondary">
-        Instagram v1: paste a public post URL, preview a stub, pin it. No Meta OAuth, no Saves API, no scrapers.
+        Instagram v1: paste a public post URL, preview a stub, pin it. Add vibes on the item after. No Meta OAuth, no Saves API, no scrapers.
       </ThemedText>
 
       <TextField

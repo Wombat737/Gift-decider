@@ -2,11 +2,12 @@
 
 Mobile wishlist app for gift-givers who need to pick from a recipient’s **living photo wishlist**.
 
-- Recipients curate photos + notes + an optional buy URL
-- Givers open a shared read-only link and can reserve or mark purchased
-- **Surprise gifts:** reserved / purchased status is **giver-only**. Owner screens never show it.
+- Recipients curate photos + notes + taste/vibes + an optional buy URL
+- Occasion packs (birthday, housewarming, …) each get their own giver link
+- Givers open a shared read-only link: soft-lock, chip in, AU store search
+- **Surprise gifts:** reserved / purchased / pledge progress is **giver-only**. Owner screens never show it.
 - Instagram v1: paste a public post URL → **preview stub** → pin as an item
-- AI matches are **out of this scaffold** (Phase 3)
+- AI matches / dead-link heal / real payments / “who it’s from” reveal are **out of this phase** (Phase 3–4)
 
 This repo is a thrifty **Expo + Supabase** starter: screens navigate, schema + RLS exist, auth and Instagram are stubbed where production work still has to happen.
 
@@ -16,9 +17,13 @@ No install, no Expo CLI, no Supabase. Open this on your phone:
 
 **https://wombat737.github.io/Gift-decider/**
 
-Tap **Explore demo**, then walk wishlist → paste Instagram URL → share → `/g/demo` reserve/purchased.
+Tap **Explore demo**, then walk the Phase 2 loop below.
 
-Giver shortcut: [https://wombat737.github.io/Gift-decider/g/demo](https://wombat737.github.io/Gift-decider/g/demo)
+Giver shortcuts (GitHub Pages subpath `/Gift-decider`):
+
+- Whole list: [https://wombat737.github.io/Gift-decider/g/demo](https://wombat737.github.io/Gift-decider/g/demo)
+- Birthday pack: [https://wombat737.github.io/Gift-decider/g/demo-birthday](https://wombat737.github.io/Gift-decider/g/demo-birthday)
+- Housewarming pack: [https://wombat737.github.io/Gift-decider/g/demo-housewarming](https://wombat737.github.io/Gift-decider/g/demo-housewarming)
 
 If that 404s, GitHub Pages is not switched on yet (one click):
 
@@ -39,6 +44,35 @@ From this repo:
 npm install
 npm run deploy    # exports with EXPO_BASE_URL=/Gift-decider and pushes gh-pages
 ```
+
+## Phase 2 (what’s in this repo)
+
+Surprise-safe rule is unchanged: the recipient/owner never sees reserved, purchased, who locked it, or chip-in progress.
+
+| Feature | Where | Demo how-to (no Supabase) |
+| --- | --- | --- |
+| **Taste / vibe board** | Owner add + item edit; givers see chips | Explore demo → open **Speckled ceramic mug** or **A plant that can survive me**. Edit vibes / Exact vs Taste. Giver view shows the same chips plus a lock if “No substitutions”. |
+| **No substitutions lock** | Owner toggle; giver lock (no substitute suggestions) | Mug is locked. Owner sees 🔒; giver sees “No substitutes”. Phase 3 will heal dead links — not here. |
+| **Occasion packs** | Share screen; giver URL scopes items | Share / occasions → **Birthday** (`/g/demo-birthday`) vs **Housewarming** (`/g/demo-housewarming`). Create another pack and assign items. |
+| **Giver confidence** | Giver list + item only | On `/g/demo`: mug → Safe pick; socks → Needs size; plant → Bold. Owner grid has no score. |
+| **AU buy helpers** | Giver item | Open any gift as a giver → Amazon AU / Kmart / Target AU / Big W search from the title. |
+| **Soft lock** | Giver item; other givers see Taken/Bought **without names** | Socks start Taken. Reserve the mug; the owner wishlist still looks untouched. |
+| **Group / chip-in** | Giver item; honour system, no Stripe | Housewarming → **Home espresso machine**. Progress is giver-only. Chip in until it shows **Funded**. Owner still sees a normal item. |
+
+Local demo (empty `.env.local`):
+
+```bash
+npm install
+npx expo start --web
+```
+
+1. **Explore demo** → recipient wishlist (no Taken/Bought badges, no pledge bar).
+2. Filter **Birthday** / **Housewarming**. Open an item → **Edit item / vibes**.
+3. **Share / occasions** → copy pack link or **Open giver view**.
+4. As a giver: confidence chip, AU search, soft-lock, mark group gift, chip in $.
+5. Flip back to the owner tab: still no spoiler.
+
+Sample data lives in `localStorage` (`giftdecider.demo.v2`). `/g/demo` is the whole list; occasion tokens are `demo-birthday` and `demo-housewarming`.
 
 ## Stack
 
@@ -61,7 +95,7 @@ Then:
 - **Android:** Expo Go, or an emulator
 - **Web:** press `w` — useful for clicking through screens on a laptop
 
-If `.env.local` still has placeholders, the app starts in **demo mode**. Tap **Explore demo** on the sign-in screen. Sample gifts persist in the browser; paste-URL uses an in-app stub; share token is `demo` (`/g/demo`).
+If `.env.local` still has placeholders, the app starts in **demo mode**. Tap **Explore demo** on the sign-in screen. Sample gifts persist in the browser; paste-URL uses an in-app stub; share tokens are `demo`, `demo-birthday`, `demo-housewarming`.
 
 You do **not** need Docker or a hosted Supabase project to walk the screens.
 
@@ -80,7 +114,7 @@ Copy `.env.example` → `.env.local`. Restart Expo after edits.
 | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Placeholder |
 | `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Placeholder |
 
-Both Supabase values are meant to be public. **RLS is what keeps data private** — apply the migration before pointing the app at a live project.
+Both Supabase values are meant to be public. **RLS is what keeps data private** — apply the migrations before pointing the app at a live project.
 
 ## Supabase
 
@@ -88,11 +122,11 @@ Both Supabase values are meant to be public. **RLS is what keeps data private** 
 
 [database.new](https://database.new) (or `eas integrations:supabase:connect` once you are on EAS).
 
-### 2. Apply the migration
+### 2. Apply the migrations
 
-SQL lives in `supabase/migrations/20260914120000_init.sql`.
+SQL lives in `supabase/migrations/`. Apply **in order** (init, then Phase 2).
 
-**Dashboard:** SQL Editor → paste the file → run.
+**Dashboard:** SQL Editor → paste each file → run.
 
 **CLI (local):**
 
@@ -111,17 +145,19 @@ npx supabase link --project-ref YOUR_PROJECT_REF
 npx supabase db push
 ```
 
-### What the migration creates
+### What the migrations create
 
-- `profiles` — handle, display name, locale
+- `profiles` — handle, display name, locale (`en-AU` default)
 - `wishlists` — one default list per signup, plus `share_token`
-- `wishlist_items` — image path/url, title, notes, source, buy URL, tags, no-substitution, status, reserved_by
+- `occasions` — named packs under a wishlist, each with a `share_token`
+- `wishlist_items` — image, title, notes, source, buy URL, vibe tags, `item_kind`, size hint, target amount, occasion, no-substitution, giver-only status / group-gift
+- `item_pledges` — honour-system chip-ins (givers via RPC; **no owner SELECT**)
 - `wishlist_members` — email invites
 - `link_previews` — URL cache for the paste flow
 - Storage bucket `wishlist-images` (`{user_id}/...`)
 - Trigger: new `auth.users` row → profile + empty wishlist
-- RLS: owner full CRUD; accepted members SELECT + reserve/purchased updates
-- RPCs for anonymous givers: `get_shared_wishlist`, `get_shared_wishlist_items`, `set_shared_item_status`
+- RLS: owner full CRUD on list/items/occasions; accepted members SELECT + reserve/purchased/group-gift; pledges hidden from owners
+- RPCs for anonymous givers: `get_shared_wishlist`, `get_shared_wishlist_items`, `set_shared_item_status`, `set_shared_item_group_gift`, `list_shared_item_pledges`, `add_shared_item_pledge` (wishlist **or** occasion token)
 
 ### 3. Auth settings
 
@@ -146,13 +182,13 @@ npx supabase functions deploy preview-url
 | --- | --- | --- |
 | `/` | Anyone | Redirects to sign-in or `/wishlist` |
 | `/sign-in` | Anyone | Magic link + Apple/Google placeholders + Explore demo |
-| `/wishlist` | Recipient | Wishlist photo grid (no reserve/purchased badges) |
-| `/add` | Recipient | Manual item |
+| `/wishlist` | Recipient | Photo grid + occasion filter (no reserve/purchased/pledges) |
+| `/add` | Recipient | Manual item, vibe board, occasion, lock, optional target $ |
 | `/paste` | Recipient | Paste Instagram URL → stub preview → pin |
-| `/item/[id]` | Recipient | Item detail (no reserve/purchased state) |
-| `/share` | Recipient | Copy share link, stub email invite |
-| `/g/[token]` | Giver | Read-only list **with** reserve/purchased |
-| `/g/[token]/[itemId]` | Giver | Reserve / purchased |
+| `/item/[id]` | Recipient | Item detail + edit vibes (no giver status) |
+| `/share` | Recipient | Whole-list link, occasion packs, stub email invite |
+| `/g/[token]` | Giver | Read-only list **with** Taken/Bought (no names), confidence |
+| `/g/[token]/[itemId]` | Giver | Soft lock, group pledges, AU buy helpers |
 | `/auth/callback` | Auth | Magic-link landing stub |
 
 ## What’s stubbed (on purpose)
@@ -162,8 +198,9 @@ npx supabase functions deploy preview-url
 - **Apple / Google Sign-In** — buttons that explain they are placeholders
 - **Email invites** — inserts `wishlist_members` when Supabase is configured; does not send mail
 - **Camera / Storage upload** — add-item takes an image URL; bucket + RLS are ready
-- **AI matches** — Phase 3, not in this repo
-- **Affiliates** — buy URL is a plain field
+- **AI matches / dead-link heal** — Phase 3
+- **Real payments / funded reveal to recipient** — Phase 4
+- **Affiliates** — AU helpers are plain search URLs (Amazon AU, Kmart, Target AU, Big W)
 
 ## Next: EAS / Apple / Play
 
@@ -190,8 +227,8 @@ Expo Go is fine for this scaffold. Native Sign in with Apple / Google needs a **
 src/app/                 Expo Router screens
 src/context/             Auth + wishlist
 src/services/            Preview + wishlist API (Supabase or demo store)
-src/lib/                 Env, types, Supabase client
-supabase/migrations/     Schema + RLS
+src/lib/                 Env, types, confidence, AU buy URLs, demo store
+supabase/migrations/     Schema + RLS (init + phase2)
 supabase/functions/      preview-url stub
 ```
 

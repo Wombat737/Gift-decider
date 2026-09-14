@@ -2,16 +2,26 @@ import { createContext, use, useCallback, useEffect, useMemo, useState, type Pro
 
 import { useAuth } from '@/context/auth-context';
 import { demoWishlist } from '@/lib/demo-store';
-import type { NewWishlistItem, Wishlist, WishlistItem } from '@/lib/types';
-import { createItem, getOwnedWishlist, listOwnedItems } from '@/services/wishlist';
+import type { NewWishlistItem, Occasion, UpdateWishlistItem, Wishlist, WishlistItem } from '@/lib/types';
+import {
+  createItem,
+  createOccasion,
+  getOwnedWishlist,
+  listOwnedItems,
+  listOwnedOccasions,
+  updateOwnedItem,
+} from '@/services/wishlist';
 
 type WishlistContextValue = {
   wishlist: Wishlist | null;
   items: WishlistItem[];
+  occasions: Occasion[];
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
   addItem: (input: NewWishlistItem) => Promise<WishlistItem>;
+  saveItem: (itemId: string, patch: UpdateWishlistItem) => Promise<WishlistItem>;
+  addOccasion: (title: string) => Promise<Occasion>;
 };
 
 const WishlistContext = createContext<WishlistContextValue | null>(null);
@@ -20,6 +30,7 @@ export function WishlistProvider({ children }: PropsWithChildren) {
   const { user } = useAuth();
   const [wishlist, setWishlist] = useState<Wishlist | null>(user ? demoWishlist : null);
   const [items, setItems] = useState<WishlistItem[]>([]);
+  const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,15 +38,21 @@ export function WishlistProvider({ children }: PropsWithChildren) {
     if (!user) {
       setWishlist(null);
       setItems([]);
+      setOccasions([]);
       return;
     }
 
     setLoading(true);
     setError(null);
     try {
-      const [nextWishlist, nextItems] = await Promise.all([getOwnedWishlist(), listOwnedItems()]);
+      const [nextWishlist, nextItems, nextOccasions] = await Promise.all([
+        getOwnedWishlist(),
+        listOwnedItems(),
+        listOwnedOccasions(),
+      ]);
       setWishlist(nextWishlist);
       setItems(nextItems);
+      setOccasions(nextOccasions);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load wishlist');
     } finally {
@@ -51,6 +68,7 @@ export function WishlistProvider({ children }: PropsWithChildren) {
     () => ({
       wishlist,
       items,
+      occasions,
       loading,
       error,
       refresh,
@@ -59,8 +77,18 @@ export function WishlistProvider({ children }: PropsWithChildren) {
         setItems((current) => [item, ...current.filter((existing) => existing.id !== item.id)]);
         return item;
       },
+      async saveItem(itemId, patch) {
+        const item = await updateOwnedItem(itemId, patch);
+        setItems((current) => current.map((existing) => (existing.id === item.id ? item : existing)));
+        return item;
+      },
+      async addOccasion(title) {
+        const occasion = await createOccasion(title);
+        setOccasions((current) => [...current.filter((row) => row.id !== occasion.id), occasion]);
+        return occasion;
+      },
     }),
-    [error, items, loading, refresh, wishlist],
+    [error, items, loading, occasions, refresh, wishlist],
   );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;

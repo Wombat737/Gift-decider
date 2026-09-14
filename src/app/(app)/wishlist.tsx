@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/button';
+import { FilterChips } from '@/components/vibe-chips';
 import { ItemCard } from '@/components/item-card';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
@@ -11,22 +13,41 @@ import { Spacing } from '@/constants/theme';
 
 export default function WishlistGridScreen() {
   const { user, signOut } = useAuth();
-  const { items, loading, error } = useWishlist();
+  const { items, occasions, loading, error } = useWishlist();
+  const [occasionId, setOccasionId] = useState('all');
+
+  const visible = useMemo(() => {
+    if (occasionId === 'all') return items;
+    if (occasionId === 'none') return items.filter((item) => !item.occasion_id);
+    return items.filter((item) => item.occasion_id === occasionId);
+  }, [items, occasionId]);
 
   return (
     <Screen>
       <View style={styles.header}>
         <ThemedText type="heading">What you actually want</ThemedText>
         <ThemedText themeColor="textSecondary">
-          Photo-first list for {user?.email ?? 'you'}. Friends pick from the shared link — you won’t see who chose what.
+          Photo-first list for {user?.email ?? 'you'}. Friends pick from a share link — you won’t see reserves, pledges, or who bought what.
         </ThemedText>
       </View>
 
       <View style={styles.actions}>
         <Button label="Add item" onPress={() => router.push('/add')} />
         <Button label="Paste Instagram URL" variant="secondary" onPress={() => router.push('/paste')} />
-        <Button label="Share / invite" variant="ghost" onPress={() => router.push('/share')} />
+        <Button label="Share / occasions" variant="ghost" onPress={() => router.push('/share')} />
       </View>
+
+      {occasions.length > 0 ? (
+        <FilterChips
+          options={[
+            { id: 'all', label: 'All' },
+            ...occasions.map((row) => ({ id: row.id, label: row.title })),
+            { id: 'none', label: 'Unassigned' },
+          ]}
+          value={occasionId}
+          onChange={setOccasionId}
+        />
+      ) : null}
 
       {error ? (
         <ThemedText type="small" themeColor="accent">
@@ -36,11 +57,13 @@ export default function WishlistGridScreen() {
 
       {loading ? <ThemedText themeColor="textSecondary">Loading…</ThemedText> : null}
 
-      {items.length === 0 && !loading ? (
-        <ThemedText themeColor="textSecondary">Nothing pinned yet. Add a photo or paste a public Instagram URL.</ThemedText>
+      {visible.length === 0 && !loading ? (
+        <ThemedText themeColor="textSecondary">
+          Nothing pinned yet. Add a photo, a vibe, or paste a public Instagram URL.
+        </ThemedText>
       ) : (
         <View style={styles.grid}>
-          {items.map((item) => (
+          {visible.map((item) => (
             <View key={item.id} style={styles.cell}>
               <ItemCard item={item} href={`/item/${item.id}`} />
             </View>

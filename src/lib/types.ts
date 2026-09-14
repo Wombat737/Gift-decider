@@ -1,6 +1,8 @@
 export type ItemSourceType = 'manual' | 'instagram' | 'url';
 export type ItemStatus = 'available' | 'reserved' | 'purchased';
+export type ItemKind = 'exact' | 'vibe';
 export type MemberRole = 'owner' | 'viewer';
+export type ConfidenceLevel = 'safe' | 'bold' | 'needs-size';
 
 export type Profile = {
   id: string;
@@ -16,6 +18,22 @@ export type Wishlist = {
   share_token: string;
 };
 
+export type Occasion = {
+  id: string;
+  wishlist_id: string;
+  title: string;
+  share_token: string;
+  created_at: string;
+};
+
+export type ItemPledge = {
+  id: string;
+  item_id: string;
+  amount: number;
+  display_name: string | null;
+  created_at: string;
+};
+
 export type WishlistItem = {
   id: string;
   wishlist_id: string;
@@ -27,11 +45,17 @@ export type WishlistItem = {
   source_url: string | null;
   buy_url: string | null;
   tags: string[];
+  item_kind: ItemKind;
+  size_hint: string | null;
+  target_amount: number | null;
+  occasion_id: string | null;
   no_substitution: boolean;
+  is_group_gift: boolean;
   status: ItemStatus;
   reserved_by: string | null;
   reserved_at: string | null;
   created_at: string;
+  pledges?: ItemPledge[];
 };
 
 export type WishlistMember = {
@@ -58,6 +82,8 @@ export type SharedWishlist = {
   title: string;
   owner_handle: string | null;
   owner_display_name: string | null;
+  occasion_id: string | null;
+  occasion_title: string | null;
 };
 
 export type NewWishlistItem = {
@@ -68,6 +94,25 @@ export type NewWishlistItem = {
   source_url?: string;
   buy_url?: string;
   tags?: string[];
+  item_kind?: ItemKind;
+  size_hint?: string | null;
+  target_amount?: number | null;
+  occasion_id?: string | null;
+  no_substitution?: boolean;
+};
+
+export type UpdateWishlistItem = {
+  title?: string;
+  notes?: string | null;
+  image_url?: string | null;
+  source_type?: ItemSourceType;
+  source_url?: string | null;
+  buy_url?: string | null;
+  tags?: string[];
+  item_kind?: ItemKind;
+  size_hint?: string | null;
+  target_amount?: number | null;
+  occasion_id?: string | null;
   no_substitution?: boolean;
 };
 
@@ -75,4 +120,10 @@ export type SessionUser = {
   id: string;
   email: string | null;
   demo: boolean;
+};
+
+export type GiverConfidence = {
+  level: ConfidenceLevel;
+  label: string;
+  reason: string;
 };
