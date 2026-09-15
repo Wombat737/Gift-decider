@@ -39,7 +39,10 @@ export function StatusChip({ label, tone = 'muted' }: StatusChipProps) {
           : theme.border;
 
   return (
-    <View style={[styles.chip, { backgroundColor: background, borderColor: border }]}>
+    <View
+      style={[styles.chip, { backgroundColor: background, borderColor: border }]}
+      accessibilityRole="text"
+      accessibilityLabel={`Status: ${label}`}>
       <ThemedText type="smallBold" style={{ color }}>
         {label}
       </ThemedText>

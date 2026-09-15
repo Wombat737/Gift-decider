@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AuBuyLinks } from '@/components/au-buy-links';
@@ -15,11 +15,11 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { VibeChips } from '@/components/vibe-chips';
 import { Radius, Spacing } from '@/constants/theme';
+import { useGiverShare } from '@/context/giver-share-context';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { isDemoShareToken } from '@/lib/demo-store';
-import { giverItemChipLabel } from '@/lib/format';
-import { giverChipTone } from '@/lib/tones';
+import { giverStatusChip } from '@/lib/giver-status';
 import type { DeliveryMethod, ItemStatus, WishlistItem } from '@/lib/types';
 import {
   addSharedPledge,
@@ -39,39 +39,59 @@ import {
 
 export default function GiverItemScreen() {
   const theme = useTheme();
-  const { token, itemId } = useLocalSearchParams<{ token: string; itemId: string }>();
-  const [item, setItem] = useState<WishlistItem | null>(null);
+  const { token: paramToken, itemId } = useLocalSearchParams<{ token: string; itemId: string }>();
+  const { token: shareToken, items, loading: shareLoading, patchItem } = useGiverShare();
+  const token = shareToken ?? paramToken;
+  const shareItem = items.find((entry) => entry.id === itemId) ?? null;
+  const [item, setItem] = useState<WishlistItem | null>(shareItem);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!shareItem);
   const [busy, setBusy] = useState(false);
   const autoChecked = useRef<string | null>(null);
   const demo = Boolean(token && isDemoShareToken(token));
 
-  const load = useCallback(async () => {
-    if (!token || !itemId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const items = await getSharedItems(token);
-      setItem(items.find((entry) => entry.id === itemId) ?? null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load this gift');
-    } finally {
+  useEffect(() => {
+    if (shareItem) {
+      setItem(shareItem);
       setLoading(false);
     }
-  }, [itemId, token]);
+  }, [shareItem]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!token || !itemId || shareItem) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    void getSharedItems(token)
+      .then((nextItems) => {
+        if (cancelled) return;
+        const next = nextItems.find((entry) => entry.id === itemId) ?? null;
+        if (next) patchItem(next);
+        setItem(next);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load this gift');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [itemId, patchItem, shareItem, token]);
+
+  function commitItem(next: WishlistItem) {
+    setItem(next);
+    patchItem(next);
+  }
 
   async function updateStatus(status: ItemStatus) {
     if (!token || !item) return;
     setError(null);
     setBusy(true);
     try {
-      setItem(await setSharedItemStatus(token, item.id, status, name.trim() || undefined));
+      commitItem(await setSharedItemStatus(token, item.id, status, name.trim() || undefined));
       track('giver_status', { status });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update item');
@@ -90,7 +110,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     try {
-      setItem(await setSharedGroupGift(token, item.id, enabled, revealAt, organiserName, payInstructions));
+      commitItem(await setSharedGroupGift(token, item.id, enabled, revealAt, organiserName, payInstructions));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update group gift');
     } finally {
@@ -103,7 +123,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     try {
-      setItem(await setSharedRevealAt(token, item.id, revealAt));
+      commitItem(await setSharedRevealAt(token, item.id, revealAt));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save reveal date');
     } finally {
@@ -114,9 +134,9 @@ export default function GiverItemScreen() {
   async function onPledge(amount: number, pledgeName?: string) {
     if (!token || !item) return;
     const pledge = await addSharedPledge(token, item.id, amount, pledgeName);
-    const items = await getSharedItems(token);
-    const next = items.find((entry) => entry.id === item.id);
-    setItem(next ?? { ...item, is_group_gift: true, pledges: [...(item.pledges ?? []), pledge] });
+    const nextItems = await getSharedItems(token);
+    const next = nextItems.find((entry) => entry.id === item.id);
+    commitItem(next ?? { ...item, is_group_gift: true, pledges: [...(item.pledges ?? []), pledge] });
   }
 
   async function onMarkFunded() {
@@ -124,7 +144,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     try {
-      setItem(await markSharedItemFunded(token, item.id));
+      commitItem(await markSharedItemFunded(token, item.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not mark funded');
     } finally {
@@ -137,7 +157,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     try {
-      setItem(await simulateSharedFunded(token, item.id));
+      commitItem(await simulateSharedFunded(token, item.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not simulate funding');
     } finally {
@@ -150,7 +170,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     try {
-      setItem(await setSharedOrganiser(token, item.id, organiserName));
+      commitItem(await setSharedOrganiser(token, item.id, organiserName));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save organiser');
     } finally {
@@ -163,7 +183,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     try {
-      setItem(await setSharedPayInstructions(token, item.id, payInstructions));
+      commitItem(await setSharedPayInstructions(token, item.id, payInstructions));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save pay instructions');
     } finally {
@@ -176,7 +196,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     try {
-      setItem(await setSharedDelivery(token, item.id, method, note));
+      commitItem(await setSharedDelivery(token, item.id, method, note));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save delivery');
     } finally {
@@ -189,7 +209,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     try {
-      setItem(await simulateSharedReveal(token, item.id, which));
+      commitItem(await simulateSharedReveal(token, item.id, which));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not simulate reveal date');
     } finally {
@@ -202,7 +222,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     try {
-      setItem(await setSharedLinkDead(token, item.id, dead));
+      commitItem(await setSharedLinkDead(token, item.id, dead));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update link');
     } finally {
@@ -215,7 +235,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     try {
-      setItem(await runDemoLinkCheck(token, item));
+      commitItem(await runDemoLinkCheck(token, item));
       track('heal_link_check', { demo });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not check link');
@@ -232,7 +252,7 @@ export default function GiverItemScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot on item id
   }, [demo, token, item?.id, item?.buy_url]);
 
-  if (loading && !item) {
+  if ((loading || shareLoading) && !item) {
     return (
       <Screen>
         <ThemedText themeColor="textSecondary">Loading gift…</ThemedText>
@@ -248,7 +268,7 @@ export default function GiverItemScreen() {
     );
   }
 
-  const chipTone = giverChipTone(item);
+  const statusChip = giverStatusChip(item);
   const taken = item.status === 'reserved' || item.status === 'purchased';
 
   return (
@@ -264,8 +284,8 @@ export default function GiverItemScreen() {
         </ThemedText>
         <ThemedText type="heading">{item.title || 'Untitled gift'}</ThemedText>
         <StatusChip
-          label={`${giverItemChipLabel(item)}${item.item_kind === 'vibe' ? ' · vibe' : ''}`}
-          tone={chipTone}
+          label={`${statusChip.label}${item.item_kind === 'vibe' ? ' · vibe' : ''}`}
+          tone={statusChip.tone}
         />
         <ThemedText type="small" themeColor="textSecondary">
           Soft lock is honour-system. Other givers see Taken/Bought — not names.
