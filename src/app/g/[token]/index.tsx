@@ -9,10 +9,12 @@ import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { useGiverShare } from '@/context/giver-share-context';
+import { useGiverCatalog } from '@/lib/giver-catalog';
 import { groupGiftPhase } from '@/lib/pledges';
 
 export default function GiverShareScreen() {
-  const { token, meta, items, error, loading, refresh } = useGiverShare();
+  const { token, meta, error, loading, refresh } = useGiverShare();
+  const items = useGiverCatalog(token);
 
   useFocusEffect(
     useCallback(() => {

@@ -19,6 +19,7 @@ import { useGiverShare } from '@/context/giver-share-context';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { isDemoShareToken } from '@/lib/demo-store';
+import { patchGiverCatalog, shareTokenParam } from '@/lib/giver-catalog';
 import { giverStatusChip } from '@/lib/giver-status';
 import type { DeliveryMethod, ItemStatus, WishlistItem } from '@/lib/types';
 import {
@@ -41,7 +42,7 @@ export default function GiverItemScreen() {
   const theme = useTheme();
   const { token: paramToken, itemId } = useLocalSearchParams<{ token: string; itemId: string }>();
   const { token: shareToken, items, loading: shareLoading, patchItem } = useGiverShare();
-  const token = shareToken ?? paramToken;
+  const token = shareToken ?? shareTokenParam(paramToken);
   const shareItem = items.find((entry) => entry.id === itemId) ?? null;
   const [item, setItem] = useState<WishlistItem | null>(shareItem);
   const [name, setName] = useState('');
@@ -84,6 +85,7 @@ export default function GiverItemScreen() {
   function commitItem(next: WishlistItem) {
     setItem(next);
     patchItem(next);
+    if (token) patchGiverCatalog(token, next);
   }
 
   async function updateStatus(status: ItemStatus) {

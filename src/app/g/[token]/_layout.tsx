@@ -16,6 +16,8 @@ export default function SharedListLayout() {
           headerTintColor: theme.text,
           headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '700' },
           contentStyle: { backgroundColor: theme.background },
+          freezeOnBlur: false,
+          animation: 'slide_from_right',
         }}>
         <Stack.Screen name="index" options={{ title: 'Pick a gift' }} />
         <Stack.Screen name="[itemId]" options={{ title: 'Gift' }} />

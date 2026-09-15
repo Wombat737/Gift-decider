@@ -3,10 +3,13 @@ import { beforeEach, describe, it } from 'node:test';
 
 import {
   getDemoItem,
+  getDemoStoreVersion,
   listDemoSharedItems,
   resetDemoStore,
   setDemoItemStatus,
+  subscribeDemoStore,
 } from './demo-store';
+import { peekGiverCatalog } from './giver-catalog';
 import {
   applyItemStatus,
   coerceItemStatus,
@@ -56,6 +59,45 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.equal(giverStatusChip(takenEspresso).label, 'Taken · Collecting');
     const boughtEspresso = setDemoItemStatus('demo-espresso', 'purchased', 'Alex');
     assert.equal(giverStatusChip(boughtEspresso).label, 'Bought');
+  });
+
+  it('giver list re-reads the demo store after lock / purchase / release without a local patch', () => {
+    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
+
+    let notified = 0;
+    const stop = subscribeDemoStore(() => {
+      notified += 1;
+    });
+    const versionBefore = getDemoStoreVersion();
+    setDemoItemStatus('demo-mug', 'reserved', 'Alex');
+    stop();
+
+    assert.ok(notified >= 1);
+    assert.ok(getDemoStoreVersion() > versionBefore);
+    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Taken');
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Taken');
+
+    setDemoItemStatus('demo-mug', 'purchased', 'Alex');
+    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Bought');
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Bought');
+
+    setDemoItemStatus('demo-mug', 'available');
+    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
+
+    const housewarming = listDemoSharedItems('demo-housewarming');
+    const book = housewarming.find((item) => item.id === 'demo-book');
+    assert.ok(book);
+    assert.equal(giverStatusChip(book).label, 'Open');
+    setDemoItemStatus('demo-book', 'reserved', 'Jo');
+    assert.equal(
+      giverStatusChip(listDemoSharedItems('demo-housewarming').find((item) => item.id === 'demo-book')!).label,
+      'Taken',
+    );
+
+    const owner = ownerSafeItem(getDemoItem('demo-mug')!);
+    assert.equal(owner.status, 'available');
+    assert.equal(JSON.stringify(owner).includes('Taken'), false);
   });
 
   it('seeded socks stay Taken on the giver list and look Open to the owner', () => {

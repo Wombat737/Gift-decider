@@ -34,7 +34,7 @@ export function ItemGrid({
   return (
     <View style={styles.grid}>
       {items.map((item) => (
-        <View key={item.id} style={styles.cell}>
+        <View key={`${item.id}:${item.status}:${item.reserved_at ?? ''}`} style={styles.cell}>
           <ItemCard item={item} href={hrefFor(item)} showStatus={showStatus} />
         </View>
       ))}
