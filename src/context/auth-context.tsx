@@ -1,8 +1,17 @@
 import { createContext, use, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
+import { Platform } from 'react-native';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 
+import { completeAuthFromUrl } from '@/lib/auth-redirect';
+import { isDemoSession, writeDemoSession } from '@/lib/demo-session';
 import { env } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
 import type { SessionUser } from '@/lib/types';
+
+if (Platform.OS === 'web') {
+  WebBrowser.maybeCompleteAuthSession();
+}
 
 type AuthContextValue = {
   user: SessionUser | null;
@@ -22,24 +31,8 @@ const DEMO_USER: SessionUser = {
   demo: true,
 };
 
-const DEMO_SESSION_KEY = 'giftdecider.demo-session';
-
-function readDemoSession() {
-  try {
-    return typeof localStorage !== 'undefined' && localStorage.getItem(DEMO_SESSION_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function writeDemoSession(on: boolean) {
-  try {
-    if (typeof localStorage === 'undefined') return;
-    if (on) localStorage.setItem(DEMO_SESSION_KEY, '1');
-    else localStorage.removeItem(DEMO_SESSION_KEY);
-  } catch {
-    // ignore
-  }
+function sessionUserFrom(id: string, email: string | null): SessionUser {
+  return { id, email, demo: false };
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -48,35 +41,51 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!supabase) {
-      setUser(readDemoSession() ? DEMO_USER : null);
+      setUser(isDemoSession() ? DEMO_USER : null);
       setIsLoading(false);
       return;
     }
 
+    const applySessionUser = (id: string | undefined, email: string | null | undefined) => {
+      if (id) {
+        writeDemoSession(false);
+        setUser(sessionUserFrom(id, email ?? null));
+        return;
+      }
+      if (isDemoSession()) {
+        setUser(DEMO_USER);
+        return;
+      }
+      setUser(null);
+    };
+
     supabase.auth.getSession().then(({ data }) => {
       const sessionUser = data.session?.user;
-      if (sessionUser) {
-        setUser({ id: sessionUser.id, email: sessionUser.email ?? null, demo: false });
-      } else if (readDemoSession()) {
-        setUser(DEMO_USER);
-      } else {
-        setUser(null);
-      }
+      applySessionUser(sessionUser?.id, sessionUser?.email);
       setIsLoading(false);
     });
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUser = session?.user;
-      if (sessionUser) {
-        setUser({ id: sessionUser.id, email: sessionUser.email ?? null, demo: false });
-      } else if (readDemoSession()) {
-        setUser(DEMO_USER);
-      } else {
-        setUser(null);
-      }
+      applySessionUser(sessionUser?.id, sessionUser?.email);
     });
 
-    return () => data.subscription.unsubscribe();
+    let linkingSub: { remove: () => void } | undefined;
+    if (Platform.OS !== 'web') {
+      const consume = (url: string | null) => {
+        if (!url || !supabase) return;
+        void completeAuthFromUrl(url, supabase).catch(() => {
+          // Ignore unrelated deep links; callback screen shows errors if needed.
+        });
+      };
+      void Linking.getInitialURL().then(consume);
+      linkingSub = Linking.addEventListener('url', ({ url }) => consume(url));
+    }
+
+    return () => {
+      data.subscription.unsubscribe();
+      linkingSub?.remove();
+    };
   }, []);
 
   const value = useMemo<AuthContextValue>(
@@ -87,17 +96,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const trimmed = email.trim();
         if (!trimmed) throw new Error('Enter your email');
         if (!supabase) {
-          throw new Error('Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY to send a real magic link. Use Explore demo until then.');
+          throw new Error(
+            'Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to send a real magic link. Use Explore demo until then.',
+          );
         }
 
+        const redirectTo = Linking.createURL('auth/callback');
         const { error } = await supabase.auth.signInWithOtp({
           email: trimmed,
           options: {
-            emailRedirectTo: 'giftdecider://auth/callback',
+            shouldCreateUser: true,
+            emailRedirectTo: redirectTo,
           },
         });
         if (error) throw error;
-        return 'Check your email for a magic link.';
+        return `Check ${trimmed} for a magic link. It returns to ${redirectTo}`;
       },
       signInDemo() {
         writeDemoSession(true);

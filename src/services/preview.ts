@@ -1,3 +1,4 @@
+import { usesDemoData } from '@/lib/app-mode';
 import { env } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
 import type { LinkPreview } from '@/lib/types';
@@ -30,7 +31,7 @@ export async function previewUrl(url: string): Promise<LinkPreview> {
     throw new Error('Paste a URL first');
   }
 
-  if (supabase) {
+  if (!usesDemoData() && supabase) {
     const { data, error } = await supabase.functions.invoke('preview-url', {
       body: { url: trimmed },
     });
@@ -48,7 +49,7 @@ export async function previewUrl(url: string): Promise<LinkPreview> {
 }
 
 async function cachePreview(preview: LinkPreview) {
-  if (!supabase) return;
+  if (usesDemoData() || !supabase) return;
 
   await supabase.from('link_previews').upsert(
     {

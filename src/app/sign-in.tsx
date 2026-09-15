@@ -19,6 +19,7 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const live = env.isSupabaseConfigured;
 
   async function onMagicLink() {
     setBusy(true);
@@ -43,37 +44,14 @@ export default function SignInScreen() {
     }
   }
 
-  return (
-    <Screen>
-      <View style={styles.hero}>
-        <BrandMark size={56} />
-        <ThemedText type="eyebrow" themeColor="brand">
-          Gift Decider
-        </ThemedText>
-        <ThemedText type="title">Pick gifts from a living photo wishlist.</ThemedText>
-        <ThemedText themeColor="textSecondary">
-          Recipients pin photos and vibes. Givers open a read-only link — reserve, chip in, shop AU. They
-          won’t see what you chose.
-        </ThemedText>
-      </View>
+  function onExploreDemo() {
+    track('demo_explore');
+    signInDemo();
+    router.replace('/wishlist');
+  }
 
-      <Card>
-        <ThemedText type="smallBold">Show mates the demo</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          No install. Sample birthday and housewarming packs, surprise-safe owner screens, giver locks and
-          chip-ins. Best on a phone browser.
-        </ThemedText>
-        <Button
-          label="Explore demo"
-          accessibilityLabel="explore-demo"
-          onPress={() => {
-            track('demo_explore');
-            signInDemo();
-            router.replace('/wishlist');
-          }}
-        />
-      </Card>
-
+  const magicLinkFields = (
+    <>
       <TextField
         label="Email"
         autoCapitalize="none"
@@ -83,18 +61,66 @@ export default function SignInScreen() {
         value={email}
         onChangeText={setEmail}
         hint={
-          env.isSupabaseConfigured
-            ? 'Sends a Supabase magic link. Add giftdecider://auth/callback to Redirect URLs.'
-            : 'Magic link needs Supabase env vars. Explore demo works without them.'
+          live
+            ? 'Sends a Supabase magic link. Add the redirect URL from README to Authentication → URL Configuration.'
+            : 'Magic link needs EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY. Explore demo works without them.'
         }
       />
-
       <Button
         label={busy ? 'Sending…' : 'Email me a magic link'}
-        variant="secondary"
+        variant={live ? 'primary' : 'secondary'}
         disabled={busy}
         onPress={() => void onMagicLink()}
       />
+    </>
+  );
+
+  const demoCard = (
+    <Card>
+      <ThemedText type="smallBold">{live ? 'Or explore the sample list' : 'Show mates the demo'}</ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        {live
+          ? 'Sample birthday and housewarming packs stay on this device. GitHub Pages uses this path when env vars are empty.'
+          : 'No install. Sample birthday and housewarming packs, surprise-safe owner screens, giver locks and chip-ins. Best on a phone browser.'}
+      </ThemedText>
+      <Button
+        label="Explore demo"
+        accessibilityLabel="explore-demo"
+        variant={live ? 'secondary' : 'primary'}
+        onPress={onExploreDemo}
+      />
+    </Card>
+  );
+
+  return (
+    <Screen>
+      <View style={styles.hero}>
+        <BrandMark size={56} />
+        <ThemedText type="eyebrow" themeColor="brand">
+          Gift Decider
+        </ThemedText>
+        <ThemedText type="title">Pick gifts from a living photo wishlist.</ThemedText>
+        <ThemedText themeColor="textSecondary">
+          {live
+            ? 'Sign in with email to use your live wishlist. Recipients pin photos; givers open a share link — they won’t spoil the surprise.'
+            : 'Recipients pin photos and vibes. Givers open a read-only link — reserve, chip in, shop AU. They won’t see what you chose.'}
+        </ThemedText>
+      </View>
+
+      {live ? (
+        <Card>
+          <ThemedText type="smallBold">Live wishlist</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Magic link against your Supabase project. Profile and lists persist. Explore demo is still available
+            without mixing into that project.
+          </ThemedText>
+          {magicLinkFields}
+        </Card>
+      ) : (
+        demoCard
+      )}
+
+      {live ? demoCard : magicLinkFields}
 
       <View style={styles.oauth}>
         <Button

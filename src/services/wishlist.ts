@@ -1,3 +1,4 @@
+import { usesDemoData } from '@/lib/app-mode';
 import { supabase } from '@/lib/supabase';
 import {
   addDemoItem,
@@ -26,8 +27,10 @@ import {
 } from '@/lib/demo-store';
 import { asDeliveryMethod, asRevealDate, readyToBuyEmailPreview, shiftLocalDate } from '@/lib/pledges';
 import { healLink } from '@/lib/heal-link';
+import { OWNER_ITEM_SELECT } from '@/lib/rls-contract';
 import { hideReservationFromOwner, ownerSafeItem } from '@/lib/surprise-safe';
 import { env } from '@/lib/env';
+import { ensureOwnWorkspace } from '@/services/profile';
 import type {
   DeliveryMethod,
   ItemPledge,
@@ -43,9 +46,6 @@ import type {
 } from '@/lib/types';
 
 export { hideReservationFromOwner, ownerSafeItem };
-
-const OWNER_ITEM_SELECT =
-  'id, wishlist_id, image_path, image_url, title, notes, source_type, source_url, buy_url, tags, item_kind, size_hint, target_amount, occasion_id, no_substitution, created_at';
 
 type OwnedRevealRow = {
   item_id: string;
@@ -116,28 +116,42 @@ function withOwnedReveal(item: WishlistItem, rows: OwnedRevealRow[]): WishlistIt
 }
 
 async function listOwnedRevealedContributors(): Promise<OwnedRevealRow[]> {
-  if (!supabase) return [];
+  if (usesDemoData() || !supabase) return [];
   const { data, error } = await supabase.rpc('list_owned_revealed_contributors');
   if (error) throw error;
   return (data ?? []) as OwnedRevealRow[];
 }
 
 export async function getOwnedWishlist(): Promise<Wishlist | null> {
-  if (!supabase) return demoWishlist;
+  if (usesDemoData() || !supabase) return demoWishlist;
+
+  const { data: userData } = await supabase.auth.getUser();
+  const ownerId = userData.user?.id;
+  if (!ownerId) return null;
 
   const { data, error } = await supabase
     .from('wishlists')
     .select('id, owner_id, title, share_token')
+    .eq('owner_id', ownerId)
     .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  if (data) return data;
+
+  const workspace = await ensureOwnWorkspace();
+  if (!workspace) return null;
+  return {
+    id: workspace.wishlist_id,
+    owner_id: workspace.owner_id,
+    title: workspace.title,
+    share_token: workspace.share_token,
+  };
 }
 
 export async function listOwnedOccasions(): Promise<Occasion[]> {
-  if (!supabase) return listDemoOccasions();
+  if (usesDemoData() || !supabase) return listDemoOccasions();
 
   const wishlist = await getOwnedWishlist();
   if (!wishlist) return [];
@@ -156,7 +170,7 @@ export async function createOccasion(title: string): Promise<Occasion> {
   const trimmed = title.trim();
   if (!trimmed) throw new Error('Name this occasion');
 
-  if (!supabase) return addDemoOccasion(trimmed);
+  if (usesDemoData() || !supabase) return addDemoOccasion(trimmed);
 
   const wishlist = await getOwnedWishlist();
   if (!wishlist) throw new Error('No wishlist yet — sign in again after applying migrations.');
@@ -172,7 +186,7 @@ export async function createOccasion(title: string): Promise<Occasion> {
 }
 
 export async function listOwnedItems(): Promise<WishlistItem[]> {
-  if (!supabase) return listDemoItems().map(ownerSafeItem);
+  if (usesDemoData() || !supabase) return listDemoItems().map(ownerSafeItem);
 
   const wishlist = await getOwnedWishlist();
   if (!wishlist) return [];
@@ -189,7 +203,7 @@ export async function listOwnedItems(): Promise<WishlistItem[]> {
 }
 
 export async function getOwnedItem(itemId: string): Promise<WishlistItem | null> {
-  if (!supabase) {
+  if (usesDemoData() || !supabase) {
     const item = getDemoItem(itemId);
     return item ? ownerSafeItem(item) : null;
   }
@@ -221,7 +235,7 @@ const ownerInsertFields = (wishlistId: string, input: NewWishlistItem) => ({
 });
 
 export async function createItem(input: NewWishlistItem): Promise<WishlistItem> {
-  if (!supabase) return ownerSafeItem(addDemoItem(input));
+  if (usesDemoData() || !supabase) return ownerSafeItem(addDemoItem(input));
 
   const wishlist = await getOwnedWishlist();
   if (!wishlist) throw new Error('No wishlist yet — sign in again after applying migrations.');
@@ -237,7 +251,7 @@ export async function createItem(input: NewWishlistItem): Promise<WishlistItem> 
 }
 
 export async function updateOwnedItem(itemId: string, patch: UpdateWishlistItem): Promise<WishlistItem> {
-  if (!supabase) return ownerSafeItem(updateDemoItem(itemId, patch));
+  if (usesDemoData() || !supabase) return ownerSafeItem(updateDemoItem(itemId, patch));
 
   const payload: Record<string, unknown> = {};
   if (patch.title !== undefined) payload.title = patch.title;
@@ -266,7 +280,7 @@ export async function updateOwnedItem(itemId: string, patch: UpdateWishlistItem)
 }
 
 export async function listInvites(): Promise<WishlistMember[]> {
-  if (!supabase) return [];
+  if (usesDemoData() || !supabase) return [];
 
   const wishlist = await getOwnedWishlist();
   if (!wishlist) return [];
@@ -285,7 +299,7 @@ export async function inviteByEmail(email: string): Promise<WishlistMember | { s
   const trimmed = email.trim().toLowerCase();
   if (!trimmed) throw new Error('Enter an email');
 
-  if (!supabase) {
+  if (usesDemoData() || !supabase) {
     return { stub: true, email: trimmed };
   }
 
@@ -307,7 +321,7 @@ export async function inviteByEmail(email: string): Promise<WishlistMember | { s
 }
 
 function useDemoShare(token: string) {
-  return !supabase || isDemoShareToken(token) || token === DEMO_SHARE_TOKEN;
+  return usesDemoData() || !supabase || isDemoShareToken(token) || token === DEMO_SHARE_TOKEN;
 }
 
 export async function getSharedWishlist(token: string): Promise<SharedWishlist | null> {
@@ -508,7 +522,7 @@ async function sendReadyToBuyEmail(item: WishlistItem) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        apikey: env.supabasePublishableKey,
+        apikey: env.supabaseAnonKey,
       },
       body: JSON.stringify({
         item_title: item.title,

@@ -6,7 +6,7 @@ import { AppState } from 'react-native';
 import { env } from '@/lib/env';
 
 export const supabase: SupabaseClient | null = env.isSupabaseConfigured
-  ? createClient(env.supabaseUrl, env.supabasePublishableKey, {
+  ? createClient(env.supabaseUrl, env.supabaseAnonKey, {
       auth: {
         storage: localStorage,
         autoRefreshToken: true,
