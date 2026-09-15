@@ -484,16 +484,68 @@ function loadBundle(): DemoBundle {
   return fallback;
 }
 
-function saveBundle() {
-  if (!canUseStorage()) return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, occasions, pledges, notices }));
-  } catch {
-    // Private mode / quota — keep going in memory.
+const DEMO_ROOT_KEY = '__giftdeciderDemoRootV5';
+
+type DemoRoot = DemoBundle & {
+  version: number;
+  listeners: Set<() => void>;
+};
+
+function getDemoRoot(): DemoRoot {
+  const global = globalThis as typeof globalThis & { [DEMO_ROOT_KEY]?: DemoRoot };
+  if (!global[DEMO_ROOT_KEY]) {
+    global[DEMO_ROOT_KEY] = {
+      items,
+      occasions,
+      pledges,
+      notices,
+      version: 0,
+      listeners: new Set(),
+    };
   }
+  return global[DEMO_ROOT_KEY];
+}
+
+/** Keep this module's bindings on the process-wide singleton (survives duplicate bundles). */
+function adoptDemoRoot() {
+  const root = getDemoRoot();
+  items = root.items;
+  occasions = root.occasions;
+  pledges = root.pledges;
+  notices = root.notices;
+}
+
+function saveBundle() {
+  const root = getDemoRoot();
+  root.items = items;
+  root.occasions = occasions;
+  root.pledges = pledges;
+  root.notices = notices;
+  root.version += 1;
+  if (canUseStorage()) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, occasions, pledges, notices }));
+    } catch {
+      // Private mode / quota — keep going in memory.
+    }
+  }
+  for (const listener of [...root.listeners]) listener();
+}
+
+export function subscribeDemoStore(listener: () => void) {
+  const root = getDemoRoot();
+  root.listeners.add(listener);
+  return () => {
+    root.listeners.delete(listener);
+  };
+}
+
+export function getDemoStoreVersion() {
+  return getDemoRoot().version;
 }
 
 let { items, occasions, pledges, notices } = loadBundle();
+adoptDemoRoot();
 
 export const demoWishlist: Wishlist = {
   id: DEMO_WISHLIST_ID,
@@ -549,6 +601,7 @@ function maybeFund(item: WishlistItem): WishlistItem {
 }
 
 export function resolveDemoShare(token: string): { occasion: Occasion | null } | null {
+  adoptDemoRoot();
   if (token === DEMO_SHARE_TOKEN || token === demoWishlist.share_token) {
     return { occasion: null };
   }
@@ -561,14 +614,17 @@ export function isDemoShareToken(token: string) {
 }
 
 export function listDemoOccasions() {
+  adoptDemoRoot();
   return occasions.map((row) => ({ ...row }));
 }
 
 export function listDemoItems() {
+  adoptDemoRoot();
   return items.map((item) => withPledges(item));
 }
 
 export function getDemoItem(itemId: string) {
+  adoptDemoRoot();
   const item = items.find((entry) => entry.id === itemId);
   return item ? withPledges(item) : null;
 }
@@ -586,6 +642,7 @@ export function getDemoSharedMeta(token: string): SharedWishlist | null {
 }
 
 export function listDemoSharedItems(token: string) {
+  adoptDemoRoot();
   const resolved = resolveDemoShare(token);
   if (!resolved) return [];
   const scoped = resolved.occasion
@@ -595,6 +652,7 @@ export function listDemoSharedItems(token: string) {
 }
 
 export function addDemoItem(input: NewWishlistItem): WishlistItem {
+  adoptDemoRoot();
   const item: WishlistItem = {
     id: id('item'),
     wishlist_id: DEMO_WISHLIST_ID,
@@ -631,6 +689,7 @@ export function addDemoItem(input: NewWishlistItem): WishlistItem {
 }
 
 export function updateDemoItem(itemId: string, patch: UpdateWishlistItem): WishlistItem {
+  adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
 
@@ -657,6 +716,7 @@ export function updateDemoItem(itemId: string, patch: UpdateWishlistItem): Wishl
 }
 
 export function addDemoOccasion(title: string): Occasion {
+  adoptDemoRoot();
   const trimmed = title.trim();
   if (!trimmed) throw new Error('Name this occasion');
   let token = slugToken('demo', trimmed);
@@ -676,6 +736,7 @@ export function addDemoOccasion(title: string): Occasion {
 }
 
 export function setDemoItemStatus(itemId: string, status: ItemStatus, reservedBy?: string | null): WishlistItem {
+  adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
 
@@ -698,6 +759,7 @@ export function setDemoGroupGift(
   organiserName?: string | null,
   payInstructions?: string | null,
 ): WishlistItem {
+  adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
   if (isGroupGift) {
@@ -732,6 +794,7 @@ export function setDemoGroupGift(
 export function setDemoOrganiser(itemId: string, organiserName: string): WishlistItem {
   const name = organiserName.trim();
   if (!name) throw new Error('Name the organiser');
+  adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
   const next: WishlistItem = { ...current, is_group_gift: true, organiser_name: name };
@@ -741,6 +804,7 @@ export function setDemoOrganiser(itemId: string, organiserName: string): Wishlis
 }
 
 export function setDemoPayInstructions(itemId: string, payInstructions: string): WishlistItem {
+  adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
   const next: WishlistItem = { ...current, pay_instructions: payInstructions.trim() || null };
@@ -754,6 +818,7 @@ export function setDemoDelivery(
   method: DeliveryMethod,
   note?: string | null,
 ): WishlistItem {
+  adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
   const next: WishlistItem = {
@@ -767,6 +832,7 @@ export function setDemoDelivery(
 }
 
 export function listDemoNotices(token?: string) {
+  adoptDemoRoot();
   const scoped = token ? listDemoSharedItems(token) : listDemoItems();
   const ids = new Set(scoped.map((item) => item.id));
   return notices.filter((row) => ids.has(row.item_id)).map((row) => ({ ...row }));
@@ -775,6 +841,7 @@ export function listDemoNotices(token?: string) {
 export function setDemoRevealAt(itemId: string, revealAt: string): WishlistItem {
   const date = asRevealDate(revealAt);
   if (!date) throw new Error('Pick a reveal date');
+  adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
   const next: WishlistItem = { ...current, is_group_gift: true, reveal_at: date };
@@ -793,6 +860,7 @@ export function simulateDemoReveal(itemId: string, which: DemoRevealShift): Wish
 
 export function addDemoPledge(itemId: string, amount: number, displayName?: string | null): ItemPledge {
   if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter an amount to chip in');
+  adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
 
@@ -816,6 +884,7 @@ export function addDemoPledge(itemId: string, amount: number, displayName?: stri
 }
 
 export function markDemoItemFunded(itemId: string): WishlistItem {
+  adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
   const next = recordReadyToBuyNotice({
@@ -842,6 +911,7 @@ export function simulateDemoFunded(itemId: string, displayName?: string | null):
 }
 
 export function setDemoLinkDead(itemId: string, dead: boolean): WishlistItem {
+  adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
   const next: WishlistItem = { ...current, buy_url_dead: dead };
@@ -851,6 +921,7 @@ export function setDemoLinkDead(itemId: string, dead: boolean): WishlistItem {
 }
 
 export function resetDemoStore() {
+  adoptDemoRoot();
   const fallback = fallbackBundle();
   items = fallback.items;
   occasions = fallback.occasions;

@@ -6,10 +6,10 @@ import { Card } from '@/components/card';
 import { StatusChip } from '@/components/status-chip';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
-import { giverItemChipLabel } from '@/lib/format';
+import { giverStatusChip } from '@/lib/giver-status';
 import { HEAL_BADGE, shouldRenderHealUi } from '@/lib/heal-link';
 import { improvisedConfidence } from '@/lib/improv';
-import { giverChipTone, ownerMomentTone } from '@/lib/tones';
+import { ownerMomentTone } from '@/lib/tones';
 import type { WishlistItem } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -25,6 +25,7 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
   const theme = useTheme();
   const confidence = showStatus ? improvisedConfidence(item) : null;
   const revealTone = ownerMomentTone();
+  const statusChip = showStatus ? giverStatusChip(item) : null;
 
   const body = (
     <>
@@ -55,7 +56,7 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
             From the group
           </ThemedText>
         ) : null}
-        {showStatus ? <StatusChip label={giverItemChipLabel(item)} tone={giverChipTone(item)} /> : null}
+        {statusChip ? <StatusChip label={statusChip.label} tone={statusChip.tone} /> : null}
         {showStatus && shouldRenderHealUi('giver', item) ? (
           <StatusChip label={HEAL_BADGE} tone="brand" />
         ) : null}

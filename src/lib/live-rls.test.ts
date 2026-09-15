@@ -72,6 +72,16 @@ describe('Surprise-safe RLS contract', () => {
 
     const phase3 = migration('20260914160000_phase3.sql');
     assert.match(phase3, /set_shared_item_link_dead/);
+
+    const giverStatus = migration('20260915180000_giver_status_rpc.sql');
+    assert.match(giverStatus, /create type public\.shared_gift_item/);
+    assert.match(giverStatus, /set_config\('giftdecider\.giver_rpc', '1', true\)/);
+    assert.match(giverStatus, /returns setof public\.shared_gift_item/);
+    assert.match(giverStatus, /returns public\.shared_gift_item/);
+    assert.match(giverStatus, /status public\.item_status/);
+    assert.match(giverStatus, /grant execute on function public\.set_shared_item_status/);
+    assert.equal(giverStatus.includes('Coral Coast'), false);
+    assert.equal(giverStatus.includes('#E85D4C'), false);
   });
 
   it('owner helper still strips reserve / funded / heal / pledges', () => {

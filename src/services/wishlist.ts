@@ -28,6 +28,8 @@ import {
 import { asDeliveryMethod, asRevealDate, readyToBuyEmailPreview, shiftLocalDate } from '@/lib/pledges';
 import { healLink } from '@/lib/heal-link';
 import { OWNER_ITEM_SELECT } from '@/lib/rls-contract';
+import { applyItemStatus, coerceItemStatus } from '@/lib/giver-status';
+import { patchGiverCatalog, peekGiverCatalog, shareTokenParam, writeGiverCatalog } from '@/lib/giver-catalog';
 import { hideReservationFromOwner, ownerSafeItem } from '@/lib/surprise-safe';
 import { env } from '@/lib/env';
 import { ensureOwnWorkspace } from '@/services/profile';
@@ -321,7 +323,8 @@ export async function inviteByEmail(email: string): Promise<WishlistMember | { s
 }
 
 function useDemoShare(token: string) {
-  return usesDemoData() || !supabase || isDemoShareToken(token) || token === DEMO_SHARE_TOKEN;
+  const normalized = shareTokenParam(token) ?? token;
+  return usesDemoData() || !supabase || isDemoShareToken(normalized) || normalized === DEMO_SHARE_TOKEN;
 }
 
 export async function getSharedWishlist(token: string): Promise<SharedWishlist | null> {
@@ -357,6 +360,9 @@ function asGiverItem(
     delivery_method: asDeliveryMethod(row.delivery_method),
     delivery_note: row.delivery_note ?? null,
     ready_to_buy_notified_at: row.ready_to_buy_notified_at ?? null,
+    status: coerceItemStatus(row.status),
+    reserved_by: row.reserved_by ?? null,
+    reserved_at: row.reserved_at ?? null,
     pledges: pledges.filter((pledge) => pledge.item_id === row.id),
     notices: noticeRows.filter((rowNotice) => rowNotice.item_id === row.id),
   };
@@ -378,7 +384,18 @@ export async function getSharedItems(token: string): Promise<WishlistItem[]> {
     listSharedNotices(token),
   ]);
   if (error) throw error;
-  return mergePledges(((data ?? []) as WishlistItem[]).map((row) => asGiverItem(row)), pledges, noticeRows);
+  const previous = peekGiverCatalog(token);
+  const next = mergePledges(
+    ((data ?? []) as WishlistItem[]).map((row) => {
+      const prev = previous.find((item) => item.id === row.id);
+      const status = coerceItemStatus(row.status, prev?.status ?? 'available');
+      return asGiverItem({ ...row, status });
+    }),
+    pledges,
+    noticeRows,
+  );
+  writeGiverCatalog(token, next);
+  return next;
 }
 
 export async function listSharedNotices(token: string): Promise<OrganiserNotice[]> {
@@ -425,8 +442,16 @@ export async function setSharedItemStatus(
   });
 
   if (error) throw error;
+  const items = await getSharedItems(token);
+  const found = items.find((entry) => entry.id === itemId);
   const { pledges, noticeRows } = await loadSharedGiverExtras(token);
-  return asGiverItem(data as WishlistItem, pledges, noticeRows);
+  const fromRpc = data ? asGiverItem(data as WishlistItem, pledges, noticeRows) : null;
+  const base = found ?? fromRpc;
+  if (!base) throw new Error('Wishlist item not found for that share link');
+  const rawStatus = data && typeof data === 'object' ? (data as { status?: unknown }).status : undefined;
+  const next = applyItemStatus(base, coerceItemStatus(rawStatus, status), reservedBy);
+  patchGiverCatalog(token, next);
+  return next;
 }
 
 export async function setSharedGroupGift(
@@ -661,5 +686,9 @@ export async function runDemoLinkCheck(token: string, item: WishlistItem): Promi
   if (fromUrl.health === 'dead') {
     return setSharedLinkDead(token, item.id, true);
   }
-  return item;
+  if (useDemoShare(token)) {
+    return getDemoItem(item.id) ?? item;
+  }
+  const items = await getSharedItems(token);
+  return items.find((entry) => entry.id === item.id) ?? item;
 }

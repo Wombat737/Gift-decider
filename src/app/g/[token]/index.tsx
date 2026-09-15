@@ -1,5 +1,5 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 import { DeadLinkBanner } from '@/components/dead-link-banner';
 import { FlowHeader } from '@/components/flow-header';
@@ -8,41 +8,19 @@ import { LegalLinks } from '@/components/legal-links';
 import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
+import { useGiverShare } from '@/context/giver-share-context';
+import { useGiverCatalog } from '@/lib/giver-catalog';
 import { groupGiftPhase } from '@/lib/pledges';
-import type { SharedWishlist, WishlistItem } from '@/lib/types';
-import { getSharedItems, getSharedWishlist } from '@/services/wishlist';
 
 export default function GiverShareScreen() {
-  const { token } = useLocalSearchParams<{ token: string }>();
-  const [meta, setMeta] = useState<SharedWishlist | null>(null);
-  const [items, setItems] = useState<WishlistItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { token, meta, error, loading, refresh } = useGiverShare();
+  const items = useGiverCatalog(token);
 
-  const load = useCallback(async () => {
-    if (!token || token === 'undefined') {
-      setMeta(null);
-      setItems([]);
-      setError('This share link is missing a token.');
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const [nextMeta, nextItems] = await Promise.all([getSharedWishlist(token), getSharedItems(token)]);
-      setMeta(nextMeta);
-      setItems(nextItems);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not open this list');
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      void refresh({ silent: true });
+    }, [refresh]),
+  );
 
   const who = meta?.owner_display_name || meta?.owner_handle || 'a friend';
   const occasion = meta?.occasion_title;
@@ -71,7 +49,7 @@ export default function GiverShareScreen() {
       {readyToBuy.length > 0 ? <ReadyToBuyBanner items={readyToBuy} /> : null}
       <DeadLinkBanner items={items} />
 
-      {!loading ? (
+      {!loading || items.length > 0 ? (
         <ItemGrid
           items={items}
           showStatus
