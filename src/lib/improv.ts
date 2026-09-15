@@ -15,11 +15,11 @@ export function improvisedConfidence(item: WishlistItem): GiverConfidence {
   let reason = base.reason + vibeClause(item);
 
   if (health === 'dead' && item.no_substitution) {
-    reason += ' Buy link looks dead — recovery search only; substitutions stay locked.';
+    reason += ' Buy link looks dead — substitutions stay locked; no alternatives.';
     return { ...base, level: base.level === 'safe' ? 'bold' : base.level, label: base.level === 'safe' ? 'Bold' : base.label, reason };
   }
   if (health === 'dead') {
-    reason += ' Buy link looks dead — try the vibe-matched alternatives below.';
+    reason += ' Buy link looks dead — try the vibe-matched alternatives.';
     return {
       ...base,
       level: base.level === 'needs-size' ? 'needs-size' : 'bold',

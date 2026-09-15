@@ -60,6 +60,7 @@ Send them the Pages demo on their phone, or sit together and tap:
 3. **Share / occasions** → **Copy invite** (Birthday or Housewarming) or **Open giver view**.
 4. As a giver: mark group gift (reveal date + organiser + PayID note), chip in, **Simulate funded (demo)** → **Funded — time to buy** banner + email stub. Organiser marks purchased + delivery. Owner still unspoiled. Then **Simulate reveal date = yesterday**.
 5. Flip back to the owner tab: espresso **From the group** + names only (no dollars, no PayID). Grinder is already revealed.
+6. As a giver, open **Washed linen throw** (Housewarming). **Link may be broken** + **See alternatives** — Amazon AU / Kmart / Target AU searches. Flip to the owner item: no heal banner, no substitutes.
 
 Direct giver links (keep the `/Gift-decider` prefix):
 
@@ -81,6 +82,21 @@ Visual polish on the existing IA — owner vs giver pills, gift cards, empty sta
 
 Store submit itself is **not** done here. Wombat still needs Apple Developer, Play Console, and payment.
 
+## Dead-link heal (giver-only)
+
+When a `buy_url` looks dead, **givers** can check the link and see 1–3 close AU alternatives (title + merchant + search URL). Recipients never see the warning or the substitutes — surprise-safe.
+
+| Piece | Where |
+| --- | --- |
+| **Contract** | `src/lib/heal-link.ts` — `healLink` / `healLinkAsync`. Same request/result shape for the stub and a future cheap LLM (`HealLinkLlm`). |
+| **Detection (stub)** | Known-bad demo URLs (`broken-buy-link`, `dead-link`, …), malformed URLs, or `buy_url_dead`. Optional HEAD/GET via `supabase/functions/heal-link` — **no LLM key**. |
+| **Suggestions** | Deterministic title / vibe / tag matcher in `src/lib/substitutes.ts`, then Amazon AU / Kmart / Target AU search URLs. |
+| **`no_substitution`** | Flag “link looks broken” only. **No** alternatives. |
+| **UI** | Giver list badge + banner; giver item **See alternatives** sheet. Owner `/wishlist` and `/item/[id]` never mount heal UI. |
+| **Demo** | Housewarming → **Washed linen throw** (`https://example.com/broken-buy-link/…`). Check link auto-runs in demo. |
+
+**Stub vs future LLM:** demo and CI use the heuristic only. Do not set `EXPO_PUBLIC_OPENAI_API_KEY` for this flow. Plug a model in later by implementing `HealLinkLlm` (or filling `heal-link` Edge Function suggestions) — the sheet already renders `title`, `merchant`, and `buyUrl`.
+
 ## Phase 3 (still here)
 
 Surprise-safe rule: the recipient/owner never sees reserved, purchased, who locked it, chip-in **progress**, or that a group gift is funded. On/after the **reveal date** givers picked, they see that it’s from the group and **who chipped in** (display names, or Anonymous). They still never see dollar amounts. Funded ≠ reveal.
@@ -89,9 +105,9 @@ Surprise-safe rule: the recipient/owner never sees reserved, purchased, who lock
 | --- | --- | --- |
 | **Reveal-date group gift** | Owner item on/after `reveal_at`; givers keep the pledge bar | Housewarming → **Home espresso machine** (reveal date in the future). As a giver, tap **Simulate funded (demo)** — flip to the owner tab: still unspoiled. Back as a giver, tap **Simulate reveal date = yesterday** (or **today**). Owner espresso then shows **From the group** and **who chipped in** (Alex, Anonymous, …). **Burr coffee grinder** is already funded with a past reveal date so the owner grid shows it immediately. |
 | **Organiser + honour-system buy** | Giver item + list banner | Enabling a group gift asks for reveal date, organiser name, and PayID / BSB. States: Collecting → Ready to buy → Purchased → Revealed. Funded fires **Funded — time to buy** in-app (demo) plus `notify-organiser-ready-to-buy` email stub. Organiser marks purchased and picks delivery (`to_organiser` / collect / other). Owner never sees pay notes or delivery. |
-| **Dead-link heal** | Giver item only | Housewarming → **Washed linen throw**. Giver sees “link looks dead” plus vibe-close alternatives (sage linen / oatmeal cotton). Owner item has no heal UI. |
-| **Exact lock** | Giver heal on a locked item | Birthday → **Speckled ceramic mug** (🔒). Mark **Link’s dead**. Recovery searches for that SKU only — no substitutes. |
-| **Vibe improv** | Giver confidence + substitute copy | Heuristic uses title + vibe tags. Optional LLM via `EXPO_PUBLIC_OPENAI_API_KEY` / `EXPO_PUBLIC_LLM_URL` or the `improv-substitutes` Edge Function when a key is present. Demo stays deterministic without a key. |
+| **Dead-link heal** | Giver list + item only | Housewarming → **Washed linen throw**. Badge **Link may be broken**, **See alternatives** sheet (sage linen / oatmeal cotton × Amazon AU / Kmart / Target AU). Owner item has no heal UI. |
+| **Exact lock** | Giver heal on a locked item | Birthday → **Speckled ceramic mug** (🔒). Mark **Link’s dead**. Banner only — **no** substitutes. |
+| **Vibe improv** | Giver confidence + substitute copy | Heuristic uses title + vibe tags. Optional LLM via `EXPO_PUBLIC_OPENAI_API_KEY` / `EXPO_PUBLIC_LLM_URL` or `improv-substitutes` / `heal-link` Edge Functions when a key is present. Demo stays deterministic without a key. |
 
 ## Phase 2 (still here)
 
@@ -100,7 +116,7 @@ Surprise-safe rule is unchanged for in-flight gifts.
 | Feature | Where | Demo how-to (no Supabase) |
 | --- | --- | --- |
 | **Taste / vibe board** | Owner add + item edit; givers see chips | Explore demo → open **Speckled ceramic mug** or **A plant that can survive me**. Edit vibes / Exact vs Taste. Giver view shows the same chips plus a lock if “No substitutions”. |
-| **No substitutions lock** | Owner toggle; giver lock | Mug is locked. Owner sees 🔒; giver sees “No substitutes”. Dead-link heal honours this (exact-SKU recovery only). |
+| **No substitutions lock** | Owner toggle; giver lock | Mug is locked. Owner sees 🔒; giver sees “No substitutes”. Dead-link heal honours this (flag only — no alternatives). |
 | **Occasion packs** | Share screen; giver URL scopes items | Share / occasions → **Birthday** (`/g/demo-birthday`) vs **Housewarming** (`/g/demo-housewarming`). Create another pack and assign items. |
 | **Giver confidence** | Giver list + item only | On `/g/demo`: mug → Safe pick; socks → Needs size; plant → Bold. Owner grid has no score. |
 | **AU buy helpers** | Giver item | Open any gift as a giver → Amazon AU / Kmart / Target AU / Big W search from the title. |
@@ -120,8 +136,8 @@ npx expo start --web
 4. Open espresso as a giver: Alex is organiser, PayID note, chip-in progress, future reveal date. Tap **Simulate funded (demo)** — giver list/item show **Funded — time to buy** plus an email stub (no API key). Flip to the owner tab — espresso is **still unspoiled**.
 5. As the organiser, mark purchased and pick delivery. Owner is still blind.
 6. Back as a giver, tap **Simulate reveal date = yesterday** (or **today**). Owner espresso now shows **From the group** + names (still no dollars / PayID).
-7. Open **Washed linen throw**: dead-link heal + vibe substitutes. Owner never sees this panel.
-8. Optional: giver mug → **Link’s dead** → exact-SKU recovery only.
+7. Open **Washed linen throw**: **Link may be broken** + **See alternatives**. Owner never sees this panel.
+8. Optional: giver mug → **Link’s dead** → broken-link banner only (exact lock, no substitutes).
 
 Sample data lives in `localStorage` (`giftdecider.demo.v5`). `/g/demo` is the whole list; occasion tokens are `demo-birthday` and `demo-housewarming`. Espresso starts collecting with a future reveal date; grinder is already purchased with yesterday’s reveal date.
 
@@ -170,9 +186,9 @@ Copy `.env.example` → `.env.local`. Restart Expo after edits.
 | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Placeholder |
 | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Placeholder |
 | `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Placeholder |
-| `EXPO_PUBLIC_OPENAI_API_KEY` | Optional. Client-side LLM for substitute copy. Leave empty for the demo stub |
-| `EXPO_PUBLIC_LLM_URL` | Optional. POST endpoint that returns `{ suggestions: [{ title, reason }] }` |
-| `EXPO_PUBLIC_LLM_MODEL` | Optional. Defaults to `gpt-4o-mini` |
+| `EXPO_PUBLIC_OPENAI_API_KEY` | Optional. Leave empty. Dead-link heal and vibe copy use the local stub without it |
+| `EXPO_PUBLIC_LLM_URL` | Optional. Future plug-in (`healLinkAsync` / improv). Unused in the demo |
+| `EXPO_PUBLIC_LLM_MODEL` | Optional. Defaults to `gpt-4o-mini` if a key is ever set |
 | `EXPO_PUBLIC_PRIVACY_POLICY_URL` | Optional. Hosted policy. Empty uses in-app `/privacy` |
 | `EXPO_PUBLIC_SUPPORT_EMAIL` | Mailto inbox for account-deletion requests (default `hello@giftdecider.app`) |
 | `EXPO_PUBLIC_ANALYTICS_ENABLED` | `true` logs events to the console. Default off. No paid analytics product |
@@ -253,7 +269,17 @@ npx supabase functions deploy improv-substitutes
 
 Without `OPENAI_API_KEY` in the function env it returns `{ "source": "stub", "suggestions": [] }` and the app uses its local catalog.
 
-### 6. Organiser ready-to-buy email (stub)
+### 6. Dead-link heal function (stub)
+
+```bash
+npx supabase functions serve heal-link --no-verify-jwt
+# or
+npx supabase functions deploy heal-link
+```
+
+`POST { "url", "title", "tags", "no_substitution" }` returns `{ health, source, alternatives: [] }`. Known-bad demo URLs and malformed URLs are dead without a network call. Optional HEAD/GET marks 404/410. **No LLM key.** The app still builds 1–3 AU alternatives locally unless `no_substitution` is set.
+
+### 7. Organiser ready-to-buy email (stub)
 
 ```bash
 npx supabase functions serve notify-organiser-ready-to-buy --no-verify-jwt
@@ -276,8 +302,8 @@ Demo never needs keys: the giver UI shows the would-be email and the browser con
 | `/share` | Recipient | Whole-list + occasion **Copy invite** (mate-ready text) |
 | `/settings` | Recipient | Privacy link, account-deletion mailto stub, sign out |
 | `/privacy` | Anyone | Store-listing privacy stub (works on `/Gift-decider/privacy`) |
-| `/g/[token]` | Giver | Read-only list **with** Taken/Bought (no names), confidence, link-issue flag, **Funded — time to buy** banner |
-| `/g/[token]/[itemId]` | Giver | Soft lock, group pledges, organiser / PayID / delivery, reveal date, mark funded, dead-link heal, AU buy helpers |
+| `/g/[token]` | Giver | Read-only list **with** Taken/Bought (no names), confidence, **Link may be broken** badge, **Funded — time to buy** banner |
+| `/g/[token]/[itemId]` | Giver | Soft lock, group pledges, organiser / PayID / delivery, reveal date, mark funded, dead-link heal sheet, AU buy helpers |
 | `/auth/callback` | Auth | Magic-link landing stub |
 
 ## What’s stubbed (on purpose)
@@ -287,7 +313,7 @@ Demo never needs keys: the giver UI shows the would-be email and the browser con
 - **Apple / Google Sign-In** — buttons that explain they are placeholders
 - **Email invites** — inserts `wishlist_members` when Supabase is configured; does not send mail
 - **Camera / Storage upload** — add-item takes an image URL; bucket + RLS are ready
-- **AI matches / dead-link heal** — heuristic catalog + optional LLM. Demo is stubbed and offline-safe
+- **AI matches / dead-link heal** — `healLink` heuristic catalog + optional `heal-link` HEAD stub. No OpenAI/Anthropic key. `HealLinkLlm` is the future plug-in; demo is offline-safe
 - **Group-gift reveal to recipient** — names / Anonymous on/after the reveal date, not when funded. No Stripe
 - **Organiser notify** — in-app banner + `notify-organiser-ready-to-buy` email stub (Resend/Postmark optional). **Push notifications are next**
 - **Account deletion** — Settings mailto stub until a backend mailer exists
@@ -356,9 +382,9 @@ Expo Go is fine for the web/demo loop. Native Sign in with Apple / Google needs 
 src/app/                 Expo Router screens
 src/context/             Auth + wishlist
 src/services/            Preview + wishlist API (Supabase or demo store)
-src/lib/                 Env, types, confidence, AU buy URLs, substitutes, analytics stub, demo store
+src/lib/                 Env, types, confidence, AU buy URLs, heal-link contract, substitutes, analytics stub, demo store
 supabase/migrations/     Schema + RLS (init + phase2 + phase3 + reveal_at + organiser)
-supabase/functions/      preview-url stub, optional improv-substitutes, notify-organiser-ready-to-buy stub
+supabase/functions/      preview-url stub, heal-link stub, optional improv-substitutes, notify-organiser-ready-to-buy stub
 ```
 
 ## Scripts

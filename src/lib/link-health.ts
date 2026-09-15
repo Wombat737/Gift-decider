@@ -9,18 +9,29 @@ export function looksLikeDeadStubUrl(url: string | null | undefined) {
   return DEAD_STUB.test(trimmed);
 }
 
-/** Heuristic + explicit mark. Demo stub treats obviously-fake dead URLs as broken. */
+export function isMalformedBuyUrl(url: string | null | undefined) {
+  const trimmed = url?.trim() ?? '';
+  if (!trimmed) return false;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol !== 'http:' && parsed.protocol !== 'https:';
+  } catch {
+    return true;
+  }
+}
+
+/** Heuristic + explicit mark. Demo stub treats obviously-fake / malformed URLs as broken. */
 export function inspectBuyLink(item: Pick<WishlistItem, 'buy_url' | 'buy_url_dead'>): LinkHealth {
   if (item.buy_url_dead) return 'dead';
   const url = item.buy_url?.trim() ?? '';
   if (!url) return 'missing';
-  if (looksLikeDeadStubUrl(url)) return 'dead';
+  if (isMalformedBuyUrl(url) || looksLikeDeadStubUrl(url)) return 'dead';
   return 'ok';
 }
 
+/** Dead or malformed buy URLs — not merely missing. Giver heal badge uses this. */
 export function linkNeedsHeal(item: Pick<WishlistItem, 'buy_url' | 'buy_url_dead'>) {
-  const health = inspectBuyLink(item);
-  return health === 'dead' || health === 'missing';
+  return inspectBuyLink(item) === 'dead';
 }
 
 export function linkHealthCopy(health: LinkHealth) {

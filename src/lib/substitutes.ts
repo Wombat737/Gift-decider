@@ -98,18 +98,6 @@ function vibeOverlap(entry: CatalogEntry, tags: string[]) {
   return entry.vibeTags.filter((tag) => set.has(tag)).length;
 }
 
-function exactRecovery(item: Pick<WishlistItem, 'id' | 'title' | 'tags'>): GiftSubstitute {
-  const title = item.title?.trim() || 'this exact item';
-  return {
-    id: `exact-${item.id}`,
-    title,
-    reason: 'Exact lock — recovery search for this SKU only. Not a substitute.',
-    query: auSearchQuery(item.title, item.tags),
-    exactSku: true,
-    vibeTags: [...item.tags],
-  };
-}
-
 function fromCatalog(item: WishlistItem, entry: CatalogEntry): GiftSubstitute {
   const vibes = entry.vibeTags.filter((tag) => item.tags.map((t) => t.toLowerCase()).includes(tag));
   const vibeBit = vibes.length > 0 ? ` Matches ${vibes.join(' · ')}.` : '';
@@ -155,13 +143,11 @@ function vibeFallback(item: WishlistItem): GiftSubstitute[] {
 }
 
 /**
- * Deterministic giver-only substitutes. Honour no_substitution: exact-SKU
- * recovery only — never alternates.
+ * Deterministic giver-only substitutes. Honour no_substitution: return nothing.
+ * Dead-link heal may still flag a broken URL — it must not suggest swaps.
  */
 export function suggestSubstitutes(item: WishlistItem): GiftSubstitute[] {
-  if (item.no_substitution) {
-    return [exactRecovery(item)];
-  }
+  if (item.no_substitution) return [];
 
   const matches = catalogMatches(item)
     .slice(0, 3)
@@ -173,7 +159,7 @@ export function suggestSubstitutes(item: WishlistItem): GiftSubstitute[] {
 
 export function substituteModeCopy(item: Pick<WishlistItem, 'no_substitution' | 'item_kind'>) {
   if (item.no_substitution) {
-    return 'They locked substitutions. Only exact-SKU recovery links, not alternates.';
+    return 'They locked substitutions. If the link is dead we only flag it — no alternatives.';
   }
   if (item.item_kind === 'vibe') {
     return 'Taste / vibe item — close swaps that stay on-board are fair game.';

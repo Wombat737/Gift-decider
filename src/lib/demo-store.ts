@@ -244,8 +244,8 @@ const seedItems: WishlistItem[] = [
     title: 'Washed linen throw',
     notes: 'Oatmeal or sage. Nothing neon. The listing they saved is gone.',
     source_type: 'url',
-    source_url: 'https://example.com/dead-link/linen-throw',
-    buy_url: 'https://example.com/dead-link/linen-throw',
+    source_url: 'https://example.com/broken-buy-link/washed-linen-throw',
+    buy_url: 'https://example.com/broken-buy-link/washed-linen-throw',
     tags: ['cozy', 'home', 'soft'],
     item_kind: 'vibe',
     size_hint: null,
@@ -365,7 +365,10 @@ function normalizeItem(raw: Partial<WishlistItem> & { id: string }): WishlistIte
     notes: raw.notes ?? null,
     source_type: raw.source_type ?? 'manual',
     source_url: raw.source_url ?? null,
-    buy_url: raw.buy_url ?? null,
+    buy_url:
+      raw.id === 'demo-throw'
+        ? 'https://example.com/broken-buy-link/washed-linen-throw'
+        : (raw.buy_url ?? null),
     tags: Array.isArray(raw.tags) ? raw.tags : [],
     item_kind: raw.item_kind === 'vibe' ? 'vibe' : 'exact',
     size_hint: raw.size_hint ?? null,

@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AuBuyLinks } from '@/components/au-buy-links';
@@ -45,6 +45,8 @@ export default function GiverItemScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const autoChecked = useRef<string | null>(null);
+  const demo = Boolean(token && isDemoShareToken(token));
 
   const load = useCallback(async () => {
     if (!token || !itemId) return;
@@ -208,18 +210,27 @@ export default function GiverItemScreen() {
     }
   }
 
-  async function onDemoCheck() {
+  async function onCheckLink() {
     if (!token || !item) return;
     setError(null);
     setBusy(true);
     try {
       setItem(await runDemoLinkCheck(token, item));
+      track('heal_link_check', { demo });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not check link');
     } finally {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!demo || !token || !item?.buy_url || autoChecked.current === item.id) return;
+    autoChecked.current = item.id;
+    void onCheckLink();
+    // Demo auto-check once per item so a known-bad buy URL is clickable without a live HEAD.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot on item id
+  }, [demo, token, item?.id, item?.buy_url]);
 
   if (loading && !item) {
     return (
@@ -237,7 +248,6 @@ export default function GiverItemScreen() {
     );
   }
 
-  const demo = Boolean(token && isDemoShareToken(token));
   const chipTone = giverChipTone(item);
   const taken = item.status === 'reserved' || item.status === 'purchased';
 
@@ -309,7 +319,7 @@ export default function GiverItemScreen() {
         busy={busy}
         demo={demo}
         onMarkDead={(dead) => void onMarkDead(dead)}
-        onDemoCheck={() => void onDemoCheck()}
+        onCheckLink={() => void onCheckLink()}
       />
       <AuBuyLinks item={item} />
 

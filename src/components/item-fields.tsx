@@ -129,7 +129,7 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         <View style={{ flex: 1, paddingRight: 12 }}>
           <ThemedText>No substitutions</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Shows a lock to givers. Dead-link heal will only offer exact-SKU recovery, not substitutes.
+            Shows a lock to givers. If the buy link is dead, givers only see a warning — no alternatives.
           </ThemedText>
         </View>
         <Switch

@@ -25,7 +25,7 @@ import {
   demoWishlist,
 } from '@/lib/demo-store';
 import { asDeliveryMethod, asRevealDate, readyToBuyEmailPreview, shiftLocalDate } from '@/lib/pledges';
-import { looksLikeDeadStubUrl } from '@/lib/link-health';
+import { healLink } from '@/lib/heal-link';
 import { hideReservationFromOwner, ownerSafeItem } from '@/lib/surprise-safe';
 import { env } from '@/lib/env';
 import type {
@@ -641,8 +641,11 @@ export async function setSharedLinkDead(token: string, itemId: string, dead: boo
   return asGiverItem(data as WishlistItem, pledges, noticeRows);
 }
 
-/** Demo stub: mark dead when the URL looks like our broken-link fixture. */
+/** Check link (demo stub + heal-link contract). Marks dead when the URL looks broken; does not auto-unmark. */
 export async function runDemoLinkCheck(token: string, item: WishlistItem): Promise<WishlistItem> {
-  const dead = !item.buy_url?.trim() || looksLikeDeadStubUrl(item.buy_url) || item.buy_url_dead;
-  return setSharedLinkDead(token, item.id, dead);
+  const fromUrl = healLink({ ...item, buy_url_dead: false });
+  if (fromUrl.health === 'dead') {
+    return setSharedLinkDead(token, item.id, true);
+  }
+  return item;
 }
