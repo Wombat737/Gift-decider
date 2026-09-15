@@ -15,7 +15,7 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 - Real Stripe, Meta Instagram OAuth, push notifications, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
 - Push notifications are next; Ready to buy uses an in-app banner plus an email stub (`notify-organiser-ready-to-buy`)
 
-This repo is an **Expo + Supabase** app: screens navigate, schema + RLS ship in `supabase/migrations`, and GitHub Pages stays in **Explore demo** until you add a project URL + anon key. Instagram paste is still a stub (no Meta OAuth).
+This repo is an **Expo + Supabase** app: screens navigate, schema + RLS ship in `supabase/migrations`, and GitHub Pages stays in **Explore demo** (no secrets). Live magic-link on the phone is the **Vercel** root-path deploy with the two public keys. Instagram paste is still a stub (no Meta OAuth).
 
 ## Open the web demo
 
@@ -38,11 +38,13 @@ If that 404s, GitHub Pages is not switched on yet (one click):
 3. Branch: **`gh-pages`** / **`/` (root)** → Save
 4. Wait ~1 minute, then reload the URL above
 
-Or deploy a root-path copy to your own free host (no secrets required beyond logging in):
+Or deploy a **root-path Explore demo** to your own free host (no secrets — same as Pages until you add env vars):
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Wombat737/Gift-decider)
 
 Netlify: import the GitHub repo. Build command `npx expo export -p web`, publish directory `dist`. SPA redirects are already in `public/_redirects` and `netlify.toml`.
+
+For **magic-link on a phone**, connect this GitHub repo to Vercel and add the two public Supabase keys — see **Phone / Vercel live path** below. GitHub Pages stays Explore demo.
 
 From this repo:
 
@@ -50,6 +52,29 @@ From this repo:
 npm install
 npm run deploy    # exports with EXPO_BASE_URL=/Gift-decider and pushes gh-pages
 ```
+
+## Phone / Vercel live path
+
+GitHub Pages has **no secrets** on purpose. Use Vercel when you want a live web app on your phone: root URL (not `/Gift-decider`), build-time `EXPO_PUBLIC_*` keys, magic-link that returns to `/auth/callback`.
+
+Do this on a laptop once; then open the Vercel URL on the phone.
+
+1. **Import the repo.** [vercel.com](https://vercel.com) → **Add New… → Project** → import **Wombat737/Gift-decider**. Framework preset can stay **Other** (`vercel.json` already sets `framework: null`). Root Directory: `.` (repo root). Do **not** set `EXPO_BASE_URL` — Vercel builds with it empty so assets load at `/`.
+2. **Env vars (Production + Preview)** before you rely on magic-link. **Settings → Environment Variables**:
+   - `EXPO_PUBLIC_SUPABASE_URL` — Project Settings → API → Project URL
+   - `EXPO_PUBLIC_SUPABASE_ANON_KEY` — the **anon / public** key only. Never the `service_role` key.
+   Same names as `.env.local`. Expo inlines them when it runs `npx expo export -p web`.
+3. **Deploy.** Copy the Production origin (e.g. `https://gift-decider.vercel.app`). If you added the vars after the first build, **Redeploy** so they are baked in.
+4. **Share links.** Set `EXPO_PUBLIC_APP_URL` to that origin (no trailing slash, no `/Gift-decider`) for Production + Preview, then Redeploy again.
+5. **Supabase redirects.** Authentication → URL Configuration → Redirect URLs, add:
+   - `https://YOUR-APP.vercel.app/auth/callback`
+   - the Preview origin + `/auth/callback` if you sign in on preview URLs
+   Site URL can be the Production Vercel origin.
+6. **Phone.** Open the Vercel URL → **Email me a magic link**. The mail should return you to `/auth/callback` on that same origin, then `/wishlist`.
+
+Never commit `.env.local` or paste keys into GitHub Actions. Pages CI must stay secret-free so the public demo keeps working.
+
+`vercel.json` runs `npx expo export -p web` → `dist/`, then rewrites unknown paths to the SPA (`index.html`) so `/wishlist`, `/g/…`, and `/auth/callback` work on refresh.
 
 ## What to show mates (2 minutes)
 
@@ -178,12 +203,14 @@ GitHub Pages deploys **without** those env vars, so the public demo stays useful
 
 Copy `.env.example` → `.env.local`. Restart Expo after edits. Do not commit `.env.local`.
 
+Vercel **Project Settings → Environment Variables** uses the **same `EXPO_PUBLIC_*` names**. They are inlined at `npx expo export -p web` — add or change a var, then Redeploy. Leave `EXPO_BASE_URL` unset on Vercel (root path). GitHub Pages CI sets `EXPO_BASE_URL=/Gift-decider` and must not get these keys.
+
 | Variable | What it is |
 | --- | --- |
 | `EXPO_PUBLIC_SUPABASE_URL` | Project URL (`https://xxxx.supabase.co`) or local `http://127.0.0.1:54321` |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Anon / publishable key from Project Settings → API. **Never** put the secret/service-role key in the app |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Optional alias if an older `.env.local` still uses this name |
-| `EXPO_PUBLIC_APP_URL` | Public origin used when composing share links |
+| `EXPO_PUBLIC_APP_URL` | Public origin used when composing share links. On Vercel, set this to the Production URL (e.g. `https://YOUR-APP.vercel.app`) |
 | `EXPO_PUBLIC_APPLE_AUTH_ENABLED` | `false` until Apple + Supabase provider is done |
 | `EXPO_PUBLIC_GOOGLE_AUTH_ENABLED` | `false` until Google + Supabase provider is done |
 | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Placeholder |
@@ -285,8 +312,10 @@ Supabase → Authentication → URL Configuration:
   - `http://localhost:8081/auth/callback`
   - `http://127.0.0.1:8081/auth/callback`
   - your EAS / production web origin + `/auth/callback`
-  - GitHub Pages if you ever point Pages at a live project: `https://wombat737.github.io/Gift-decider/auth/callback`
-- Site URL: `http://localhost:8081` while developing; later your production origin
+  - Vercel Production (root path): `https://YOUR-APP.vercel.app/auth/callback`
+  - Vercel Preview origin + `/auth/callback` if you test magic-link on preview deploys
+  - GitHub Pages if you ever point Pages at a live project: `https://wombat737.github.io/Gift-decider/auth/callback` (Pages itself stays Explore demo — no keys)
+- Site URL: `http://localhost:8081` while developing; later your Vercel Production origin
 - Enable **Email** magic link (on by default). Confirmations can stay on for the free project.
 
 The app calls `signInWithOtp` and `Linking.createURL('auth/callback')`, so Expo Go uses `exp://…/--/auth/callback` and a dev/production build uses `giftdecider://auth/callback`. Add whichever you actually open.
@@ -373,7 +402,7 @@ Do this when you are ready for 10–20 mates on device. **Do not** pay Apple/Pla
 - [ ] **Apple Developer** ($99/year) — enroll at [developer.apple.com](https://developer.apple.com). You’ll need this for TestFlight.
 - [ ] **Google Play Console** ($25 one-off) — [play.google.com/console](https://play.google.com/console). Internal testing track does not require a public listing.
 - [ ] **Expo / EAS** — `npm i -g eas-cli` then `eas login`. `eas init` in this repo (creates the EAS project; slug is `gift-decider`).
-- [ ] **Supabase production project** — [database.new](https://database.new), apply migrations in order (including `live_rls`), set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` on EAS (`eas env:create --name EXPO_PUBLIC_SUPABASE_URL --environment production` and the same for the anon key). Optional: `eas integrations:supabase:connect`. GitHub Pages should **not** get these secrets — it stays Explore demo.
+- [ ] **Supabase production project** — [database.new](https://database.new), apply migrations in order (including `live_rls`), set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` on EAS (`eas env:create --name EXPO_PUBLIC_SUPABASE_URL --environment production` and the same for the anon key) **and** on Vercel (Production + Preview) for the phone web path. Optional: `eas integrations:supabase:connect`. GitHub Pages should **not** get these secrets — it stays Explore demo.
 - [ ] **Privacy policy URL** — in-app `/privacy` is enough to start. Point `EXPO_PUBLIC_PRIVACY_POLICY_URL` at a hosted copy when you have a domain. App Store Connect and Play Data safety will ask for this URL.
 - [ ] **Support / deletion inbox** — set `EXPO_PUBLIC_SUPPORT_EMAIL` to an address you actually read.
 
@@ -393,7 +422,7 @@ Preview is what you hand to mates before TestFlight. Production is what you subm
 
 ### 3. Invite 10–20 mates
 
-**Fastest (no stores):** send https://wombat737.github.io/Gift-decider/ plus a Birthday or Housewarming giver link. Phone browser. No install.
+**Fastest (no stores):** send https://wombat737.github.io/Gift-decider/ plus a Birthday or Housewarming giver link. Phone browser. No install. **Live magic-link:** Vercel URL from [Phone / Vercel live path](#phone--vercel-live-path).
 
 **iOS TestFlight**
 
@@ -436,6 +465,6 @@ npx expo start          # dev server
 npx expo start --web
 npx tsc --noEmit        # types
 npm test                # surprise-safe + live RLS contract + env switch (node:test)
-npm run export:web      # production SPA → dist/
+npm run export:web      # production SPA → dist/ (root path; Vercel uses the same export)
 npm run deploy          # GitHub Pages (subpath /Gift-decider)
 ```

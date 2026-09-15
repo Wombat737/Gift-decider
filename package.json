@@ -16,6 +16,9 @@
     "predeploy": "EXPO_BASE_URL=/Gift-decider expo export -p web && node scripts/prepare-web-dist.js",
     "deploy": "gh-pages --nojekyll -d dist"
   },
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "dependencies": {
     "@expo/ui": "~57.0.18",
     "@supabase/supabase-js": "^2.116.0",

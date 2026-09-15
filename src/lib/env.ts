@@ -1,12 +1,34 @@
-function read(name: string, source: Record<string, string | undefined> = process.env) {
+/**
+ * Static `process.env.EXPO_PUBLIC_*` member reads so Metro inlines values at
+ * `npx expo export -p web` (Vercel / EAS). Dynamic `process.env[name]` is not replaced.
+ */
+const fromMetro: Record<string, string | undefined> = {
+  EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  EXPO_PUBLIC_APP_URL: process.env.EXPO_PUBLIC_APP_URL,
+  EXPO_PUBLIC_APPLE_AUTH_ENABLED: process.env.EXPO_PUBLIC_APPLE_AUTH_ENABLED,
+  EXPO_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.EXPO_PUBLIC_GOOGLE_AUTH_ENABLED,
+  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+  EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+  EXPO_PUBLIC_OPENAI_API_KEY: process.env.EXPO_PUBLIC_OPENAI_API_KEY,
+  EXPO_PUBLIC_LLM_URL: process.env.EXPO_PUBLIC_LLM_URL,
+  EXPO_PUBLIC_LLM_MODEL: process.env.EXPO_PUBLIC_LLM_MODEL,
+  EXPO_PUBLIC_PRIVACY_POLICY_URL: process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL,
+  EXPO_PUBLIC_SUPPORT_EMAIL: process.env.EXPO_PUBLIC_SUPPORT_EMAIL,
+  EXPO_PUBLIC_ANALYTICS_ENABLED: process.env.EXPO_PUBLIC_ANALYTICS_ENABLED,
+};
+
+function read(name: string, source: Record<string, string | undefined> = fromMetro) {
   return (source[name] ?? '').trim();
 }
 
-function flag(name: string, source: Record<string, string | undefined> = process.env) {
+function flag(name: string, source: Record<string, string | undefined> = fromMetro) {
   return read(name, source).toLowerCase() === 'true';
 }
 
-export function resolveSupabaseConfig(source: Record<string, string | undefined> = process.env) {
+export function resolveSupabaseConfig(source: Record<string, string | undefined> = fromMetro) {
   const supabaseUrl = read('EXPO_PUBLIC_SUPABASE_URL', source);
   const supabaseAnonKey =
     read('EXPO_PUBLIC_SUPABASE_ANON_KEY', source) || read('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', source);

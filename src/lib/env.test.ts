@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { resolveSupabaseConfig } from './env';
 import { shouldUseDemoData } from './demo-session';
@@ -57,5 +60,12 @@ describe('Live vs Explore-demo switch', () => {
       webAuthRedirectTo('https://wombat737.github.io/Gift-decider'),
       'https://wombat737.github.io/Gift-decider/auth/callback',
     );
+  });
+
+  it('reads EXPO_PUBLIC_* as static process.env members so expo export inlines them', () => {
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'env.ts'), 'utf8');
+    assert.match(src, /process\.env\.EXPO_PUBLIC_SUPABASE_URL/);
+    assert.match(src, /process\.env\.EXPO_PUBLIC_SUPABASE_ANON_KEY/);
+    assert.match(src, /process\.env\.EXPO_PUBLIC_APP_URL/);
   });
 });
