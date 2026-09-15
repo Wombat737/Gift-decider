@@ -51,13 +51,8 @@ export function LinkHealPanel({ item, busy, demo, onMarkDead, onCheckLink }: Lin
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           They won’t see this. {substituteModeCopy(item)}
-          {demo ? ' Check link is a stub — no LLM key required.' : ''}
+          {demo ? ' Heuristic stub — no LLM key.' : ''}
         </ThemedText>
-        {needsHeal ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            {result.copy}
-          </ThemedText>
-        ) : null}
 
         {showAlternates ? (
           <Button
