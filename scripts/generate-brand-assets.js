@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
  * On-brand placeholder icons / splash / favicon.
- * Terracotta field + cream gift — no Expo gray.
+ * Coral field + white gift + sunshine ribbon — no Expo gray, no cream wash.
  */
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
-const CREAM = [251, 247, 242, 255];
-const TERRACOTTA = [196, 92, 74, 255];
-const RIBBON_DARK = [122, 51, 40, 255];
-const INK = [28, 22, 18, 255];
+const WHITE = [255, 255, 255, 255];
+const CORAL = [232, 93, 76, 255]; // #E85D4C
+const SUNSHINE = [245, 185, 66, 255]; // #F5B942
+const INK = [23, 23, 23, 255]; // #171717
 const TRANSPARENT = [0, 0, 0, 0];
 
 function crc32(buf) {
@@ -100,7 +100,7 @@ function fillCircle(canvas, cx, cy, r, color) {
   }
 }
 
-/** Cream gift on a field — used for app icon, splash, adaptive foreground. */
+/** Gift box used for app icon, splash, adaptive foreground. */
 function drawGift(canvas, { box, ribbon, pad = 0.22 }) {
   const s = canvas.size;
   const inner = s * (1 - pad * 2);
@@ -134,38 +134,34 @@ function writePng(file, canvas) {
 const out = path.join(__dirname, '..', 'assets', 'images');
 fs.mkdirSync(out, { recursive: true });
 
-const icon = makeCanvas(1024, TERRACOTTA);
-drawGift(icon, { box: CREAM, ribbon: RIBBON_DARK, pad: 0.24 });
+const icon = makeCanvas(1024, CORAL);
+drawGift(icon, { box: WHITE, ribbon: SUNSHINE, pad: 0.24 });
 writePng(path.join(out, 'icon.png'), icon);
 
 const splash = makeCanvas(1024, TRANSPARENT);
-drawGift(splash, { box: CREAM, ribbon: RIBBON_DARK, pad: 0.28 });
+drawGift(splash, { box: CORAL, ribbon: SUNSHINE, pad: 0.28 });
 writePng(path.join(out, 'splash-icon.png'), splash);
 
 const fg = makeCanvas(1024, TRANSPARENT);
-drawGift(fg, { box: CREAM, ribbon: RIBBON_DARK, pad: 0.3 });
+drawGift(fg, { box: WHITE, ribbon: SUNSHINE, pad: 0.3 });
 writePng(path.join(out, 'android-icon-foreground.png'), fg);
 
-const bg = makeCanvas(1024, TERRACOTTA);
+const bg = makeCanvas(1024, CORAL);
 writePng(path.join(out, 'android-icon-background.png'), bg);
 
-const mono = makeCanvas(1024, TRANSPARENT);
-drawGift(mono, { box: INK, ribbon: TRANSPARENT, pad: 0.3 });
-// ribbon cutouts read poorly in mono — redraw gift in solid ink
 {
   const m = makeCanvas(1024, TRANSPARENT);
-  drawGift(m, { box: INK, ribbon: CREAM, pad: 0.3 });
-  // flatten cream ribbon to transparent holes against ink? keep cream as knockout
+  drawGift(m, { box: INK, ribbon: WHITE, pad: 0.3 });
   for (let i = 0; i < 1024 * 1024; i++) {
     const o = i * 4;
     if (m.pixels[o + 3] === 0) continue;
-    const isCream = m.pixels[o] > 200 && m.pixels[o + 1] > 190;
-    if (isCream) m.pixels.set(TRANSPARENT, o);
+    const isWhite = m.pixels[o] > 240 && m.pixels[o + 1] > 240 && m.pixels[o + 2] > 240;
+    if (isWhite) m.pixels.set(TRANSPARENT, o);
     else m.pixels.set(INK, o);
   }
   writePng(path.join(out, 'android-icon-monochrome.png'), m);
 }
 
-const fav = makeCanvas(64, TERRACOTTA);
-drawGift(fav, { box: CREAM, ribbon: RIBBON_DARK, pad: 0.22 });
+const fav = makeCanvas(64, CORAL);
+drawGift(fav, { box: WHITE, ribbon: SUNSHINE, pad: 0.22 });
 writePng(path.join(out, 'favicon.png'), fav);

@@ -12,7 +12,7 @@ type ReadyToBuyBannerProps = {
   revealLabel?: string;
 };
 
-/** Giver-only. Teal buy card — not a green success state. */
+/** Giver-only. Coral buy card — not a green success state. */
 export function ReadyToBuyBanner({ item, items, revealLabel }: ReadyToBuyBannerProps) {
   const theme = useTheme();
   const list = items ?? (item ? [item] : []);

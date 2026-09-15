@@ -2,59 +2,59 @@ import '@/global.css';
 
 import { Platform, type ViewStyle } from 'react-native';
 
-import { CitrusLane, CitrusLaneDark } from '@/constants/citrus-lane';
+import { CoralCoast, CoralCoastDark } from '@/constants/coral-coast';
 
 export const Colors = {
   light: {
-    text: CitrusLane.ink,
-    background: CitrusLane.bg,
-    backgroundElement: CitrusLane.surface,
-    backgroundSelected: CitrusLane.paper,
-    textSecondary: CitrusLane.inkMuted,
-    brand: CitrusLane.brand,
-    brandSoft: CitrusLane.brandSoft,
-    brandText: CitrusLane.brandText,
-    brandInk: CitrusLane.brandInk,
-    accent: CitrusLane.accent,
-    accentMuted: CitrusLane.accentMuted,
-    accentText: CitrusLane.accentText,
-    accentInk: CitrusLane.accentInk,
-    success: CitrusLane.brand,
-    warning: CitrusLane.warning,
-    reserved: CitrusLane.reserved,
-    reservedSoft: CitrusLane.reservedSoft,
-    border: CitrusLane.border,
-    overlay: CitrusLane.overlay,
-    paper: CitrusLane.paper,
+    text: CoralCoast.ink,
+    background: CoralCoast.bg,
+    backgroundElement: CoralCoast.surface,
+    backgroundSelected: CoralCoast.paper,
+    textSecondary: CoralCoast.inkMuted,
+    brand: CoralCoast.brand,
+    brandSoft: CoralCoast.brandSoft,
+    brandText: CoralCoast.brandText,
+    brandInk: CoralCoast.brandInk,
+    accent: CoralCoast.accent,
+    accentMuted: CoralCoast.accentMuted,
+    accentText: CoralCoast.accentText,
+    accentInk: CoralCoast.accentInk,
+    success: CoralCoast.brand,
+    warning: CoralCoast.warning,
+    reserved: CoralCoast.reserved,
+    reservedSoft: CoralCoast.reservedSoft,
+    border: CoralCoast.border,
+    overlay: CoralCoast.overlay,
+    paper: CoralCoast.paper,
   },
   dark: {
-    text: CitrusLaneDark.ink,
-    background: CitrusLaneDark.bg,
-    backgroundElement: CitrusLaneDark.surface,
-    backgroundSelected: CitrusLaneDark.paper,
-    textSecondary: CitrusLaneDark.inkMuted,
-    brand: CitrusLaneDark.brand,
-    brandSoft: CitrusLaneDark.brandSoft,
-    brandText: CitrusLaneDark.brandText,
-    brandInk: CitrusLaneDark.brandInk,
-    accent: CitrusLaneDark.accent,
-    accentMuted: CitrusLaneDark.accentMuted,
-    accentText: CitrusLaneDark.accentText,
-    accentInk: CitrusLaneDark.accentInk,
-    success: CitrusLaneDark.brand,
-    warning: CitrusLaneDark.warning,
-    reserved: CitrusLaneDark.reserved,
-    reservedSoft: CitrusLaneDark.reservedSoft,
-    border: CitrusLaneDark.border,
-    overlay: CitrusLaneDark.overlay,
-    paper: CitrusLaneDark.paper,
+    text: CoralCoastDark.ink,
+    background: CoralCoastDark.bg,
+    backgroundElement: CoralCoastDark.surface,
+    backgroundSelected: CoralCoastDark.paper,
+    textSecondary: CoralCoastDark.inkMuted,
+    brand: CoralCoastDark.brand,
+    brandSoft: CoralCoastDark.brandSoft,
+    brandText: CoralCoastDark.brandText,
+    brandInk: CoralCoastDark.brandInk,
+    accent: CoralCoastDark.accent,
+    accentMuted: CoralCoastDark.accentMuted,
+    accentText: CoralCoastDark.accentText,
+    accentInk: CoralCoastDark.accentInk,
+    success: CoralCoastDark.brand,
+    warning: CoralCoastDark.warning,
+    reserved: CoralCoastDark.reserved,
+    reservedSoft: CoralCoastDark.reservedSoft,
+    border: CoralCoastDark.border,
+    overlay: CoralCoastDark.overlay,
+    paper: CoralCoastDark.paper,
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 export type ThemePalette = (typeof Colors)[keyof typeof Colors];
 
-/** Brand/accent fills fail AA as small text on lemon; map those keys to ink variants. */
+/** Brand/accent fills fail AA as small text on white; map those keys to ink variants. */
 export function readableThemeColor(theme: ThemePalette, key: ThemeColor = 'text') {
   if (key === 'brand' || key === 'success') return theme.brandInk;
   if (key === 'accent') return theme.accentInk;
@@ -105,17 +105,17 @@ export const Spacing = {
 
 export const MaxContentWidth = 560;
 export const Radius = {
-  sm: CitrusLane.radius.button,
-  md: CitrusLane.radius.card,
-  lg: CitrusLane.radius.card,
-  button: CitrusLane.radius.button,
-  card: CitrusLane.radius.card,
-  pill: CitrusLane.radius.pill,
+  sm: CoralCoast.radius.button,
+  md: CoralCoast.radius.card,
+  lg: CoralCoast.radius.card,
+  button: CoralCoast.radius.button,
+  card: CoralCoast.radius.card,
+  pill: CoralCoast.radius.pill,
 } as const;
 
 export const CardShadow: ViewStyle = Platform.select({
   ios: {
-    shadowColor: CitrusLane.ink,
+    shadowColor: CoralCoast.ink,
     shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
@@ -124,7 +124,7 @@ export const CardShadow: ViewStyle = Platform.select({
     elevation: 2,
   },
   web: {
-    boxShadow: '0 10px 28px rgba(20, 18, 11, 0.08)',
+    boxShadow: '0 10px 28px rgba(23, 23, 23, 0.07)',
   },
   default: {},
 }) as ViewStyle;

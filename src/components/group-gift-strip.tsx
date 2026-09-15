@@ -11,7 +11,7 @@ type GroupGiftStripProps = {
   item: WishlistItem;
 };
 
-/** Giver-only pledge strip: amber bar, reveal date, PayID note. */
+/** Giver-only pledge strip: sunshine bar, reveal date, PayID note. */
 export function GroupGiftStrip({ item }: GroupGiftStripProps) {
   const theme = useTheme();
   const total = pledgeTotal(item);

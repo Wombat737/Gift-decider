@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DefaultTheme, ThemeProvider } from 'expo-router';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from '@/context/auth-context';
 import { WishlistProvider } from '@/context/wishlist-context';
 import { WebFonts } from '@/components/web-fonts';
 import { Colors, Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
 try {
@@ -45,25 +44,23 @@ function SplashController() {
 }
 
 function ThemedRoot() {
-  const colorScheme = useColorScheme();
   const theme = useTheme();
-  const palette = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const navigationTheme = {
-    ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
+    ...DefaultTheme,
     colors: {
-      ...(colorScheme === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
-      primary: palette.brand,
-      background: palette.background,
-      card: palette.background,
-      text: palette.text,
-      border: palette.border,
-      notification: palette.accent,
+      ...DefaultTheme.colors,
+      primary: Colors.light.brand,
+      background: Colors.light.background,
+      card: Colors.light.background,
+      text: Colors.light.text,
+      border: Colors.light.border,
+      notification: Colors.light.accent,
     },
   };
 
   return (
     <ThemeProvider value={navigationTheme}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style="dark" />
       <RootNavigator headerBackground={theme.background} headerTint={theme.text} />
     </ThemeProvider>
   );
