@@ -11,7 +11,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="theme-color" content="#0D9488" />
+        <meta name="theme-color" content="#E85D4C" />
         <base href={baseHref} />
         <title>Gift Decider</title>
         <meta

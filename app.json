@@ -6,9 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "giftdecider",
-    "userInterfaceStyle": "automatic",
-    "primaryColor": "#0D9488",
-    "backgroundColor": "#FFF8E7",
+    "userInterfaceStyle": "light",
+    "primaryColor": "#E85D4C",
+    "backgroundColor": "#FFFFFF",
     "description": "Pick gifts from a living photo wishlist. Recipients pin photos and vibes; givers open a surprise-safe share link.",
     "githubUrl": "https://github.com/Wombat737/Gift-decider",
     "ios": {
@@ -27,7 +27,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0D9488",
+        "backgroundColor": "#E85D4C",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -42,8 +42,8 @@
       "bundler": "metro",
       "name": "Gift Decider",
       "shortName": "Gift Decider",
-      "themeColor": "#0D9488",
-      "backgroundColor": "#FFF8E7"
+      "themeColor": "#E85D4C",
+      "backgroundColor": "#FFFFFF"
     },
     "plugins": [
       "expo-router",
@@ -51,7 +51,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0D9488",
+          "backgroundColor": "#FFFFFF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 128
         }

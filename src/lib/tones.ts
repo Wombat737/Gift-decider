@@ -18,7 +18,7 @@ export function ownerMomentTone(): 'brand' {
   return 'brand';
 }
 
-/** Giver list/item chips: amber for chip-in, teal for buy/bought, reserved for Taken. */
+/** Giver list/item chips: sunshine for chip-in, coral for buy/bought, reserved for Taken. */
 export function giverChipTone(item: WishlistItem): GiverChipTone {
   const phase = groupGiftPhase(item);
   if (phase === 'ready_to_buy' || phase === 'purchased' || phase === 'revealed' || item.status === 'purchased') {
