@@ -13,7 +13,7 @@ export function AuBuyLinks({ item }: { item: WishlistItem }) {
 
   return (
     <Card>
-      <ThemedText type="eyebrow" themeColor="accent">
+      <ThemedText type="eyebrow" themeColor="brand">
         Australia
       </ThemedText>
       <ThemedText type="smallBold">Find it in AU stores</ThemedText>

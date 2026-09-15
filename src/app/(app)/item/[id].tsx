@@ -12,9 +12,11 @@ import { ThemedText } from '@/components/themed-text';
 import { VibeChips } from '@/components/vibe-chips';
 import { useWishlist } from '@/context/wishlist-context';
 import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { parseAud } from '@/lib/format';
 
 export default function ItemDetailScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { items, occasions, saveItem, refresh } = useWishlist();
   const item = items.find((entry) => entry.id === id);
@@ -89,7 +91,7 @@ export default function ItemDetailScreen() {
     <Screen>
       <Image
         source={{ uri: item.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
-        style={styles.image}
+        style={[styles.image, { backgroundColor: theme.paper }]}
         contentFit="cover"
       />
 
@@ -164,7 +166,6 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: Radius.card,
-    backgroundColor: '#E8DFD2',
   },
   block: {
     gap: Spacing.one,

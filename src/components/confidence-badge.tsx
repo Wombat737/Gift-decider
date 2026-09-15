@@ -10,7 +10,7 @@ export function ConfidenceBadge({ item }: { item: WishlistItem }) {
   const theme = useTheme();
   const confidence = improvisedConfidence(item);
   const color =
-    confidence.level === 'safe' ? theme.brand : confidence.level === 'needs-size' ? theme.warning : theme.reserved;
+    confidence.level === 'safe' ? theme.brandInk : confidence.level === 'needs-size' ? theme.warning : theme.reserved;
 
   return (
     <View style={styles.wrap}>

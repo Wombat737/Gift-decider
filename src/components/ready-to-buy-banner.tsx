@@ -12,7 +12,7 @@ type ReadyToBuyBannerProps = {
   revealLabel?: string;
 };
 
-/** Giver-only. Coral scrapbook card — not a green success state. */
+/** Giver-only. Teal buy card — not a green success state. */
 export function ReadyToBuyBanner({ item, items, revealLabel }: ReadyToBuyBannerProps) {
   const theme = useTheme();
   const list = items ?? (item ? [item] : []);
@@ -27,8 +27,8 @@ export function ReadyToBuyBanner({ item, items, revealLabel }: ReadyToBuyBannerP
   return (
     <Card
       accessibilityLabel={listMode ? 'organiser-ready-to-buy-list' : 'organiser-ready-to-buy'}
-      style={[styles.card, { backgroundColor: theme.accentMuted, borderColor: theme.accentMuted }]}>
-      <ThemedText type="eyebrow" themeColor="accent">
+      style={[styles.card, { backgroundColor: theme.brandSoft, borderColor: theme.brandSoft }]}>
+      <ThemedText type="eyebrow" themeColor="brand">
         Givers only
       </ThemedText>
       <ThemedText type="moment">Funded — time to buy</ThemedText>

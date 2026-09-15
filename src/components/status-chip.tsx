@@ -15,15 +15,28 @@ export function StatusChip({ label, tone = 'muted' }: StatusChipProps) {
   const theme = useTheme();
   const color =
     tone === 'brand'
-      ? theme.brand
+      ? theme.brandInk
       : tone === 'reserved'
         ? theme.reserved
         : tone === 'accent'
-          ? theme.accent
+          ? theme.accentInk
           : theme.textSecondary;
   const background =
-    tone === 'brand' ? theme.brandSoft : tone === 'accent' || tone === 'reserved' ? theme.accentMuted : theme.background;
-  const border = tone === 'brand' ? theme.brandSoft : tone === 'accent' || tone === 'reserved' ? theme.accentMuted : theme.border;
+    tone === 'brand'
+      ? theme.brandSoft
+      : tone === 'accent'
+        ? theme.accentMuted
+        : tone === 'reserved'
+          ? theme.reservedSoft
+          : theme.background;
+  const border =
+    tone === 'brand'
+      ? theme.brandSoft
+      : tone === 'accent'
+        ? theme.accentMuted
+        : tone === 'reserved'
+          ? theme.reservedSoft
+          : theme.border;
 
   return (
     <View style={[styles.chip, { backgroundColor: background, borderColor: border }]}>

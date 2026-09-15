@@ -2,50 +2,64 @@ import '@/global.css';
 
 import { Platform, type ViewStyle } from 'react-native';
 
-import { Sunroom, SunroomDark } from '@/constants/sunroom';
+import { CitrusLane, CitrusLaneDark } from '@/constants/citrus-lane';
 
 export const Colors = {
   light: {
-    text: Sunroom.ink,
-    background: Sunroom.bg,
-    backgroundElement: Sunroom.surface,
-    backgroundSelected: Sunroom.paper,
-    textSecondary: Sunroom.inkMuted,
-    brand: Sunroom.brand,
-    brandSoft: Sunroom.brandSoft,
-    brandText: Sunroom.brandText,
-    accent: Sunroom.accent,
-    accentMuted: Sunroom.accentMuted,
-    accentText: Sunroom.accentText,
-    success: Sunroom.brand,
-    warning: Sunroom.warning,
-    reserved: Sunroom.reserved,
-    border: Sunroom.border,
-    overlay: Sunroom.overlay,
-    paper: Sunroom.paper,
+    text: CitrusLane.ink,
+    background: CitrusLane.bg,
+    backgroundElement: CitrusLane.surface,
+    backgroundSelected: CitrusLane.paper,
+    textSecondary: CitrusLane.inkMuted,
+    brand: CitrusLane.brand,
+    brandSoft: CitrusLane.brandSoft,
+    brandText: CitrusLane.brandText,
+    brandInk: CitrusLane.brandInk,
+    accent: CitrusLane.accent,
+    accentMuted: CitrusLane.accentMuted,
+    accentText: CitrusLane.accentText,
+    accentInk: CitrusLane.accentInk,
+    success: CitrusLane.brand,
+    warning: CitrusLane.warning,
+    reserved: CitrusLane.reserved,
+    reservedSoft: CitrusLane.reservedSoft,
+    border: CitrusLane.border,
+    overlay: CitrusLane.overlay,
+    paper: CitrusLane.paper,
   },
   dark: {
-    text: SunroomDark.ink,
-    background: SunroomDark.bg,
-    backgroundElement: SunroomDark.surface,
-    backgroundSelected: SunroomDark.paper,
-    textSecondary: SunroomDark.inkMuted,
-    brand: SunroomDark.brand,
-    brandSoft: SunroomDark.brandSoft,
-    brandText: SunroomDark.brandText,
-    accent: SunroomDark.accent,
-    accentMuted: SunroomDark.accentMuted,
-    accentText: SunroomDark.accentText,
-    success: SunroomDark.brand,
-    warning: SunroomDark.warning,
-    reserved: SunroomDark.reserved,
-    border: SunroomDark.border,
-    overlay: SunroomDark.overlay,
-    paper: SunroomDark.paper,
+    text: CitrusLaneDark.ink,
+    background: CitrusLaneDark.bg,
+    backgroundElement: CitrusLaneDark.surface,
+    backgroundSelected: CitrusLaneDark.paper,
+    textSecondary: CitrusLaneDark.inkMuted,
+    brand: CitrusLaneDark.brand,
+    brandSoft: CitrusLaneDark.brandSoft,
+    brandText: CitrusLaneDark.brandText,
+    brandInk: CitrusLaneDark.brandInk,
+    accent: CitrusLaneDark.accent,
+    accentMuted: CitrusLaneDark.accentMuted,
+    accentText: CitrusLaneDark.accentText,
+    accentInk: CitrusLaneDark.accentInk,
+    success: CitrusLaneDark.brand,
+    warning: CitrusLaneDark.warning,
+    reserved: CitrusLaneDark.reserved,
+    reservedSoft: CitrusLaneDark.reservedSoft,
+    border: CitrusLaneDark.border,
+    overlay: CitrusLaneDark.overlay,
+    paper: CitrusLaneDark.paper,
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export type ThemePalette = (typeof Colors)[keyof typeof Colors];
+
+/** Brand/accent fills fail AA as small text on lemon; map those keys to ink variants. */
+export function readableThemeColor(theme: ThemePalette, key: ThemeColor = 'text') {
+  if (key === 'brand' || key === 'success') return theme.brandInk;
+  if (key === 'accent') return theme.accentInk;
+  return theme[key];
+}
 
 export const Fonts = Platform.select({
   ios: {
@@ -91,17 +105,17 @@ export const Spacing = {
 
 export const MaxContentWidth = 560;
 export const Radius = {
-  sm: Sunroom.radius.button,
-  md: Sunroom.radius.card,
-  lg: Sunroom.radius.card,
-  button: Sunroom.radius.button,
-  card: Sunroom.radius.card,
-  pill: Sunroom.radius.pill,
+  sm: CitrusLane.radius.button,
+  md: CitrusLane.radius.card,
+  lg: CitrusLane.radius.card,
+  button: CitrusLane.radius.button,
+  card: CitrusLane.radius.card,
+  pill: CitrusLane.radius.pill,
 } as const;
 
 export const CardShadow: ViewStyle = Platform.select({
   ios: {
-    shadowColor: Sunroom.ink,
+    shadowColor: CitrusLane.ink,
     shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
@@ -110,7 +124,7 @@ export const CardShadow: ViewStyle = Platform.select({
     elevation: 2,
   },
   web: {
-    boxShadow: '0 10px 28px rgba(31, 42, 36, 0.07)',
+    boxShadow: '0 10px 28px rgba(20, 18, 11, 0.08)',
   },
   default: {},
 }) as ViewStyle;

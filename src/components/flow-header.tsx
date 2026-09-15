@@ -24,7 +24,7 @@ export function FlowHeader({ role, title, subtitle }: FlowHeaderProps) {
             borderColor: owner ? theme.brandSoft : theme.border,
           },
         ]}>
-        <ThemedText type="eyebrow" style={{ color: owner ? theme.brand : theme.textSecondary }}>
+        <ThemedText type="eyebrow" style={{ color: owner ? theme.brandInk : theme.textSecondary }}>
           {owner ? 'Your list' : 'Giver view'}
         </ThemedText>
       </View>

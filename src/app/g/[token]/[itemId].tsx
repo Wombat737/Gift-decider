@@ -15,6 +15,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { VibeChips } from '@/components/vibe-chips';
 import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { giverItemChipLabel } from '@/lib/format';
@@ -37,6 +38,7 @@ import {
 } from '@/services/wishlist';
 
 export default function GiverItemScreen() {
+  const theme = useTheme();
   const { token, itemId } = useLocalSearchParams<{ token: string; itemId: string }>();
   const [item, setItem] = useState<WishlistItem | null>(null);
   const [name, setName] = useState('');
@@ -243,11 +245,11 @@ export default function GiverItemScreen() {
     <Screen>
       <Image
         source={{ uri: item.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
-        style={styles.image}
+        style={[styles.image, { backgroundColor: theme.paper }]}
         contentFit="cover"
       />
       <View style={styles.block}>
-        <ThemedText type="eyebrow" themeColor="accent">
+        <ThemedText type="eyebrow" themeColor="brand">
           Giver view · they won’t see this
         </ThemedText>
         <ThemedText type="heading">{item.title || 'Untitled gift'}</ThemedText>
@@ -325,7 +327,6 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: Radius.card,
-    backgroundColor: '#E8DFD2',
   },
   block: {
     gap: Spacing.one,
