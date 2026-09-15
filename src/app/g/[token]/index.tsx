@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
+import { DeadLinkBanner } from '@/components/dead-link-banner';
 import { FlowHeader } from '@/components/flow-header';
 import { ItemGrid } from '@/components/item-grid';
 import { LegalLinks } from '@/components/legal-links';
@@ -54,7 +55,7 @@ export default function GiverShareScreen() {
         title={meta?.title ?? (loading ? 'Opening link…' : 'Shared wishlist')}
         subtitle={
           meta
-            ? `For ${who}${occasion ? ` · ${occasion}` : ''}. Tap a photo to reserve, chip in, or find it in AU stores. Taken/bought stays between givers — no names. They won’t see this view.`
+            ? `For ${who}${occasion ? ` · ${occasion}` : ''}. Tap a photo to reserve, chip in, or find it in AU stores. Broken buy links show Link may be broken — they won’t. Taken/bought stays between givers — no names.`
             : loading
               ? 'Opening link…'
               : 'This share token did not match a list.'
@@ -68,6 +69,7 @@ export default function GiverShareScreen() {
       ) : null}
 
       {readyToBuy.length > 0 ? <ReadyToBuyBanner items={readyToBuy} /> : null}
+      <DeadLinkBanner items={items} />
 
       {!loading ? (
         <ItemGrid

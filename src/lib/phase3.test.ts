@@ -149,14 +149,12 @@ describe('Phase 3 demo walkthrough — surprise-safe', () => {
     assert.equal(owner.status, 'available');
   });
 
-  it('exact lock mug never offers alternate SKUs', () => {
+  it('exact lock mug never offers substitutes', () => {
     const mug = getDemoItem('demo-mug');
     assert.ok(mug);
     assert.equal(mug.no_substitution, true);
     const swaps = suggestSubstitutes(mug);
-    assert.equal(swaps.length, 1);
-    assert.equal(swaps[0].exactSku, true);
-    assert.match(swaps[0].reason, /Exact lock/i);
+    assert.equal(swaps.length, 0);
   });
 
   it('owner list never includes reserved socks or purchased plant status', () => {

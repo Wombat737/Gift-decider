@@ -137,7 +137,8 @@ function merge(heuristic: GiftSubstitute[], extra: GiftSubstitute[]) {
 
 /**
  * Heuristic first (works offline / demo). Optional LLM via env or Edge Function
- * when a key is present. Exact lock never gets LLM alternates.
+ * when a key is present. Exact lock never gets LLM alternates — heal-link honours
+ * no_substitution with an empty list.
  */
 export async function suggestForGiver(item: WishlistItem): Promise<GiftSubstitute[]> {
   const heuristic = improvisedSubstitutes(item);

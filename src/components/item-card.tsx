@@ -7,8 +7,8 @@ import { StatusChip } from '@/components/status-chip';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { giverItemChipLabel } from '@/lib/format';
+import { HEAL_BADGE, shouldRenderHealUi } from '@/lib/heal-link';
 import { improvisedConfidence } from '@/lib/improv';
-import { linkNeedsHeal } from '@/lib/link-health';
 import { giverChipTone, ownerMomentTone } from '@/lib/tones';
 import type { WishlistItem } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -56,10 +56,8 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
           </ThemedText>
         ) : null}
         {showStatus ? <StatusChip label={giverItemChipLabel(item)} tone={giverChipTone(item)} /> : null}
-        {showStatus && linkNeedsHeal(item) ? (
-          <ThemedText type="small" themeColor="accent">
-            Link issue
-          </ThemedText>
+        {showStatus && shouldRenderHealUi('giver', item) ? (
+          <StatusChip label={HEAL_BADGE} tone="brand" />
         ) : null}
         {confidence ? (
           <ThemedText type="small" themeColor="textSecondary">
