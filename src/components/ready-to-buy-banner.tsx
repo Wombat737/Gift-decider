@@ -1,8 +1,7 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { Card } from '@/components/card';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
 import { formatRevealDate, pickOrganiserName } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -64,7 +63,6 @@ export function ReadyToBuyBanner({ item, items, revealLabel }: ReadyToBuyBannerP
           ) : null}
         </>
       )}
-      <View style={[styles.tick, { backgroundColor: theme.accent }]} />
     </Card>
   );
 }
@@ -72,16 +70,5 @@ export function ReadyToBuyBanner({ item, items, revealLabel }: ReadyToBuyBannerP
 const styles = StyleSheet.create({
   card: {
     overflow: 'hidden',
-    position: 'relative',
-    paddingLeft: Spacing.three + 4,
-  },
-  tick: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    borderTopLeftRadius: Radius.card,
-    borderBottomLeftRadius: Radius.card,
   },
 });
