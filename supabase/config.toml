@@ -19,11 +19,26 @@ port = 54323
 
 [auth]
 enabled = true
-site_url = "exp://127.0.0.1:8081"
-additional_redirect_urls = ["giftdecider://auth/callback", "http://localhost:8081", "http://127.0.0.1:8081"]
+site_url = "http://127.0.0.1:8081"
+additional_redirect_urls = [
+  "giftdecider://auth/callback",
+  "http://localhost:8081",
+  "http://localhost:8081/auth/callback",
+  "http://127.0.0.1:8081",
+  "http://127.0.0.1:8081/auth/callback",
+  "exp://127.0.0.1:8081/--/auth/callback",
+]
 
 [functions.preview-url]
 # Stub returns fake previews only — no private data. JWT optional so you can curl it.
+verify_jwt = false
+
+[functions.heal-link]
+# HEAD/GET probe stub. Falls back to the in-app heuristic when this is undeployed.
+verify_jwt = false
+
+[functions.improv-substitutes]
+# Empty suggestions without OPENAI_API_KEY so the app keeps its local catalog.
 verify_jwt = false
 
 [functions.notify-organiser-ready-to-buy]

@@ -1,3 +1,4 @@
+import { usesDemoData } from '@/lib/app-mode';
 import { env } from '@/lib/env';
 import {
   asHealLinkRequest,
@@ -52,7 +53,7 @@ function asAlternatives(rows: unknown, fallback: HealAlternative[]): HealAlterna
  * Never calls OpenAI/Anthropic from the app.
  */
 export async function invokeHealLinkEdge(request: HealLinkRequest): Promise<Partial<HealLinkResult> | null> {
-  if (!env.isSupabaseConfigured || !supabase) return null;
+  if (usesDemoData() || !env.isSupabaseConfigured || !supabase) return null;
   try {
     const { data, error } = await supabase.functions.invoke('heal-link', {
       body: {
@@ -88,7 +89,7 @@ export async function runHealLink(item: WishlistItem): Promise<HealLinkResult> {
   const request = asHealLinkRequest(item);
   const local = healLink(request);
 
-  if (!env.isSupabaseConfigured) return local;
+  if (usesDemoData() || !env.isSupabaseConfigured) return local;
 
   return healLinkAsync(request, {
     probe: async (url) => {

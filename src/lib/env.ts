@@ -1,24 +1,37 @@
-function read(name: string) {
-  return (process.env[name] ?? '').trim();
+function read(name: string, source: Record<string, string | undefined> = process.env) {
+  return (source[name] ?? '').trim();
 }
 
-function flag(name: string) {
-  return read(name).toLowerCase() === 'true';
+function flag(name: string, source: Record<string, string | undefined> = process.env) {
+  return read(name, source).toLowerCase() === 'true';
 }
 
-const supabaseUrl = read('EXPO_PUBLIC_SUPABASE_URL');
-const supabasePublishableKey = read('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
+export function resolveSupabaseConfig(source: Record<string, string | undefined> = process.env) {
+  const supabaseUrl = read('EXPO_PUBLIC_SUPABASE_URL', source);
+  const supabaseAnonKey =
+    read('EXPO_PUBLIC_SUPABASE_ANON_KEY', source) || read('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', source);
 
-const looksConfigured =
-  supabaseUrl.startsWith('http') &&
-  !supabaseUrl.includes('YOUR_PROJECT_REF') &&
-  supabasePublishableKey.length > 20 &&
-  !supabasePublishableKey.includes('YOUR_SUPABASE');
+  const looksConfigured =
+    supabaseUrl.startsWith('http') &&
+    !supabaseUrl.includes('YOUR_PROJECT_REF') &&
+    supabaseAnonKey.length > 20 &&
+    !supabaseAnonKey.includes('YOUR_SUPABASE');
+
+  return {
+    supabaseUrl,
+    supabaseAnonKey,
+    isSupabaseConfigured: looksConfigured,
+  };
+}
+
+const supabase = resolveSupabaseConfig();
 
 export const env = {
-  supabaseUrl,
-  supabasePublishableKey,
-  isSupabaseConfigured: looksConfigured,
+  supabaseUrl: supabase.supabaseUrl,
+  supabaseAnonKey: supabase.supabaseAnonKey,
+  /** @deprecated Use supabaseAnonKey. Kept so existing .env.local files still work. */
+  supabasePublishableKey: supabase.supabaseAnonKey,
+  isSupabaseConfigured: supabase.isSupabaseConfigured,
   appUrl: read('EXPO_PUBLIC_APP_URL') || 'http://localhost:8081',
   appleAuthEnabled: flag('EXPO_PUBLIC_APPLE_AUTH_ENABLED'),
   googleAuthEnabled: flag('EXPO_PUBLIC_GOOGLE_AUTH_ENABLED'),

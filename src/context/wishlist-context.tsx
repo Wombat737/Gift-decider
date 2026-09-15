@@ -1,7 +1,6 @@
 import { createContext, use, useCallback, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 
 import { useAuth } from '@/context/auth-context';
-import { demoWishlist } from '@/lib/demo-store';
 import type { NewWishlistItem, Occasion, UpdateWishlistItem, Wishlist, WishlistItem } from '@/lib/types';
 import {
   createItem,
@@ -28,7 +27,7 @@ const WishlistContext = createContext<WishlistContextValue | null>(null);
 
 export function WishlistProvider({ children }: PropsWithChildren) {
   const { user } = useAuth();
-  const [wishlist, setWishlist] = useState<Wishlist | null>(user ? demoWishlist : null);
+  const [wishlist, setWishlist] = useState<Wishlist | null>(null);
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [loading, setLoading] = useState(false);

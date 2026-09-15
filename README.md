@@ -15,7 +15,7 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 - Real Stripe, Meta Instagram OAuth, push notifications, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
 - Push notifications are next; Ready to buy uses an in-app banner plus an email stub (`notify-organiser-ready-to-buy`)
 
-This repo is a thrifty **Expo + Supabase** starter: screens navigate, schema + RLS exist, auth and Instagram are stubbed where production work still has to happen.
+This repo is an **Expo + Supabase** app: screens navigate, schema + RLS ship in `supabase/migrations`, and GitHub Pages stays in **Explore demo** until you add a project URL + anon key. Instagram paste is still a stub (no Meta OAuth).
 
 ## Open the web demo
 
@@ -143,7 +143,7 @@ Sample data lives in `localStorage` (`giftdecider.demo.v5`). `/g/demo` is the wh
 
 ```bash
 npx tsc --noEmit
-npm test    # surprise-safe + demo-walk unit tests (no Supabase)
+npm test    # surprise-safe + live RLS contract + env switch (no hosted project required)
 ```
 
 ## Stack
@@ -168,18 +168,21 @@ Then:
 - **Android:** Expo Go, or an emulator
 - **Web:** press `w` — useful for clicking through screens on a laptop
 
-If `.env.local` still has placeholders, the app starts in **demo mode**. Tap **Explore demo** on the sign-in screen. Sample gifts persist in the browser; paste-URL uses an in-app stub; share tokens are `demo`, `demo-birthday`, `demo-housewarming`. No LLM key required.
+If `.env.local` still has placeholders (or you skip the copy), the app stays in **Explore demo**. Tap **Explore demo** on the sign-in screen. Sample gifts persist in the browser; paste-URL uses an in-app stub; share tokens are `demo`, `demo-birthday`, `demo-housewarming`. No LLM key and no Supabase project required.
 
-You do **not** need Docker or a hosted Supabase project to walk the screens.
+Fill in a real URL + anon key and restart Expo: the sign-in screen leads with **Email me a magic link**, and lists persist in your project. **Explore demo still works** beside that — it never writes to the live database.
+
+GitHub Pages deploys **without** those env vars, so the public demo stays useful.
 
 ## Environment variables
 
-Copy `.env.example` → `.env.local`. Restart Expo after edits.
+Copy `.env.example` → `.env.local`. Restart Expo after edits. Do not commit `.env.local`.
 
 | Variable | What it is |
 | --- | --- |
 | `EXPO_PUBLIC_SUPABASE_URL` | Project URL (`https://xxxx.supabase.co`) or local `http://127.0.0.1:54321` |
-| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable / anon key. **Never** put the secret/service-role key in the app |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Anon / publishable key from Project Settings → API. **Never** put the secret/service-role key in the app |
+| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Optional alias if an older `.env.local` still uses this name |
 | `EXPO_PUBLIC_APP_URL` | Public origin used when composing share links |
 | `EXPO_PUBLIC_APPLE_AUTH_ENABLED` | `false` until Apple + Supabase provider is done |
 | `EXPO_PUBLIC_GOOGLE_AUTH_ENABLED` | `false` until Google + Supabase provider is done |
@@ -197,17 +200,47 @@ Organiser email (`notify-organiser-ready-to-buy`) uses **server** secrets `RESEN
 
 Both Supabase values are meant to be public. **RLS is what keeps data private** — apply the migrations before pointing the app at a live project.
 
-## Supabase
+## Supabase (Wombat: free project → live lists)
 
-### 1. Create a project
+You do **not** need this for GitHub Pages or `npm start` without env vars. Do this when you want real email magic links and persisted wishlists.
 
-[database.new](https://database.new) (or `eas integrations:supabase:connect` once you are on EAS).
+### 1. Create a free project
 
-### 2. Apply the migrations
+1. Open [database.new](https://database.new) (or [supabase.com/dashboard](https://supabase.com/dashboard) → **New project**).
+2. Sign in (GitHub is fine).
+3. Organisation: your personal org is enough.
+4. Name: `gift-decider` (or anything). Region: pick close to Australia (e.g. **Sydney** / `ap-southeast-2`) if listed, otherwise the default.
+5. Database password: generate one and store it in a password manager. The app never uses it.
+6. Plan: **Free**. Create the project and wait until the API URL is ready (~1–2 minutes).
 
-SQL lives in `supabase/migrations/`. Apply **in order** (init, Phase 2, Phase 3, reveal-date, organiser).
+Later, on EAS: `eas integrations:supabase:connect` is optional; pasting the two public keys into EAS env also works.
 
-**Dashboard:** SQL Editor → paste each file → run.
+### 2. Copy the public API keys
+
+Dashboard → **Project Settings → API**:
+
+- **Project URL** → `EXPO_PUBLIC_SUPABASE_URL`
+- **anon public** (sometimes labelled publishable) → `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+
+Never put the **service_role** key in the app, EAS public env, or git.
+
+```bash
+cp .env.example .env.local
+# paste URL + anon key, save, restart Expo
+```
+
+### 3. Apply the migrations
+
+SQL lives in `supabase/migrations/`. Apply **in order**:
+
+1. `20260914120000_init.sql`
+2. `20260914140000_phase2.sql`
+3. `20260914160000_phase3.sql`
+4. `20260914210000_reveal_at.sql`
+5. `20260914220000_organiser.sql`
+6. `20260915120000_live_rls.sql` — column-level surprise-safe SELECT + `ensure_own_workspace`
+
+**Dashboard:** SQL Editor → paste each file → Run. Wait for success before the next file.
 
 **CLI (local):**
 
@@ -217,7 +250,7 @@ npx supabase db reset
 npx supabase status
 ```
 
-Put the API URL + publishable key from `status` into `.env.local`. A physical phone cannot reach `127.0.0.1`; use your computer’s LAN IP instead.
+Put the API URL + anon key from `status` into `.env.local`. A physical phone cannot reach `127.0.0.1`; use your computer’s LAN IP instead.
 
 **CLI (hosted):**
 
@@ -237,19 +270,28 @@ npx supabase db push
 - `wishlist_members` — email invites
 - `link_previews` — URL cache for the paste flow
 - Storage bucket `wishlist-images` (`{user_id}/...`)
-- Trigger: new `auth.users` row → profile + empty wishlist
-- RLS: owner full CRUD on list/items/occasions; accepted members SELECT + reserve/purchased/group-gift; pledges and organiser notices hidden from owners
+- Trigger: new `auth.users` row → profile + empty wishlist; `ensure_own_workspace()` recovers that if the trigger missed
+- RLS: owner catalog CRUD (no SELECT on reserve / purchased / funded / heal / organiser / `reveal_at` columns); accepted members may UPDATE reserve fields only; pledges and organiser notices hidden from owners; givers use share-token RPCs
+- Owner view: `owner_wishlist_items` (catalog columns only)
 - RPCs for anonymous givers: `get_shared_wishlist`, `get_shared_wishlist_items`, `set_shared_item_status`, `set_shared_item_group_gift` (requires reveal date when enabling; optional organiser + PayID), `set_shared_item_reveal_at`, `set_shared_item_organiser`, `set_shared_item_pay_instructions`, `set_shared_item_delivery`, `list_shared_item_pledges`, `list_shared_organiser_notices`, `add_shared_item_pledge`, `mark_shared_item_funded`, `set_shared_item_link_dead` (wishlist **or** occasion token)
 - Owner RPC: `list_owned_revealed_contributors` (authenticated owner, group gifts on/after `reveal_at` only — not merely funded)
 
-### 3. Auth settings
+### 4. Auth settings
 
 Supabase → Authentication → URL Configuration:
 
-- Redirect URLs: `giftdecider://auth/callback`, `http://localhost:8081`, your EAS web origin
-- Enable **Email** magic link (on by default)
+- Redirect URLs (add each that you use):
+  - `giftdecider://auth/callback`
+  - `http://localhost:8081/auth/callback`
+  - `http://127.0.0.1:8081/auth/callback`
+  - your EAS / production web origin + `/auth/callback`
+  - GitHub Pages if you ever point Pages at a live project: `https://wombat737.github.io/Gift-decider/auth/callback`
+- Site URL: `http://localhost:8081` while developing; later your production origin
+- Enable **Email** magic link (on by default). Confirmations can stay on for the free project.
 
-### 4. Preview Edge Function (stub)
+The app calls `signInWithOtp` and `Linking.createURL('auth/callback')`, so Expo Go uses `exp://…/--/auth/callback` and a dev/production build uses `giftdecider://auth/callback`. Add whichever you actually open.
+
+### 5. Preview Edge Function (stub)
 
 ```bash
 npx supabase functions serve preview-url --no-verify-jwt
@@ -259,7 +301,7 @@ npx supabase functions deploy preview-url
 
 `POST { "url": "https://www.instagram.com/p/..." }` returns a **fake** image + caption. It does not scrape Instagram.
 
-### 5. Optional substitute improv function
+### 6. Optional substitute improv function
 
 ```bash
 npx supabase functions serve improv-substitutes --no-verify-jwt
@@ -267,9 +309,9 @@ npx supabase functions serve improv-substitutes --no-verify-jwt
 npx supabase functions deploy improv-substitutes
 ```
 
-Without `OPENAI_API_KEY` in the function env it returns `{ "source": "stub", "suggestions": [] }` and the app uses its local catalog.
+Without `OPENAI_API_KEY` in the function env it returns `{ "source": "stub", "suggestions": [] }` and the app uses its local catalog. If the function is undeployed, the client also falls back to that catalog.
 
-### 6. Dead-link heal function (stub)
+### 7. Dead-link heal function (stub)
 
 ```bash
 npx supabase functions serve heal-link --no-verify-jwt
@@ -277,9 +319,9 @@ npx supabase functions serve heal-link --no-verify-jwt
 npx supabase functions deploy heal-link
 ```
 
-`POST { "url", "title", "tags", "no_substitution" }` returns `{ health, source, alternatives: [] }`. Known-bad demo URLs and malformed URLs are dead without a network call. Optional HEAD/GET marks 404/410. **No LLM key.** The app still builds 1–3 AU alternatives locally unless `no_substitution` is set.
+`POST { "url", "title", "tags", "no_substitution" }` returns `{ health, source, alternatives: [] }`. Known-bad demo URLs and malformed URLs are dead without a network call. Optional HEAD/GET marks 404/410. **No LLM key.** The app still builds 1–3 AU alternatives locally unless `no_substitution` is set. Explore demo never calls the function.
 
-### 7. Organiser ready-to-buy email (stub)
+### 8. Organiser ready-to-buy email (stub)
 
 ```bash
 npx supabase functions serve notify-organiser-ready-to-buy --no-verify-jwt
@@ -294,23 +336,23 @@ Demo never needs keys: the giver UI shows the would-be email and the browser con
 | Route | Who | What |
 | --- | --- | --- |
 | `/` | Anyone | Redirects to sign-in or `/wishlist` |
-| `/sign-in` | Anyone | Magic link + Apple/Google placeholders + Explore demo |
+| `/sign-in` | Anyone | Live: magic-link primary. No env: **Explore demo** primary. Apple/Google placeholders |
 | `/wishlist` | Recipient | Photo grid + occasion filter (no reserve/purchased/pledges). **From the group** only on/after the reveal date |
 | `/add` | Recipient | Manual item, vibe board, occasion, lock, optional target $ |
 | `/paste` | Recipient | Paste Instagram URL → stub preview → pin |
 | `/item/[id]` | Recipient | Item detail + edit vibes. Group reveal (names) on/after the reveal date |
 | `/share` | Recipient | Whole-list + occasion **Copy invite** (mate-ready text) |
-| `/settings` | Recipient | Privacy link, account-deletion mailto stub, sign out |
+| `/settings` | Recipient | Live profile (name / handle), privacy link, account-deletion mailto stub, sign out |
 | `/privacy` | Anyone | Store-listing privacy stub (works on `/Gift-decider/privacy`) |
 | `/g/[token]` | Giver | Read-only list **with** Taken/Bought (no names), confidence, **Link may be broken** badge, **Funded — time to buy** banner |
 | `/g/[token]/[itemId]` | Giver | Soft lock, group pledges, organiser / PayID / delivery, reveal date, mark funded, dead-link heal sheet, AU buy helpers |
-| `/auth/callback` | Auth | Magic-link landing stub |
+| `/auth/callback` | Auth | Completes the magic-link session, then `/wishlist` |
 
 ## What’s stubbed (on purpose)
 
 - **Instagram** — paste URL only. No Meta OAuth, no Saves API, no scrapers
-- **`preview-url`** — returns sample image + caption
-- **Apple / Google Sign-In** — buttons that explain they are placeholders
+- **`preview-url` / `heal-link` / `improv-substitutes`** — stubs. The app uses in-app fallbacks when env vars or the function are missing
+- **Apple / Google Sign-In** — buttons that explain they are placeholders. **Email magic link is live** once URL + anon key are set
 - **Email invites** — inserts `wishlist_members` when Supabase is configured; does not send mail
 - **Camera / Storage upload** — add-item takes an image URL; bucket + RLS are ready
 - **AI matches / dead-link heal** — `healLink` heuristic catalog + optional `heal-link` HEAD stub. No OpenAI/Anthropic key. `HealLinkLlm` is the future plug-in; demo is offline-safe
@@ -331,7 +373,7 @@ Do this when you are ready for 10–20 mates on device. **Do not** pay Apple/Pla
 - [ ] **Apple Developer** ($99/year) — enroll at [developer.apple.com](https://developer.apple.com). You’ll need this for TestFlight.
 - [ ] **Google Play Console** ($25 one-off) — [play.google.com/console](https://play.google.com/console). Internal testing track does not require a public listing.
 - [ ] **Expo / EAS** — `npm i -g eas-cli` then `eas login`. `eas init` in this repo (creates the EAS project; slug is `gift-decider`).
-- [ ] **Supabase production project** — [database.new](https://database.new), apply migrations in order, set `EXPO_PUBLIC_SUPABASE_*` on EAS (or `eas env:create`). Optional: `eas integrations:supabase:connect`.
+- [ ] **Supabase production project** — [database.new](https://database.new), apply migrations in order (including `live_rls`), set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` on EAS (`eas env:create --name EXPO_PUBLIC_SUPABASE_URL --environment production` and the same for the anon key). Optional: `eas integrations:supabase:connect`. GitHub Pages should **not** get these secrets — it stays Explore demo.
 - [ ] **Privacy policy URL** — in-app `/privacy` is enough to start. Point `EXPO_PUBLIC_PRIVACY_POLICY_URL` at a hosted copy when you have a domain. App Store Connect and Play Data safety will ask for this URL.
 - [ ] **Support / deletion inbox** — set `EXPO_PUBLIC_SUPPORT_EMAIL` to an address you actually read.
 
@@ -383,7 +425,7 @@ src/app/                 Expo Router screens
 src/context/             Auth + wishlist
 src/services/            Preview + wishlist API (Supabase or demo store)
 src/lib/                 Env, types, confidence, AU buy URLs, heal-link contract, substitutes, analytics stub, demo store
-supabase/migrations/     Schema + RLS (init + phase2 + phase3 + reveal_at + organiser)
+supabase/migrations/     Schema + RLS (init + phase2 + phase3 + reveal_at + organiser + live_rls)
 supabase/functions/      preview-url stub, heal-link stub, optional improv-substitutes, notify-organiser-ready-to-buy stub
 ```
 
@@ -393,7 +435,7 @@ supabase/functions/      preview-url stub, heal-link stub, optional improv-subst
 npx expo start          # dev server
 npx expo start --web
 npx tsc --noEmit        # types
-npm test                # surprise-safe + soft-launch stubs (node:test)
+npm test                # surprise-safe + live RLS contract + env switch (node:test)
 npm run export:web      # production SPA → dist/
 npm run deploy          # GitHub Pages (subpath /Gift-decider)
 ```

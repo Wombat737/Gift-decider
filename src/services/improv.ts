@@ -1,3 +1,4 @@
+import { usesDemoData } from '@/lib/app-mode';
 import { env } from '@/lib/env';
 import { improvisedSubstitutes } from '@/lib/improv';
 import { supabase } from '@/lib/supabase';
@@ -143,7 +144,7 @@ function merge(heuristic: GiftSubstitute[], extra: GiftSubstitute[]) {
 export async function suggestForGiver(item: WishlistItem): Promise<GiftSubstitute[]> {
   const heuristic = improvisedSubstitutes(item);
   if (item.no_substitution) return heuristic;
-  if (!env.openaiApiKey && !env.llmUrl && !env.isSupabaseConfigured) return heuristic;
+  if (usesDemoData() || (!env.openaiApiKey && !env.llmUrl && !env.isSupabaseConfigured)) return heuristic;
 
   try {
     const extra = await withTimeout(
