@@ -1,30 +1,32 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Sunroom } from '../constants/sunroom';
-import { getDemoItem, resetDemoStore } from './demo-store';
+import { CitrusLane } from '../constants/citrus-lane';
+import { getDemoItem, resetDemoStore, simulateDemoFunded } from './demo-store';
 import { ownerSafeItem } from './surprise-safe';
 import { giverChipTone, isOwnerForbiddenTone, ownerMomentTone } from './tones';
 
-describe('Sunroom design tokens', () => {
-  it('locks cream paper, moss brand, and coral chip-in', () => {
-    assert.equal(Sunroom.bg, '#F7F1E8');
-    assert.equal(Sunroom.surface, '#FFFBF6');
-    assert.equal(Sunroom.ink, '#1F2A24');
-    assert.equal(Sunroom.brand, '#2F6B5A');
-    assert.equal(Sunroom.brandSoft, '#D8EBE3');
-    assert.equal(Sunroom.accent, '#E07A5F');
-    assert.notEqual(Sunroom.accent, '#C45C4A');
+describe('Citrus Lane design tokens', () => {
+  it('locks lemon wash, teal brand, and amber chip-in', () => {
+    assert.equal(CitrusLane.bg, '#FFF8E7');
+    assert.equal(CitrusLane.surface, '#FFFCF5');
+    assert.equal(CitrusLane.ink, '#14120B');
+    assert.equal(CitrusLane.brand, '#0D9488');
+    assert.equal(CitrusLane.brandSoft, '#D5F5F0');
+    assert.equal(CitrusLane.accent, '#F59E0B');
+    assert.notEqual(CitrusLane.bg, '#F7F1E8');
+    assert.notEqual(CitrusLane.brand, '#2F6B5A');
+    assert.notEqual(CitrusLane.accent, '#E07A5F');
   });
 
-  it('uses scrapbook radii — cards 16, buttons 12, pills full', () => {
-    assert.equal(Sunroom.radius.card, 16);
-    assert.equal(Sunroom.radius.button, 12);
-    assert.equal(Sunroom.radius.pill, 999);
+  it('keeps cards 16, buttons 12, pills full', () => {
+    assert.equal(CitrusLane.radius.card, 16);
+    assert.equal(CitrusLane.radius.button, 12);
+    assert.equal(CitrusLane.radius.pill, 999);
   });
 });
 
-describe('Sunroom colour law — no success/purchased/reserved on owner views', () => {
+describe('Citrus Lane colour law — no success/purchased/reserved on owner views', () => {
   it('owner moment tone is brand, never a forbidden status tone', () => {
     assert.equal(ownerMomentTone(), 'brand');
     assert.equal(isOwnerForbiddenTone(ownerMomentTone()), false);
@@ -33,7 +35,7 @@ describe('Sunroom colour law — no success/purchased/reserved on owner views', 
     assert.equal(isOwnerForbiddenTone('purchased'), true);
   });
 
-  it('giver chips can show Taken / Ready to buy; owner payloads look Open', () => {
+  it('giver chips: amber chip-in, teal buy/bought, reserved Taken; owner payloads look Open', () => {
     resetDemoStore();
     const socks = getDemoItem('demo-socks')!;
     const espresso = getDemoItem('demo-espresso')!;
@@ -42,6 +44,7 @@ describe('Sunroom colour law — no success/purchased/reserved on owner views', 
     assert.equal(giverChipTone(socks), 'reserved');
     assert.equal(giverChipTone(espresso), 'accent');
     assert.equal(giverChipTone(grinder), 'brand');
+    assert.equal(giverChipTone(simulateDemoFunded('demo-espresso')), 'brand');
 
     const ownerSocks = ownerSafeItem(socks);
     const ownerEspresso = ownerSafeItem(espresso);

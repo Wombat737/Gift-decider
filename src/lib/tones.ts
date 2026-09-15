@@ -18,11 +18,12 @@ export function ownerMomentTone(): 'brand' {
   return 'brand';
 }
 
-/** Giver list/item chips: coral for chip-in, sage for bought, reserved for Taken. */
+/** Giver list/item chips: amber for chip-in, teal for buy/bought, reserved for Taken. */
 export function giverChipTone(item: WishlistItem): GiverChipTone {
   const phase = groupGiftPhase(item);
-  if (phase === 'ready_to_buy') return 'accent';
-  if (phase === 'purchased' || phase === 'revealed' || item.status === 'purchased') return 'brand';
+  if (phase === 'ready_to_buy' || phase === 'purchased' || phase === 'revealed' || item.status === 'purchased') {
+    return 'brand';
+  }
   if (item.status === 'reserved') return 'reserved';
   if (phase === 'collecting' || isFunded(item)) return 'accent';
   return 'muted';

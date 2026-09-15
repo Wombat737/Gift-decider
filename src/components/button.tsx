@@ -25,7 +25,7 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
         ? theme.accentText
         : theme.brandText
       : variant === 'ghost'
-        ? theme.brand
+        ? theme.brandInk
         : theme.text;
   const borderColor =
     variant === 'secondary' ? theme.border : variant === 'ghost' ? 'transparent' : variant === 'pledge' ? theme.accent : theme.brand;

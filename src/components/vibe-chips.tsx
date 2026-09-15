@@ -43,7 +43,7 @@ export function VibeChips({ tags, selected, onToggle }: VibeChipsProps) {
                 borderColor: active ? theme.brand : theme.border,
               },
             ]}>
-            <ThemedText type="small" style={{ color: active ? theme.brand : theme.text }}>
+            <ThemedText type="small" style={{ color: active ? theme.brandInk : theme.text }}>
               {tag}
             </ThemedText>
           </ChipWrap>

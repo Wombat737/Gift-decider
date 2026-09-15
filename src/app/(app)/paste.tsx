@@ -11,10 +11,12 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import type { LinkPreview } from '@/lib/types';
 import { previewFunctionHint, previewUrl } from '@/services/preview';
 
 export default function PasteInstagramScreen() {
+  const theme = useTheme();
   const { addItem } = useWishlist();
   const [url, setUrl] = useState('https://www.instagram.com/p/DEMO_STUB/');
   const [preview, setPreview] = useState<LinkPreview | null>(null);
@@ -76,7 +78,7 @@ export default function PasteInstagramScreen() {
       {preview ? (
         <Card padded={false} style={styles.preview}>
           {preview.image_url ? (
-            <Image source={{ uri: preview.image_url }} style={styles.image} contentFit="cover" />
+            <Image source={{ uri: preview.image_url }} style={[styles.image, { backgroundColor: theme.paper }]} contentFit="cover" />
           ) : null}
           <View style={styles.meta}>
             <ThemedText type="smallBold">{preview.stub ? 'Stub preview' : 'Preview'}</ThemedText>
@@ -111,7 +113,6 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#E8DFD2',
   },
   meta: {
     paddingHorizontal: Spacing.three,

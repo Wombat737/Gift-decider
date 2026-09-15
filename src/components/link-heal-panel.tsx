@@ -41,7 +41,7 @@ export function LinkHealPanel({ item, busy, demo, onMarkDead, onDemoCheck }: Lin
 
   return (
     <Card accessibilityLabel="giver-link-heal">
-      <ThemedText type="eyebrow" themeColor="accent">
+      <ThemedText type="eyebrow" themeColor="brand">
         Givers only
       </ThemedText>
       <ThemedText type="smallBold">Buy link heal</ThemedText>

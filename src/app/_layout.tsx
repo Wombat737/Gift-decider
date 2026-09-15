@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { WishlistProvider } from '@/context/wishlist-context';
 import { WebFonts } from '@/components/web-fonts';
-import { Fonts } from '@/constants/theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -47,9 +47,22 @@ function SplashController() {
 function ThemedRoot() {
   const colorScheme = useColorScheme();
   const theme = useTheme();
+  const palette = colorScheme === 'dark' ? Colors.dark : Colors.light;
+  const navigationTheme = {
+    ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(colorScheme === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+      primary: palette.brand,
+      background: palette.background,
+      card: palette.background,
+      text: palette.text,
+      border: palette.border,
+      notification: palette.accent,
+    },
+  };
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navigationTheme}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <RootNavigator headerBackground={theme.background} headerTint={theme.text} />
     </ThemeProvider>

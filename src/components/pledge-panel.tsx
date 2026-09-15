@@ -136,7 +136,7 @@ export function PledgePanel({
 
       {item.is_group_gift ? (
         <>
-          <ThemedText type="smallBold" themeColor={phase === 'ready_to_buy' ? 'accent' : 'brand'}>
+          <ThemedText type="smallBold" themeColor={phase === 'collecting' ? 'accent' : 'brand'}>
             {groupGiftPhaseLabel(phase)}
             {phase === 'ready_to_buy' ? ' — organiser should purchase' : ''}
           </ThemedText>

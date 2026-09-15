@@ -8,7 +8,7 @@ const FONT_HREF =
 export function WebFonts() {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    if (document.getElementById('sunroom-fonts')) return;
+    if (document.getElementById('citrus-lane-fonts')) return;
     const preconnect = document.createElement('link');
     preconnect.rel = 'preconnect';
     preconnect.href = 'https://fonts.googleapis.com';
@@ -17,7 +17,7 @@ export function WebFonts() {
     gstatic.href = 'https://fonts.gstatic.com';
     gstatic.crossOrigin = 'anonymous';
     const sheet = document.createElement('link');
-    sheet.id = 'sunroom-fonts';
+    sheet.id = 'citrus-lane-fonts';
     sheet.rel = 'stylesheet';
     sheet.href = FONT_HREF;
     document.head.append(preconnect, gstatic, sheet);

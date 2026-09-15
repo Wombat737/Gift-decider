@@ -6,10 +6,10 @@
     monospace;
   --font-rounded: 'Plus Jakarta Sans', 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic',
     sans-serif;
-  --bg: #f7f1e8;
-  --ink: #1f2a24;
-  --brand: #2f6b5a;
-  --accent: #e07a5f;
+  --bg: #fff8e7;
+  --ink: #14120b;
+  --brand: #0d9488;
+  --accent: #f59e0b;
 }
 
 html,
@@ -33,7 +33,7 @@ body {
 }
 
 ::selection {
-  background: #d8ebe3;
+  background: #d5f5f0;
   color: var(--ink);
 }
 
@@ -49,13 +49,14 @@ button {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #16201c;
-    --ink: #f4efe6;
-    --brand: #7eb8a4;
+    --bg: #0c1716;
+    --ink: #fff8e7;
+    --brand: #2dd4bf;
+    --accent: #f59e0b;
   }
 
   ::selection {
-    background: #2a433a;
+    background: #134e4a;
     color: var(--ink);
   }
 }
