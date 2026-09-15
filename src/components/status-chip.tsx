@@ -3,19 +3,30 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { GiverChipTone } from '@/lib/tones';
 
 type StatusChipProps = {
   label: string;
-  tone?: 'accent' | 'success' | 'reserved' | 'muted';
+  /** Giver-only. Do not render on owner surfaces. */
+  tone?: GiverChipTone;
 };
 
 export function StatusChip({ label, tone = 'muted' }: StatusChipProps) {
   const theme = useTheme();
   const color =
-    tone === 'success' ? theme.success : tone === 'reserved' ? theme.reserved : tone === 'accent' ? theme.accent : theme.textSecondary;
+    tone === 'brand'
+      ? theme.brand
+      : tone === 'reserved'
+        ? theme.reserved
+        : tone === 'accent'
+          ? theme.accent
+          : theme.textSecondary;
+  const background =
+    tone === 'brand' ? theme.brandSoft : tone === 'accent' || tone === 'reserved' ? theme.accentMuted : theme.background;
+  const border = tone === 'brand' ? theme.brandSoft : tone === 'accent' || tone === 'reserved' ? theme.accentMuted : theme.border;
 
   return (
-    <View style={[styles.chip, { backgroundColor: theme.background, borderColor: theme.border }]}>
+    <View style={[styles.chip, { backgroundColor: background, borderColor: border }]}>
       <ThemedText type="smallBold" style={{ color }}>
         {label}
       </ThemedText>

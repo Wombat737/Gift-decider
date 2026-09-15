@@ -10,6 +10,7 @@ import { LinkHealPanel } from '@/components/link-heal-panel';
 import { NoSubLock } from '@/components/no-sub-lock';
 import { PledgePanel } from '@/components/pledge-panel';
 import { Screen } from '@/components/screen';
+import { StatusChip } from '@/components/status-chip';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { VibeChips } from '@/components/vibe-chips';
@@ -17,7 +18,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { track } from '@/lib/analytics';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { giverItemChipLabel } from '@/lib/format';
-import { isFunded } from '@/lib/pledges';
+import { giverChipTone } from '@/lib/tones';
 import type { DeliveryMethod, ItemStatus, WishlistItem } from '@/lib/types';
 import {
   addSharedPledge,
@@ -34,10 +35,8 @@ import {
   simulateSharedFunded,
   simulateSharedReveal,
 } from '@/services/wishlist';
-import { useTheme } from '@/hooks/use-theme';
 
 export default function GiverItemScreen() {
-  const theme = useTheme();
   const { token, itemId } = useLocalSearchParams<{ token: string; itemId: string }>();
   const [item, setItem] = useState<WishlistItem | null>(null);
   const [name, setName] = useState('');
@@ -236,9 +235,8 @@ export default function GiverItemScreen() {
     );
   }
 
-  const funded = isFunded(item);
   const demo = Boolean(token && isDemoShareToken(token));
-  const tone = funded || item.status === 'purchased' ? theme.success : item.status === 'reserved' ? theme.reserved : theme.accent;
+  const chipTone = giverChipTone(item);
   const taken = item.status === 'reserved' || item.status === 'purchased';
 
   return (
@@ -253,10 +251,10 @@ export default function GiverItemScreen() {
           Giver view · they won’t see this
         </ThemedText>
         <ThemedText type="heading">{item.title || 'Untitled gift'}</ThemedText>
-        <ThemedText type="smallBold" style={{ color: tone }}>
-          {giverItemChipLabel(item)}
-          {item.item_kind === 'vibe' ? ' · vibe' : ''}
-        </ThemedText>
+        <StatusChip
+          label={`${giverItemChipLabel(item)}${item.item_kind === 'vibe' ? ' · vibe' : ''}`}
+          tone={chipTone}
+        />
         <ThemedText type="small" themeColor="textSecondary">
           Soft lock is honour-system. Other givers see Taken/Bought — not names.
         </ThemedText>
@@ -326,8 +324,8 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: Radius.lg,
-    backgroundColor: '#E5D8C8',
+    borderRadius: Radius.card,
+    backgroundColor: '#E8DFD2',
   },
   block: {
     gap: Spacing.one,

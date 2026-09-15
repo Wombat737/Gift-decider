@@ -2,36 +2,46 @@ import '@/global.css';
 
 import { Platform, type ViewStyle } from 'react-native';
 
+import { Sunroom, SunroomDark } from '@/constants/sunroom';
+
 export const Colors = {
   light: {
-    text: '#1C1612',
-    background: '#F6EFE7',
-    backgroundElement: '#FFFBF6',
-    backgroundSelected: '#EADCCE',
-    textSecondary: '#6E6258',
-    accent: '#C45C4A',
-    accentMuted: '#F3D4CC',
-    accentText: '#FFF8F4',
-    success: '#2F6F52',
-    warning: '#9A6B12',
-    reserved: '#8A5A2B',
-    border: '#E5D6C6',
-    overlay: 'rgba(28, 22, 18, 0.42)',
+    text: Sunroom.ink,
+    background: Sunroom.bg,
+    backgroundElement: Sunroom.surface,
+    backgroundSelected: Sunroom.paper,
+    textSecondary: Sunroom.inkMuted,
+    brand: Sunroom.brand,
+    brandSoft: Sunroom.brandSoft,
+    brandText: Sunroom.brandText,
+    accent: Sunroom.accent,
+    accentMuted: Sunroom.accentMuted,
+    accentText: Sunroom.accentText,
+    success: Sunroom.brand,
+    warning: Sunroom.warning,
+    reserved: Sunroom.reserved,
+    border: Sunroom.border,
+    overlay: Sunroom.overlay,
+    paper: Sunroom.paper,
   },
   dark: {
-    text: '#F5EDE6',
-    background: '#161310',
-    backgroundElement: '#241F1B',
-    backgroundSelected: '#3A322C',
-    textSecondary: '#B0A49A',
-    accent: '#E07A68',
-    accentMuted: '#4A302C',
-    accentText: '#1A1614',
-    success: '#7DCE9F',
-    warning: '#E6C35C',
-    reserved: '#E0B27A',
-    border: '#3A322C',
-    overlay: 'rgba(0, 0, 0, 0.5)',
+    text: SunroomDark.ink,
+    background: SunroomDark.bg,
+    backgroundElement: SunroomDark.surface,
+    backgroundSelected: SunroomDark.paper,
+    textSecondary: SunroomDark.inkMuted,
+    brand: SunroomDark.brand,
+    brandSoft: SunroomDark.brandSoft,
+    brandText: SunroomDark.brandText,
+    accent: SunroomDark.accent,
+    accentMuted: SunroomDark.accentMuted,
+    accentText: SunroomDark.accentText,
+    success: SunroomDark.brand,
+    warning: SunroomDark.warning,
+    reserved: SunroomDark.reserved,
+    border: SunroomDark.border,
+    overlay: SunroomDark.overlay,
+    paper: SunroomDark.paper,
   },
 } as const;
 
@@ -39,6 +49,7 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
+    /** Closest Expo stand-in for Plus Jakarta Sans / Fraunces until google fonts are bundled. */
     sans: 'system-ui',
     serif: 'Georgia',
     rounded: 'ui-rounded',
@@ -80,24 +91,26 @@ export const Spacing = {
 
 export const MaxContentWidth = 560;
 export const Radius = {
-  sm: 12,
-  md: 18,
-  lg: 24,
-  pill: 999,
+  sm: Sunroom.radius.button,
+  md: Sunroom.radius.card,
+  lg: Sunroom.radius.card,
+  button: Sunroom.radius.button,
+  card: Sunroom.radius.card,
+  pill: Sunroom.radius.pill,
 } as const;
 
 export const CardShadow: ViewStyle = Platform.select({
   ios: {
-    shadowColor: '#3A2418',
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: Sunroom.ink,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
   },
   android: {
-    elevation: 3,
+    elevation: 2,
   },
   web: {
-    boxShadow: '0 14px 40px rgba(58, 36, 24, 0.08)',
+    boxShadow: '0 10px 28px rgba(31, 42, 36, 0.07)',
   },
   default: {},
 }) as ViewStyle;

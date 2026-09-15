@@ -20,11 +20,11 @@ export function FlowHeader({ role, title, subtitle }: FlowHeaderProps) {
         style={[
           styles.pill,
           {
-            backgroundColor: owner ? theme.accentMuted : theme.backgroundSelected,
-            borderColor: owner ? theme.accent : theme.border,
+            backgroundColor: owner ? theme.brandSoft : theme.backgroundSelected,
+            borderColor: owner ? theme.brandSoft : theme.border,
           },
         ]}>
-        <ThemedText type="eyebrow" style={{ color: owner ? theme.accent : theme.textSecondary }}>
+        <ThemedText type="eyebrow" style={{ color: owner ? theme.brand : theme.textSecondary }}>
           {owner ? 'Your list' : 'Giver view'}
         </ThemedText>
       </View>

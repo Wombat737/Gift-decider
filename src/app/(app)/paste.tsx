@@ -103,7 +103,7 @@ export default function PasteInstagramScreen() {
 
 const styles = StyleSheet.create({
   preview: {
-    borderRadius: Radius.lg,
+    borderRadius: Radius.card,
     overflow: 'hidden',
     gap: Spacing.three,
     paddingBottom: Spacing.three,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#E5D8C8',
+    backgroundColor: '#E8DFD2',
   },
   meta: {
     paddingHorizontal: Spacing.three,

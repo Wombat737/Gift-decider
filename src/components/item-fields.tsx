@@ -135,7 +135,7 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         <Switch
           value={value.noSubstitution}
           onValueChange={(noSubstitution) => onChange({ noSubstitution })}
-          trackColor={{ true: theme.accent }}
+          trackColor={{ true: theme.brand }}
         />
       </View>
     </>

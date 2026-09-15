@@ -30,7 +30,7 @@ export function DateField({ label, value, onChange, hint, accessibilityLabel }: 
         {...(Platform.OS === 'web' ? ({ type: 'date' } as object) : { keyboardType: 'numbers-and-punctuation' })}
         style={{
           minHeight: 50,
-          borderRadius: Radius.md,
+          borderRadius: Radius.button,
           paddingHorizontal: Spacing.three,
           fontSize: 16,
           borderWidth: 1,

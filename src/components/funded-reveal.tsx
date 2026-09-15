@@ -1,6 +1,7 @@
 import { Card } from '@/components/card';
 import { ThemedText } from '@/components/themed-text';
 import { formatContributorList, formatRevealDate } from '@/lib/pledges';
+import { ownerMomentTone } from '@/lib/tones';
 import type { WishlistItem } from '@/lib/types';
 
 export function FundedReveal({ item }: { item: WishlistItem }) {
@@ -9,13 +10,14 @@ export function FundedReveal({ item }: { item: WishlistItem }) {
 
   const who = formatContributorList(reveal.contributors);
   const when = formatRevealDate(reveal.reveal_at);
+  const tone = ownerMomentTone();
 
   return (
     <Card accessibilityLabel="funded-group-reveal">
-      <ThemedText type="eyebrow" themeColor="success">
+      <ThemedText type="eyebrow" themeColor={tone}>
         From the group
       </ThemedText>
-      <ThemedText type="smallBold">It’s from the group</ThemedText>
+      <ThemedText type="moment">It’s from the group</ThemedText>
       <ThemedText>
         {reveal.contributors.length === 0
           ? 'Friends chipped in together on this one.'

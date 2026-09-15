@@ -46,7 +46,7 @@ export default function SettingsScreen() {
       </ThemedText>
 
       <Card>
-        <ThemedText type="eyebrow" themeColor="accent">
+        <ThemedText type="eyebrow" themeColor="brand">
           Legal
         </ThemedText>
         <ThemedText type="smallBold">Privacy policy</ThemedText>
@@ -65,7 +65,7 @@ export default function SettingsScreen() {
       </Card>
 
       <Card>
-        <ThemedText type="eyebrow" themeColor="accent">
+        <ThemedText type="eyebrow" themeColor="brand">
           Your account
         </ThemedText>
         <ThemedText type="smallBold">Delete my account</ThemedText>
@@ -77,7 +77,7 @@ export default function SettingsScreen() {
       </Card>
 
       <Card>
-        <ThemedText type="eyebrow" themeColor="accent">
+        <ThemedText type="eyebrow" themeColor="brand">
           Soft launch
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">

@@ -47,7 +47,7 @@ export default function SignInScreen() {
     <Screen>
       <View style={styles.hero}>
         <BrandMark size={56} />
-        <ThemedText type="eyebrow" themeColor="accent">
+        <ThemedText type="eyebrow" themeColor="brand">
           Gift Decider
         </ThemedText>
         <ThemedText type="title">Pick gifts from a living photo wishlist.</ThemedText>

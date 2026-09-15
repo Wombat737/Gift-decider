@@ -1,13 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
-import { Card } from '@/components/card';
 import { FlowHeader } from '@/components/flow-header';
 import { ItemGrid } from '@/components/item-grid';
 import { LegalLinks } from '@/components/legal-links';
+import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { groupGiftPhase, pickOrganiserName } from '@/lib/pledges';
+import { groupGiftPhase } from '@/lib/pledges';
 import type { SharedWishlist, WishlistItem } from '@/lib/types';
 import { getSharedItems, getSharedWishlist } from '@/services/wishlist';
 
@@ -67,25 +67,7 @@ export default function GiverShareScreen() {
         </ThemedText>
       ) : null}
 
-      {readyToBuy.length > 0 ? (
-        <Card accessibilityLabel="organiser-ready-to-buy-list">
-          <ThemedText type="eyebrow" themeColor="success">
-            Funded — time to buy
-          </ThemedText>
-          <ThemedText type="smallBold">
-            Pledges hit the target. The organiser should buy, then mark purchased and pick delivery.
-          </ThemedText>
-          {readyToBuy.map((item) => (
-            <ThemedText key={item.id} type="small" themeColor="textSecondary">
-              {item.title || 'Untitled gift'} · organiser {pickOrganiserName(item)}
-            </ThemedText>
-          ))}
-          <ThemedText type="small" themeColor="textSecondary">
-            The recipient stays unspoiled until the reveal date. Push notifications are next — this banner is
-            the in-app alert.
-          </ThemedText>
-        </Card>
-      ) : null}
+      {readyToBuy.length > 0 ? <ReadyToBuyBanner items={readyToBuy} /> : null}
 
       {!loading ? (
         <ItemGrid
