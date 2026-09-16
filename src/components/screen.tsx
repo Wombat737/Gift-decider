@@ -52,28 +52,35 @@ export function Screen({ children, style, scroll = true, padded = true, footer, 
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={keyboardVerticalOffset}>
           {scroll ? (
-            <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.scroll}
-              // handled = tap-outside dismisses unless a child (button/input)
-              // claimed the tap. always left the keyboard stuck on add/share.
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-              onScrollBeginDrag={Keyboard.dismiss}
-              nestedScrollEnabled
-              removeClippedSubviews={false}
-              showsVerticalScrollIndicator={false}
-              showsHorizontalScrollIndicator={false}>
-              {body}
-            </ScrollView>
+            <View collapsable={false} style={styles.scrollSlot}>
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scroll}
+                // handled = tap-outside dismisses unless a child (button/input)
+                // claimed the tap. always left the keyboard stuck on add/share.
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                onScrollBeginDrag={Keyboard.dismiss}
+                nestedScrollEnabled
+                removeClippedSubviews={false}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}>
+                {body}
+              </ScrollView>
+            </View>
           ) : (
             body
           )}
           {footer ? (
             <View
               collapsable={false}
-              pointerEvents="box-none"
-              style={[styles.footerDock, { borderTopColor: theme.border, backgroundColor: theme.background }]}>
+              style={[
+                styles.footerDock,
+                {
+                  borderTopColor: theme.border,
+                  backgroundColor: theme.background,
+                },
+              ]}>
               <View collapsable={false} style={[styles.footerInner, padded && styles.footerPadded]}>
                 {footer}
               </View>
@@ -98,6 +105,16 @@ const styles = StyleSheet.create({
   },
   avoid: {
     flex: 1,
+    width: '100%',
+    maxWidth: '100%',
+    minHeight: 0,
+  },
+  // Wrapper so RNW ScrollView cannot expand over the footer sibling.
+  scrollSlot: {
+    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    minHeight: 0,
     width: '100%',
     maxWidth: '100%',
   },
@@ -143,7 +160,10 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
     flexGrow: 0,
     flexShrink: 0,
+    zIndex: 2,
+    elevation: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
+    pointerEvents: 'auto',
   },
   footerInner: {
     width: '100%',

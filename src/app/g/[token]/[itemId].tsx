@@ -98,7 +98,11 @@ export default function GiverItemScreen() {
       setError('This share link is missing a token.');
       return;
     }
-    Keyboard.dismiss();
+    try {
+      Keyboard.dismiss();
+    } catch {
+      // web / headless: dismissing is best-effort and must not block the lock
+    }
     setError(null);
     setBusy(true);
     const snapshot = current;

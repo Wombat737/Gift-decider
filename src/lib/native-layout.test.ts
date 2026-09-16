@@ -21,9 +21,13 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     const inner = styleBlock(screen, 'inner');
     const scroll = styleBlock(screen, 'scroll');
     const scrollView = styleBlock(screen, 'scrollView');
+    const scrollSlot = styleBlock(screen, 'scrollSlot');
 
     assert.match(scrollView, /width: '100%'/);
     assert.match(scrollView, /maxWidth: '100%'/);
+    assert.match(scrollSlot, /minHeight: 0/);
+    assert.match(scrollSlot, /flexShrink: 1/);
+    assert.match(screen, /styles\.scrollSlot/);
     assert.match(scroll, /width: '100%'/);
     assert.match(scroll, /maxWidth: '100%'/);
     // flexGrow: 1 on the Fabric content container keeps its native frame
@@ -55,7 +59,8 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     const base = styleBlock(button, 'base');
     assert.match(button, /NativePressable/);
     assert.match(button, /nativePress/);
-    assert.match(button, /Pressable as RNPressable/);
+    assert.match(button, /TouchableOpacity/);
+    assert.match(button, /pointerEvents: 'none'/);
     assert.match(base, /width: '100%'/);
     assert.match(base, /alignSelf: 'stretch'/);
     assert.match(base, /minHeight: 50/);
@@ -122,13 +127,15 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     assert.match(screen, /styles\.footerDock/);
     assert.match(footerDock, /width: '100%'/);
     assert.match(footerDock, /maxWidth: '100%'/);
+    assert.match(footerDock, /zIndex: 2/);
+    assert.match(footerDock, /flexShrink: 0/);
     assert.equal(/overflow:\s*'hidden'/.test(footerDock), false);
     assert.match(footerInner, /maxWidth: MaxContentWidth/);
     assert.match(footerInner, /minWidth: 0/);
     // Footer is a KeyboardAvoidingView sibling of ScrollView, not a child of it.
     const afterScroll = screen.split('</ScrollView>')[1] ?? '';
     assert.match(afterScroll, /\{footer \? \(/);
-    assert.equal(afterScroll.includes('<ScrollView'), false);
+    assert.match(afterScroll, /styles\.footerDock/);
 
     assert.match(itemScreen, /footer=\{/);
     assert.match(itemScreen, /nativePress/);
