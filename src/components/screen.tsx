@@ -51,6 +51,8 @@ export function Screen({ children, style, scroll = true, padded = true, ...rest 
             <ScrollView
               style={styles.scrollView}
               contentContainerStyle={styles.scroll}
+              // handled = tap-outside dismisses unless a child (button/input)
+              // claimed the tap. always left the keyboard stuck on add/share.
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
               onScrollBeginDrag={Keyboard.dismiss}
