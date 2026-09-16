@@ -35,5 +35,6 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     alignItems: 'center',
     paddingTop: Spacing.two,
+    maxWidth: '100%',
   },
 });

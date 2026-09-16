@@ -43,7 +43,7 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
         },
       ]}
       {...rest}>
-      <ThemedText type="smallBold" style={{ color }}>
+      <ThemedText type="smallBold" style={{ color, textAlign: 'center' }}>
         {label}
       </ThemedText>
     </Pressable>
@@ -52,6 +52,7 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
 
 const styles = StyleSheet.create({
   base: {
+    maxWidth: '100%',
     minHeight: 50,
     borderRadius: Radius.button,
     alignItems: 'center',

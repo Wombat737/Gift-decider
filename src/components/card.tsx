@@ -31,6 +31,9 @@ export function Card({ children, style, padded = true, raised = true, ...rest }:
 
 const styles = StyleSheet.create({
   card: {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
     borderRadius: Radius.card,
     borderWidth: 1,
     gap: Spacing.two,

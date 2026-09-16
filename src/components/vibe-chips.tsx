@@ -92,8 +92,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.one + 4,
+    width: '100%',
+    maxWidth: '100%',
   },
   chip: {
+    maxWidth: '100%',
+    flexShrink: 1,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.one + 3,

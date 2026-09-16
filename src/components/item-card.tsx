@@ -93,10 +93,13 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
 const styles = StyleSheet.create({
   press: {
     flex: 1,
+    minWidth: 0,
+    maxWidth: '100%',
     ...Platform.select({ web: { cursor: 'pointer' as const } }),
   },
   card: {
     flex: 1,
+    minWidth: 0,
     gap: 0,
     padding: Spacing.two,
     paddingBottom: Spacing.one,

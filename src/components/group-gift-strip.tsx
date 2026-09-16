@@ -64,6 +64,9 @@ export function GroupGiftStrip({ item }: GroupGiftStripProps) {
 const styles = StyleSheet.create({
   wrap: {
     gap: Spacing.two,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
   },
   track: {
     height: 10,

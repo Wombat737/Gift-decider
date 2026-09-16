@@ -43,6 +43,9 @@ export function EmptyState({ title, body, actionLabel, onAction }: EmptyStatePro
 const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
+    alignSelf: 'stretch',
+    width: '100%',
+    maxWidth: '100%',
     gap: Spacing.two,
     paddingVertical: Spacing.five,
     paddingHorizontal: Spacing.three,
@@ -63,6 +66,7 @@ const styles = StyleSheet.create({
   },
   body: {
     textAlign: 'center',
+    width: '100%',
     maxWidth: 360,
   },
 });

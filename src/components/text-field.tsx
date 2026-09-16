@@ -41,6 +41,9 @@ export function TextField({ label, hint, style, ...rest }: TextFieldProps) {
 const styles = StyleSheet.create({
   wrap: {
     gap: Spacing.one,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
   },
   input: {
     minHeight: 50,
