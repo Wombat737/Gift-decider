@@ -125,8 +125,8 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         </ThemedText>
       )}
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flex: 1, paddingRight: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: '100%' }}>
+        <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
           <ThemedText>No substitutions</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             Shows a lock to givers. If the buy link is dead, givers only see a warning — no alternatives.

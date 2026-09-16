@@ -28,6 +28,9 @@ export function DemoBanner() {
 
 const styles = StyleSheet.create({
   banner: {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
     borderRadius: Radius.card,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two + 2,

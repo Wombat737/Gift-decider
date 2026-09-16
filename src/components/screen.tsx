@@ -23,9 +23,11 @@ export function Screen({ children, style, scroll = true, padded = true, ...rest 
       <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         {scroll ? (
           <ScrollView
+            style={styles.scrollView}
             contentContainerStyle={styles.scroll}
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}>
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}>
             {body}
           </ScrollView>
         ) : (
@@ -39,19 +41,34 @@ export function Screen({ children, style, scroll = true, padded = true, ...rest 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    width: '100%',
+    maxWidth: '100%',
   },
   safe: {
     flex: 1,
-    alignItems: 'center',
+    width: '100%',
+    maxWidth: '100%',
   },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+    maxWidth: '100%',
+  },
+  // Width must be the viewport, not the content. alignItems: 'center' on an
+  // unbounded ScrollView makes % widths fail and text stay on one line — the
+  // page then grows to the longest sentence (feels zoomed-in on iPhone).
   scroll: {
     flexGrow: 1,
+    width: '100%',
+    maxWidth: '100%',
     alignItems: 'center',
   },
   inner: {
     width: '100%',
     maxWidth: MaxContentWidth,
+    minWidth: 0,
     flexGrow: 1,
+    alignSelf: 'center',
     gap: Spacing.three + 2,
   },
   padded: {

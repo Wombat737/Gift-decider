@@ -41,15 +41,20 @@ export function FlowHeader({ role, title, subtitle }: FlowHeaderProps) {
 const styles = StyleSheet.create({
   wrap: {
     gap: Spacing.two,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
   },
   pill: {
     alignSelf: 'flex-start',
+    maxWidth: '100%',
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: Spacing.two + 4,
     paddingVertical: Spacing.one + 1,
   },
   sub: {
-    maxWidth: 480,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
 });

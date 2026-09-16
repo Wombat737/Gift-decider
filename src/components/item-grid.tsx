@@ -46,10 +46,16 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -Spacing.one,
+    width: '100%',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
   },
   cell: {
     width: '50%',
+    maxWidth: '50%',
+    minWidth: 0,
+    flexGrow: 0,
+    flexShrink: 0,
     padding: Spacing.one,
   },
 });

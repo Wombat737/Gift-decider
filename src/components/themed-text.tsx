@@ -25,6 +25,7 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
   return (
     <Text
       style={[
+        styles.base,
         { color: readableThemeColor(theme, themeColor ?? 'text') },
         type === 'default' && styles.default,
         type === 'title' && styles.title,
@@ -45,6 +46,9 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 }
 
 const styles = StyleSheet.create({
+  base: {
+    flexShrink: 1,
+  },
   small: {
     fontFamily: Fonts.sans,
     fontSize: 13,

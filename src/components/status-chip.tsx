@@ -53,6 +53,7 @@ export function StatusChip({ label, tone = 'muted' }: StatusChipProps) {
 const styles = StyleSheet.create({
   chip: {
     alignSelf: 'flex-start',
+    maxWidth: '100%',
     borderRadius: Radius.pill,
     borderWidth: 1,
     paddingHorizontal: Spacing.two + 2,
