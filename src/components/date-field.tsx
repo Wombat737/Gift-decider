@@ -1,4 +1,4 @@
-import { Platform, TextInput, View } from 'react-native';
+import { Keyboard, Platform, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -27,6 +27,9 @@ export function DateField({ label, value, onChange, hint, accessibilityLabel }: 
         onChangeText={onChange}
         autoCapitalize="none"
         autoCorrect={false}
+        returnKeyType="done"
+        blurOnSubmit
+        onSubmitEditing={Keyboard.dismiss}
         {...(Platform.OS === 'web' ? ({ type: 'date' } as object) : { keyboardType: 'numbers-and-punctuation' })}
         style={{
           minHeight: 50,

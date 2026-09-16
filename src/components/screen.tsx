@@ -1,4 +1,14 @@
-import { ScrollView, StyleSheet, View, type ViewProps } from 'react-native';
+import { use } from 'react';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+  type ViewProps,
+} from 'react-native';
+import { HeaderHeightContext } from 'expo-router/react-navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DemoBanner } from '@/components/demo-banner';
@@ -10,7 +20,13 @@ type ScreenProps = ViewProps & {
   padded?: boolean;
 };
 
+function useKeyboardVerticalOffset() {
+  const headerHeight = use(HeaderHeightContext);
+  return Platform.OS === 'ios' ? (headerHeight ?? 0) : 0;
+}
+
 export function Screen({ children, style, scroll = true, padded = true, ...rest }: ScreenProps) {
+  const keyboardVerticalOffset = useKeyboardVerticalOffset();
   const body = (
     <View
       {...rest}
@@ -26,20 +42,28 @@ export function Screen({ children, style, scroll = true, padded = true, ...rest 
   return (
     <ThemedView style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
-        {scroll ? (
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scroll}
-            keyboardShouldPersistTaps="always"
-            nestedScrollEnabled
-            removeClippedSubviews={false}
-            showsVerticalScrollIndicator={false}
-            showsHorizontalScrollIndicator={false}>
-            {body}
-          </ScrollView>
-        ) : (
-          body
-        )}
+        <KeyboardAvoidingView
+          style={styles.avoid}
+          enabled={Platform.OS === 'ios'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={keyboardVerticalOffset}>
+          {scroll ? (
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scroll}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              onScrollBeginDrag={Keyboard.dismiss}
+              nestedScrollEnabled
+              removeClippedSubviews={false}
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}>
+              {body}
+            </ScrollView>
+          ) : (
+            body
+          )}
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </ThemedView>
   );
@@ -52,6 +76,11 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   safe: {
+    flex: 1,
+    width: '100%',
+    maxWidth: '100%',
+  },
+  avoid: {
     flex: 1,
     width: '100%',
     maxWidth: '100%',

@@ -1,4 +1,4 @@
-import { StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
+import { Keyboard, StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -9,7 +9,16 @@ type TextFieldProps = TextInputProps & {
   hint?: string;
 };
 
-export function TextField({ label, hint, style, ...rest }: TextFieldProps) {
+export function TextField({
+  label,
+  hint,
+  style,
+  multiline,
+  returnKeyType,
+  blurOnSubmit,
+  onSubmitEditing,
+  ...rest
+}: TextFieldProps) {
   const theme = useTheme();
 
   return (
@@ -17,6 +26,13 @@ export function TextField({ label, hint, style, ...rest }: TextFieldProps) {
       <ThemedText type="smallBold">{label}</ThemedText>
       <TextInput
         placeholderTextColor={theme.textSecondary}
+        multiline={multiline}
+        returnKeyType={returnKeyType ?? (multiline ? 'default' : 'done')}
+        blurOnSubmit={blurOnSubmit ?? !multiline}
+        onSubmitEditing={(event) => {
+          onSubmitEditing?.(event);
+          if (!multiline) Keyboard.dismiss();
+        }}
         style={[
           styles.input,
           {
@@ -24,7 +40,7 @@ export function TextField({ label, hint, style, ...rest }: TextFieldProps) {
             backgroundColor: theme.backgroundElement,
             borderColor: theme.border,
           },
-          rest.multiline && styles.multiline,
+          multiline && styles.multiline,
           style,
         ]}
         {...rest}

@@ -40,9 +40,14 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     assert.equal(/flexGrow:\s*1/.test(inner), false);
     assert.equal(/overflow:\s*'hidden'/.test(inner), false);
     assert.equal(/overflow:\s*'hidden'/.test(scroll), false);
-    assert.match(screen, /keyboardShouldPersistTaps="always"/);
+    assert.match(screen, /keyboardShouldPersistTaps="handled"/);
+    assert.match(screen, /keyboardDismissMode=/);
+    assert.match(screen, /onScrollBeginDrag=\{Keyboard\.dismiss\}/);
+    assert.match(screen, /KeyboardAvoidingView/);
+    assert.match(screen, /keyboardVerticalOffset/);
     assert.match(screen, /collapsable=\{false\}/);
     assert.match(screen, /removeClippedSubviews=\{false\}/);
+    assert.equal(/keyboardShouldPersistTaps="always"/.test(screen), false);
   });
 
   it('Button press target stretches so labels cannot collapse the iOS hit box', () => {
@@ -71,6 +76,24 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     const base = styleBlock(text, 'base');
     assert.equal(/flexShrink:\s*1/.test(base), false);
     assert.match(base, /maxWidth: '100%'/);
+  });
+
+  it('add-gift and share keep the iOS keyboard from covering fields or trapping focus', () => {
+    const screen = source('components/screen.tsx');
+    const field = source('components/text-field.tsx');
+    const add = source('app/(app)/add.tsx');
+    const share = source('app/(app)/share.tsx');
+    assert.match(add, /<Screen>/);
+    assert.match(share, /<Screen>/);
+    assert.match(screen, /KeyboardAvoidingView/);
+    assert.match(screen, /behavior=\{Platform\.OS === 'ios' \? 'padding' : undefined\}/);
+    assert.match(screen, /keyboardShouldPersistTaps="handled"/);
+    assert.match(screen, /onScrollBeginDrag=\{Keyboard\.dismiss\}/);
+    assert.match(field, /returnKeyType=\{returnKeyType \?\? \(multiline \? 'default' : 'done'\)\}/);
+    assert.match(field, /blurOnSubmit=\{blurOnSubmit \?\? !multiline\}/);
+    assert.match(field, /Keyboard\.dismiss\(\)/);
+    assert.equal(/flexGrow:\s*1/.test(styleBlock(screen, 'scroll')), false);
+    assert.equal(/flexGrow:\s*1/.test(styleBlock(screen, 'inner')), false);
   });
 
   it('giver detail reads the shared catalog so list chips update with the item screen', () => {
