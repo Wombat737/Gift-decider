@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 import { DeadLinkBanner } from '@/components/dead-link-banner';
 import { FlowHeader } from '@/components/flow-header';
@@ -15,10 +15,17 @@ import { groupGiftPhase } from '@/lib/pledges';
 export default function GiverShareScreen() {
   const { token, meta, error, loading, refresh } = useGiverShare();
   const items = useGiverCatalog(token);
+  const [focusGen, setFocusGen] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
-      void refresh({ silent: true });
+      setFocusGen((count) => count + 1);
+      // Paint the catalog snapshot (Bought) before a silent refetch that may still
+      // carry the previous Taken row.
+      const frame = requestAnimationFrame(() => {
+        void refresh({ silent: true });
+      });
+      return () => cancelAnimationFrame(frame);
     }, [refresh]),
   );
 
@@ -51,6 +58,7 @@ export default function GiverShareScreen() {
 
       {!loading || items.length > 0 ? (
         <ItemGrid
+          key={`${token ?? 'share'}:${focusGen}`}
           items={items}
           showStatus
           hrefFor={(item) => `/g/${token}/${item.id}`}

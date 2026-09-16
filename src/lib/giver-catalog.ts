@@ -1,12 +1,13 @@
 import { useMemo, useSyncExternalStore } from 'react';
 
 import {
+  DEMO_SHARE_TOKEN,
   getDemoStoreVersion,
   isDemoShareToken,
   listDemoSharedItems,
   subscribeDemoStore,
 } from '@/lib/demo-store';
-import { replaceSharedItem } from '@/lib/giver-status';
+import { mergeGiverItem, replaceSharedItem } from '@/lib/giver-status';
 import type { WishlistItem } from '@/lib/types';
 
 const LIVE_KEY = '__giftdeciderGiverLiveCatalog';
@@ -33,30 +34,56 @@ export function shareTokenParam(value: unknown): string | undefined {
   return typeof value === 'string' && value !== 'undefined' ? value : undefined;
 }
 
+/**
+ * Live share tokens must hit share-token RPCs whenever Supabase is configured.
+ * Explore-demo session is owner-scaffold only — it must not swallow a real /g/<token>.
+ */
+export function shouldUseDemoShare(token: string, supabaseReady: boolean) {
+  const normalized = shareTokenParam(token) ?? token;
+  if (!normalized) return true;
+  if (isDemoShareToken(normalized) || normalized === DEMO_SHARE_TOKEN) return true;
+  return !supabaseReady;
+}
+
 function notifyLive() {
   const root = liveRoot();
   root.version += 1;
   for (const listener of [...root.listeners]) listener();
 }
 
+export function resetGiverCatalog() {
+  liveRoot().byToken = new Map();
+  notifyLive();
+}
+
 export function patchGiverCatalog(token: string, item: WishlistItem) {
-  if (!token || isDemoShareToken(token)) return;
+  if (!token) return;
   const root = liveRoot();
-  const current = root.byToken.get(token) ?? [];
+  const current = root.byToken.get(token) ?? (isDemoShareToken(token) ? listDemoSharedItems(token) : []);
   root.byToken.set(token, replaceSharedItem(current, item));
   notifyLive();
 }
 
 export function writeGiverCatalog(token: string, items: WishlistItem[]) {
-  if (!token || isDemoShareToken(token)) return;
-  liveRoot().byToken.set(token, items);
+  if (!token) return;
+  const root = liveRoot();
+  const previous = root.byToken.get(token) ?? [];
+  root.byToken.set(
+    token,
+    items.map((row) => mergeGiverItem(row, previous.find((item) => item.id === row.id))),
+  );
   notifyLive();
 }
 
 export function peekGiverCatalog(token: string): WishlistItem[] {
   if (!token) return [];
-  if (isDemoShareToken(token)) return listDemoSharedItems(token);
-  return liveRoot().byToken.get(token) ?? [];
+  const overlay = liveRoot().byToken.get(token) ?? [];
+  if (isDemoShareToken(token)) {
+    const demo = listDemoSharedItems(token);
+    if (overlay.length === 0) return demo;
+    return demo.map((item) => mergeGiverItem(item, overlay.find((row) => row.id === item.id) ?? null));
+  }
+  return overlay;
 }
 
 function subscribeGiverCatalog(listener: () => void) {
@@ -71,6 +98,16 @@ function subscribeGiverCatalog(listener: () => void) {
 
 function getGiverCatalogVersion() {
   return getDemoStoreVersion() * 1_000_000 + liveRoot().version;
+}
+
+/** Prefer the process-wide catalog so list + detail chips stay aligned after lock. */
+export function pickSharedItem(
+  itemId: string | undefined,
+  catalog: WishlistItem[],
+  fallback: WishlistItem[] = [],
+): WishlistItem | null {
+  if (!itemId) return null;
+  return catalog.find((item) => item.id === itemId) ?? fallback.find((item) => item.id === itemId) ?? null;
 }
 
 /** List and item screens subscribe here so badges update even if the nested stack remounts. */

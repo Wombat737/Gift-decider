@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { resolveSupabaseConfig } from './env';
 import { shouldUseDemoData } from './demo-session';
+import { shouldUseDemoShare } from './giver-catalog';
 import { webAuthRedirectTo } from './auth-redirect';
 
 describe('Live vs Explore-demo switch', () => {
@@ -52,6 +53,14 @@ describe('Live vs Explore-demo switch', () => {
     assert.equal(shouldUseDemoData({ supabaseConfigured: true, demoSession: true }), true);
     assert.equal(shouldUseDemoData({ supabaseConfigured: true, demoSession: false }), false);
     assert.equal(shouldUseDemoData({ supabaseConfigured: false, demoSession: false }), true);
+  });
+
+  it('live share tokens still use share-token RPCs when Explore demo session is on', () => {
+    assert.equal(shouldUseDemoShare('demo', true), true);
+    assert.equal(shouldUseDemoShare('demo-birthday', true), true);
+    assert.equal(shouldUseDemoShare('live-share-hex-token', true), false);
+    assert.equal(shouldUseDemoShare(['live-share-hex-token'], true), false);
+    assert.equal(shouldUseDemoShare('live-share-hex-token', false), true);
   });
 
   it('web magic-link redirect lands on /auth/callback including a Pages prefix', () => {

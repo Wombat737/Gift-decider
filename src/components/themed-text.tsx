@@ -47,7 +47,7 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 
 const styles = StyleSheet.create({
   base: {
-    flexShrink: 1,
+    maxWidth: '100%',
   },
   small: {
     fontFamily: Fonts.sans,

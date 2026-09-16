@@ -9,11 +9,12 @@ import {
   setDemoItemStatus,
   subscribeDemoStore,
 } from './demo-store';
-import { peekGiverCatalog } from './giver-catalog';
+import { patchGiverCatalog, peekGiverCatalog, pickSharedItem, resetGiverCatalog, shareTokenParam, writeGiverCatalog } from './giver-catalog';
 import {
   applyItemStatus,
   coerceItemStatus,
   giverStatusChip,
+  mergeGiverItem,
   replaceSharedItem,
 } from './giver-status';
 import { ownerSafeItem } from './surprise-safe';
@@ -21,6 +22,7 @@ import { ownerSafeItem } from './surprise-safe';
 describe('Giver status icon after lock / purchase / release', () => {
   beforeEach(() => {
     resetDemoStore();
+    resetGiverCatalog();
   });
 
   it('list badge and item chip follow demo soft-lock, purchase, and release', () => {
@@ -127,5 +129,91 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.equal(owner.status, 'available');
     assert.equal(JSON.stringify(owner).includes('Bought'), false);
     assert.equal(JSON.stringify(owner).includes('Taken'), false);
+  });
+
+  it('live share catalog and detail pick the same chip after lock / purchase / release', () => {
+    const token = 'live-share-token';
+    const mug = getDemoItem('demo-mug')!;
+    writeGiverCatalog(token, [mug]);
+
+    const listOpen = pickSharedItem('demo-mug', peekGiverCatalog(token));
+    assert.ok(listOpen);
+    assert.equal(giverStatusChip(listOpen).label, 'Open');
+
+    const taken = applyItemStatus(mug, 'reserved', 'Alex');
+    patchGiverCatalog(token, taken);
+    const listTaken = pickSharedItem('demo-mug', peekGiverCatalog(token), [mug]);
+    assert.ok(listTaken);
+    assert.equal(giverStatusChip(listTaken).label, 'Taken');
+    assert.equal(listTaken.status, 'reserved');
+
+    patchGiverCatalog(token, applyItemStatus(taken, 'purchased', 'Alex'));
+    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(token))!).label, 'Bought');
+
+    patchGiverCatalog(token, applyItemStatus(taken, 'available'));
+    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(token))!).label, 'Open');
+
+    assert.equal(shareTokenParam(['demo-mug']), 'demo-mug');
+    assert.equal(pickSharedItem(shareTokenParam(['demo-mug']), peekGiverCatalog(token))?.id, 'demo-mug');
+
+    const owner = ownerSafeItem(pickSharedItem('demo-mug', peekGiverCatalog(token))!);
+    assert.equal(owner.status, 'available');
+    assert.equal(JSON.stringify(owner).includes('Taken'), false);
+  });
+
+  it('stale reserved list fetch after purchase does not roll Bought back to Taken', () => {
+    const mug = getDemoItem('demo-mug')!;
+    const locked = applyItemStatus(mug, 'reserved', 'Alex');
+    const bought = applyItemStatus(locked, 'purchased', 'Alex');
+    const staleReserved = { ...locked, status: 'reserved' as const };
+
+    const merged = mergeGiverItem(staleReserved, bought);
+    assert.equal(giverStatusChip(merged).label, 'Bought');
+    assert.equal(merged.status, 'purchased');
+
+    writeGiverCatalog('live-share-stale', [bought]);
+    writeGiverCatalog('live-share-stale', [staleReserved]);
+    assert.equal(giverStatusChip(peekGiverCatalog('live-share-stale')[0]).label, 'Bought');
+
+    const released = mergeGiverItem(applyItemStatus(bought, 'available'), bought);
+    assert.equal(giverStatusChip(released).label, 'Open');
+    assert.equal(released.status, 'available');
+    assert.equal(released.reserved_at, null);
+
+    const owner = ownerSafeItem(merged);
+    assert.equal(owner.status, 'available');
+    assert.equal(JSON.stringify(owner).includes('Bought'), false);
+  });
+
+  it('sparse live RPC row that looks available still keeps Taken/Bought', () => {
+    const mug = getDemoItem('demo-mug')!;
+    const bought = applyItemStatus(mug, 'purchased', 'Alex');
+    const stripped = {
+      ...bought,
+      status: 'available' as const,
+      reserved_by: bought.reserved_by,
+      reserved_at: bought.reserved_at,
+    };
+    const merged = mergeGiverItem(stripped, bought);
+    assert.equal(giverStatusChip(merged).label, 'Bought');
+    assert.equal(merged.status, 'purchased');
+    assert.equal(ownerSafeItem(merged).status, 'available');
+  });
+
+  it('demo and live list keep Bought after a stale Taken focus refresh', () => {
+    const taken = setDemoItemStatus('demo-mug', 'reserved', 'Alex');
+    const bought = applyItemStatus(taken, 'purchased', 'Alex');
+    patchGiverCatalog('demo', bought);
+    writeGiverCatalog('demo', [taken, ...listDemoSharedItems('demo').filter((item) => item.id !== 'demo-mug')]);
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Bought');
+
+    writeGiverCatalog('live-share-back', [bought]);
+    patchGiverCatalog('live-share-back', bought);
+    writeGiverCatalog('live-share-back', [taken]);
+    assert.equal(giverStatusChip(peekGiverCatalog('live-share-back')[0]).label, 'Bought');
+
+    const released = setDemoItemStatus('demo-mug', 'available');
+    patchGiverCatalog('demo', released);
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
   });
 });
