@@ -14,6 +14,7 @@ import {
   applyItemStatus,
   coerceItemStatus,
   giverStatusChip,
+  mergeGiverItem,
   replaceSharedItem,
 } from './giver-status';
 import { ownerSafeItem } from './surprise-safe';
@@ -157,5 +158,29 @@ describe('Giver status icon after lock / purchase / release', () => {
     const owner = ownerSafeItem(pickSharedItem('demo-mug', peekGiverCatalog(token))!);
     assert.equal(owner.status, 'available');
     assert.equal(JSON.stringify(owner).includes('Taken'), false);
+  });
+
+  it('stale reserved list fetch after purchase does not roll Bought back to Taken', () => {
+    const mug = getDemoItem('demo-mug')!;
+    const locked = applyItemStatus(mug, 'reserved', 'Alex');
+    const bought = applyItemStatus(locked, 'purchased', 'Alex');
+    const staleReserved = { ...locked, status: 'reserved' as const };
+
+    const merged = mergeGiverItem(staleReserved, bought);
+    assert.equal(giverStatusChip(merged).label, 'Bought');
+    assert.equal(merged.status, 'purchased');
+
+    writeGiverCatalog('live-share-stale', [bought]);
+    writeGiverCatalog('live-share-stale', [staleReserved]);
+    assert.equal(giverStatusChip(peekGiverCatalog('live-share-stale')[0]).label, 'Bought');
+
+    const released = mergeGiverItem(applyItemStatus(bought, 'available'), bought);
+    assert.equal(giverStatusChip(released).label, 'Open');
+    assert.equal(released.status, 'available');
+    assert.equal(released.reserved_at, null);
+
+    const owner = ownerSafeItem(merged);
+    assert.equal(owner.status, 'available');
+    assert.equal(JSON.stringify(owner).includes('Bought'), false);
   });
 });

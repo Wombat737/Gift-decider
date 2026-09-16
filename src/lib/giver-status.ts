@@ -22,6 +22,47 @@ export function applyItemStatus(
   };
 }
 
+/**
+ * A silent list refresh can return the pre-purchase `reserved` row (same reserved_at —
+ * purchase does not bump it). Keep Bought in that case. An explicit release (available
+ * + cleared reserved_at) still wins.
+ */
+export function mergeGiverItem(remote: WishlistItem, previous?: WishlistItem | null): WishlistItem {
+  if (!previous || previous.id !== remote.id) {
+    return { ...remote, status: coerceItemStatus(remote.status) };
+  }
+
+  const remoteKnown =
+    remote.status === 'reserved' || remote.status === 'purchased' || remote.status === 'available';
+  if (!remoteKnown) {
+    return {
+      ...remote,
+      status: previous.status,
+      reserved_by: previous.reserved_by,
+      reserved_at: previous.reserved_at,
+    };
+  }
+
+  if (remote.status === 'available' && !remote.reserved_at) {
+    return { ...remote, status: 'available', reserved_by: null, reserved_at: null };
+  }
+
+  if (
+    previous.status === 'purchased' &&
+    remote.status === 'reserved' &&
+    (remote.reserved_at ?? null) === (previous.reserved_at ?? null)
+  ) {
+    return {
+      ...remote,
+      status: 'purchased',
+      reserved_by: previous.reserved_by,
+      reserved_at: previous.reserved_at,
+    };
+  }
+
+  return { ...remote, status: coerceItemStatus(remote.status, previous.status) };
+}
+
 export function replaceSharedItem(items: WishlistItem[], next: WishlistItem) {
   if (items.some((item) => item.id === next.id)) {
     return items.map((item) => (item.id === next.id ? next : item));

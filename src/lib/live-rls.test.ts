@@ -82,6 +82,11 @@ describe('Surprise-safe RLS contract', () => {
     assert.match(giverStatus, /grant execute on function public\.set_shared_item_status/);
     assert.equal(giverStatus.includes('Coral Coast'), false);
     assert.equal(giverStatus.includes('#E85D4C'), false);
+
+    const giverRefresh = migration('20260916140000_giver_list_refresh.sql');
+    assert.match(giverRefresh, /create or replace function public\.get_shared_wishlist_items/);
+    assert.match(giverRefresh, /volatile/i);
+    assert.match(giverRefresh, /grant execute on function public\.get_shared_wishlist_items/);
   });
 
   it('owner helper still strips reserve / funded / heal / pledges', () => {

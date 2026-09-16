@@ -318,6 +318,11 @@ export default function GiverItemScreen() {
         value={name}
         onChangeText={setName}
       />
+      {error ? (
+        <ThemedText type="small" themeColor="accent">
+          {error}
+        </ThemedText>
+      ) : null}
       <Button
         label={taken && current.status === 'reserved' ? 'Already taken — steal the lock?' : 'Soft-lock this'}
         onPress={() => void updateStatus('reserved')}
@@ -352,12 +357,6 @@ export default function GiverItemScreen() {
         onCheckLink={() => void onCheckLink()}
       />
       <AuBuyLinks item={current} />
-
-      {error ? (
-        <ThemedText type="small" themeColor="accent">
-          {error}
-        </ThemedText>
-      ) : null}
     </Screen>
   );
 }

@@ -28,7 +28,7 @@ import {
 import { asDeliveryMethod, asRevealDate, readyToBuyEmailPreview, shiftLocalDate } from '@/lib/pledges';
 import { healLink } from '@/lib/heal-link';
 import { OWNER_ITEM_SELECT } from '@/lib/rls-contract';
-import { applyItemStatus, coerceItemStatus } from '@/lib/giver-status';
+import { applyItemStatus, coerceItemStatus, mergeGiverItem } from '@/lib/giver-status';
 import { patchGiverCatalog, peekGiverCatalog, shareTokenParam, writeGiverCatalog } from '@/lib/giver-catalog';
 import { hideReservationFromOwner, ownerSafeItem } from '@/lib/surprise-safe';
 import { env } from '@/lib/env';
@@ -388,8 +388,7 @@ export async function getSharedItems(token: string): Promise<WishlistItem[]> {
   const next = mergePledges(
     ((data ?? []) as WishlistItem[]).map((row) => {
       const prev = previous.find((item) => item.id === row.id);
-      const status = coerceItemStatus(row.status, prev?.status ?? 'available');
-      return asGiverItem({ ...row, status });
+      return mergeGiverItem(asGiverItem({ ...row, status: coerceItemStatus(row.status, prev?.status ?? 'available') }), prev);
     }),
     pledges,
     noticeRows,
@@ -442,14 +441,14 @@ export async function setSharedItemStatus(
   });
 
   if (error) throw error;
-  const items = await getSharedItems(token);
-  const found = items.find((entry) => entry.id === itemId);
+  const previous = peekGiverCatalog(token).find((item) => item.id === itemId);
   const { pledges, noticeRows } = await loadSharedGiverExtras(token);
   const fromRpc = data ? asGiverItem(data as WishlistItem, pledges, noticeRows) : null;
-  const base = found ?? fromRpc;
+  const base = fromRpc ?? previous;
   if (!base) throw new Error('Wishlist item not found for that share link');
-  const rawStatus = data && typeof data === 'object' ? (data as { status?: unknown }).status : undefined;
-  const next = applyItemStatus(base, coerceItemStatus(rawStatus, status), reservedBy);
+  // Always apply the requested status. A follow-up list fetch can still return
+  // `reserved` after purchase (same reserved_at); that must not win over this mutation.
+  const next = applyItemStatus(base, status, reservedBy);
   patchGiverCatalog(token, next);
   return next;
 }

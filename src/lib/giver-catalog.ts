@@ -6,7 +6,7 @@ import {
   listDemoSharedItems,
   subscribeDemoStore,
 } from '@/lib/demo-store';
-import { replaceSharedItem } from '@/lib/giver-status';
+import { mergeGiverItem, replaceSharedItem } from '@/lib/giver-status';
 import type { WishlistItem } from '@/lib/types';
 
 const LIVE_KEY = '__giftdeciderGiverLiveCatalog';
@@ -49,7 +49,12 @@ export function patchGiverCatalog(token: string, item: WishlistItem) {
 
 export function writeGiverCatalog(token: string, items: WishlistItem[]) {
   if (!token || isDemoShareToken(token)) return;
-  liveRoot().byToken.set(token, items);
+  const root = liveRoot();
+  const previous = root.byToken.get(token) ?? [];
+  root.byToken.set(
+    token,
+    items.map((row) => mergeGiverItem(row, previous.find((item) => item.id === row.id))),
+  );
   notifyLive();
 }
 
