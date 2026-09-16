@@ -92,6 +92,13 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     const share = source('app/(app)/share.tsx');
     assert.match(add, /<Screen>/);
     assert.match(share, /<Screen>/);
+    assert.equal(/footer=/.test(add), false);
+    assert.equal(/footer=/.test(share), false);
+    // No footer → #16 ScrollView tree (not the giver-only scrollSlot wrap).
+    assert.match(
+      screen,
+      /footer \? <View collapsable=\{false\} style=\{styles\.scrollSlot\}>\{scrollView\}<\/View> : scrollView/,
+    );
     assert.match(screen, /KeyboardAvoidingView/);
     assert.match(screen, /behavior=\{Platform\.OS === 'ios' \? 'padding' : undefined\}/);
     assert.match(screen, /keyboardShouldPersistTaps="handled"/);
@@ -149,7 +156,8 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
   it('giver status mutations do not early-return past a live share token', () => {
     const itemScreen = source('app/g/[token]/[itemId].tsx');
     const wishlist = source('services/wishlist.ts');
-    assert.match(itemScreen, /if \(!token\) \{\s*setError\('This share link is missing a token\.'\);/);
+    assert.match(itemScreen, /if \(!token\) \{\s*setError\('Tap registered — this share link is missing a token\.'\);/);
+    assert.match(itemScreen, /Tap registered — live list did not save/);
     assert.match(itemScreen, /commitItem\(await setSharedItemStatus/);
     assert.match(wishlist, /function useDemoShare\(token: string\)/);
     assert.match(wishlist, /shouldUseDemoShare\(token, Boolean\(env\.isSupabaseConfigured && supabase\)\)/);

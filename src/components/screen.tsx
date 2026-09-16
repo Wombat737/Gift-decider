@@ -43,6 +43,25 @@ export function Screen({ children, style, scroll = true, padded = true, footer, 
     </View>
   );
 
+  // Identical to PR #16 unless a footer is passed. Add-gift / share must keep
+  // that ScrollView tree so keyboard dismiss and KAV padding stay intact.
+  const scrollView = (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scroll}
+      // handled = tap-outside dismisses unless a child (button/input)
+      // claimed the tap. always left the keyboard stuck on add/share.
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      onScrollBeginDrag={Keyboard.dismiss}
+      nestedScrollEnabled
+      removeClippedSubviews={false}
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}>
+      {body}
+    </ScrollView>
+  );
+
   return (
     <ThemedView style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
@@ -51,26 +70,7 @@ export function Screen({ children, style, scroll = true, padded = true, footer, 
           enabled={Platform.OS === 'ios'}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={keyboardVerticalOffset}>
-          {scroll ? (
-            <View collapsable={false} style={styles.scrollSlot}>
-              <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scroll}
-                // handled = tap-outside dismisses unless a child (button/input)
-                // claimed the tap. always left the keyboard stuck on add/share.
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-                onScrollBeginDrag={Keyboard.dismiss}
-                nestedScrollEnabled
-                removeClippedSubviews={false}
-                showsVerticalScrollIndicator={false}
-                showsHorizontalScrollIndicator={false}>
-                {body}
-              </ScrollView>
-            </View>
-          ) : (
-            body
-          )}
+          {scroll ? (footer ? <View collapsable={false} style={styles.scrollSlot}>{scrollView}</View> : scrollView) : body}
           {footer ? (
             <View
               collapsable={false}

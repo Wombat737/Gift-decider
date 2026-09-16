@@ -95,7 +95,7 @@ export default function GiverItemScreen() {
   async function updateStatus(status: ItemStatus) {
     if (!current) return;
     if (!token) {
-      setError('This share link is missing a token.');
+      setError('Tap registered — this share link is missing a token.');
       return;
     }
     try {
@@ -112,7 +112,8 @@ export default function GiverItemScreen() {
       track('giver_status', { status });
     } catch (err) {
       commitItem(snapshot);
-      setError(err instanceof Error ? err.message : 'Could not update item');
+      const detail = err instanceof Error ? err.message : 'Could not update item';
+      setError(`Tap registered — live list did not save. ${detail}`);
     } finally {
       setBusy(false);
     }
