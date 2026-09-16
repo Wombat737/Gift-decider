@@ -449,13 +449,14 @@ export async function setSharedItemStatus(
 
   if (error) throw shareRpcError(error);
   const previous = peekGiverCatalog(token).find((item) => item.id === itemId);
-  const { pledges, noticeRows } = await loadSharedGiverExtras(token);
   const rpcRow = shareRpcRow(data) as WishlistItem | null;
-  const fromRpc = rpcRow ? asGiverItem(rpcRow, pledges, noticeRows) : null;
+  const fromRpc = rpcRow ? asGiverItem(rpcRow, previous?.pledges ?? [], previous?.notices ?? []) : null;
   const base = fromRpc ?? previous;
   if (!base) throw new Error('Wishlist item not found for that share link');
   // Always apply the requested status. A follow-up list fetch can still return
   // `reserved` after purchase (same reserved_at); that must not win over this mutation.
+  // Do not await pledge/notice extras here: a hung or failing extras RPC would
+  // keep the CTAs disabled or roll the optimistic lock back.
   const next = applyItemStatus(base, status, reservedBy);
   patchGiverCatalog(token, next);
   return next;

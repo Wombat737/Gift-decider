@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, type PressableProps } from 'react-native';
+import { Platform, Pressable as RNPressable, StyleSheet, type PressableProps } from 'react-native';
 
 import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
@@ -8,9 +8,14 @@ import { useTheme } from '@/hooks/use-theme';
 type ButtonProps = Omit<PressableProps, 'style'> & {
   label: string;
   variant?: 'primary' | 'secondary' | 'ghost' | 'pledge';
+  /**
+   * RN Pressable (not Gesture Handler). Use for CTAs mounted outside a
+   * ScrollView so the native responder does not compete with a pan gesture.
+   */
+  nativePress?: boolean;
 };
 
-export function Button({ label, variant = 'primary', disabled, ...rest }: ButtonProps) {
+export function Button({ label, variant = 'primary', disabled, nativePress = false, ...rest }: ButtonProps) {
   const theme = useTheme();
   const background =
     variant === 'primary'
@@ -30,11 +35,14 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
         : theme.text;
   const borderColor =
     variant === 'secondary' ? theme.border : variant === 'ghost' ? 'transparent' : variant === 'pledge' ? theme.accent : theme.brand;
+  const PressableComponent = nativePress ? RNPressable : NativePressable;
 
   return (
-    <NativePressable
+    <PressableComponent
       accessibilityRole="button"
       disabled={disabled}
+      hitSlop={nativePress ? 8 : undefined}
+      pressRetentionOffset={nativePress ? 12 : undefined}
       style={({ pressed }) => [
         styles.base,
         {
@@ -47,7 +55,7 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
       <ThemedText type="smallBold" style={{ color, textAlign: 'center' }}>
         {label}
       </ThemedText>
-    </NativePressable>
+    </PressableComponent>
   );
 }
 

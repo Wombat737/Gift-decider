@@ -1,4 +1,4 @@
-import { use } from 'react';
+import { use, type ReactNode } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -14,10 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DemoBanner } from '@/components/demo-banner';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 type ScreenProps = ViewProps & {
   scroll?: boolean;
   padded?: boolean;
+  /** Mounted as a sibling of ScrollView, not inside it. Use for primary CTAs. */
+  footer?: ReactNode;
 };
 
 function useKeyboardVerticalOffset() {
@@ -25,7 +28,8 @@ function useKeyboardVerticalOffset() {
   return Platform.OS === 'ios' ? (headerHeight ?? 0) : 0;
 }
 
-export function Screen({ children, style, scroll = true, padded = true, ...rest }: ScreenProps) {
+export function Screen({ children, style, scroll = true, padded = true, footer, ...rest }: ScreenProps) {
+  const theme = useTheme();
   const keyboardVerticalOffset = useKeyboardVerticalOffset();
   const body = (
     <View
@@ -65,6 +69,16 @@ export function Screen({ children, style, scroll = true, padded = true, ...rest 
           ) : (
             body
           )}
+          {footer ? (
+            <View
+              collapsable={false}
+              pointerEvents="box-none"
+              style={[styles.footerDock, { borderTopColor: theme.border, backgroundColor: theme.background }]}>
+              <View collapsable={false} style={[styles.footerInner, padded && styles.footerPadded]}>
+                {footer}
+              </View>
+            </View>
+          ) : null}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </ThemedView>
@@ -123,5 +137,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     paddingBottom: Spacing.five,
+  },
+  footerDock: {
+    width: '100%',
+    maxWidth: '100%',
+    flexGrow: 0,
+    flexShrink: 0,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  footerInner: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    minWidth: 0,
+    alignSelf: 'center',
+    gap: Spacing.two,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.two,
+  },
+  footerPadded: {
+    paddingHorizontal: Spacing.four,
   },
 });
