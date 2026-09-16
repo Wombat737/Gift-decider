@@ -20,7 +20,12 @@ export default function GiverShareScreen() {
   useFocusEffect(
     useCallback(() => {
       setFocusGen((count) => count + 1);
-      void refresh({ silent: true });
+      // Paint the catalog snapshot (Bought) before a silent refetch that may still
+      // carry the previous Taken row.
+      const frame = requestAnimationFrame(() => {
+        void refresh({ silent: true });
+      });
+      return () => cancelAnimationFrame(frame);
     }, [refresh]),
   );
 

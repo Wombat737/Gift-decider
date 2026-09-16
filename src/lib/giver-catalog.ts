@@ -51,16 +51,21 @@ function notifyLive() {
   for (const listener of [...root.listeners]) listener();
 }
 
+export function resetGiverCatalog() {
+  liveRoot().byToken = new Map();
+  notifyLive();
+}
+
 export function patchGiverCatalog(token: string, item: WishlistItem) {
-  if (!token || isDemoShareToken(token)) return;
+  if (!token) return;
   const root = liveRoot();
-  const current = root.byToken.get(token) ?? [];
+  const current = root.byToken.get(token) ?? (isDemoShareToken(token) ? listDemoSharedItems(token) : []);
   root.byToken.set(token, replaceSharedItem(current, item));
   notifyLive();
 }
 
 export function writeGiverCatalog(token: string, items: WishlistItem[]) {
-  if (!token || isDemoShareToken(token)) return;
+  if (!token) return;
   const root = liveRoot();
   const previous = root.byToken.get(token) ?? [];
   root.byToken.set(
@@ -72,8 +77,13 @@ export function writeGiverCatalog(token: string, items: WishlistItem[]) {
 
 export function peekGiverCatalog(token: string): WishlistItem[] {
   if (!token) return [];
-  if (isDemoShareToken(token)) return listDemoSharedItems(token);
-  return liveRoot().byToken.get(token) ?? [];
+  const overlay = liveRoot().byToken.get(token) ?? [];
+  if (isDemoShareToken(token)) {
+    const demo = listDemoSharedItems(token);
+    if (overlay.length === 0) return demo;
+    return demo.map((item) => mergeGiverItem(item, overlay.find((row) => row.id === item.id) ?? null));
+  }
+  return overlay;
 }
 
 function subscribeGiverCatalog(listener: () => void) {

@@ -9,7 +9,7 @@ import {
   setDemoItemStatus,
   subscribeDemoStore,
 } from './demo-store';
-import { patchGiverCatalog, peekGiverCatalog, pickSharedItem, shareTokenParam, writeGiverCatalog } from './giver-catalog';
+import { patchGiverCatalog, peekGiverCatalog, pickSharedItem, resetGiverCatalog, shareTokenParam, writeGiverCatalog } from './giver-catalog';
 import {
   applyItemStatus,
   coerceItemStatus,
@@ -22,6 +22,7 @@ import { ownerSafeItem } from './surprise-safe';
 describe('Giver status icon after lock / purchase / release', () => {
   beforeEach(() => {
     resetDemoStore();
+    resetGiverCatalog();
   });
 
   it('list badge and item chip follow demo soft-lock, purchase, and release', () => {
@@ -197,5 +198,22 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.equal(giverStatusChip(merged).label, 'Bought');
     assert.equal(merged.status, 'purchased');
     assert.equal(ownerSafeItem(merged).status, 'available');
+  });
+
+  it('demo and live list keep Bought after a stale Taken focus refresh', () => {
+    const taken = setDemoItemStatus('demo-mug', 'reserved', 'Alex');
+    const bought = applyItemStatus(taken, 'purchased', 'Alex');
+    patchGiverCatalog('demo', bought);
+    writeGiverCatalog('demo', [taken, ...listDemoSharedItems('demo').filter((item) => item.id !== 'demo-mug')]);
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Bought');
+
+    writeGiverCatalog('live-share-back', [bought]);
+    patchGiverCatalog('live-share-back', bought);
+    writeGiverCatalog('live-share-back', [taken]);
+    assert.equal(giverStatusChip(peekGiverCatalog('live-share-back')[0]).label, 'Bought');
+
+    const released = setDemoItemStatus('demo-mug', 'available');
+    patchGiverCatalog('demo', released);
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
   });
 });
