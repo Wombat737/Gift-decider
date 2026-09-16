@@ -1,6 +1,7 @@
 import { useMemo, useSyncExternalStore } from 'react';
 
 import {
+  DEMO_SHARE_TOKEN,
   getDemoStoreVersion,
   isDemoShareToken,
   listDemoSharedItems,
@@ -31,6 +32,17 @@ export function shareTokenParam(value: unknown): string | undefined {
     return typeof value[0] === 'string' && value[0] !== 'undefined' ? value[0] : undefined;
   }
   return typeof value === 'string' && value !== 'undefined' ? value : undefined;
+}
+
+/**
+ * Live share tokens must hit share-token RPCs whenever Supabase is configured.
+ * Explore-demo session is owner-scaffold only — it must not swallow a real /g/<token>.
+ */
+export function shouldUseDemoShare(token: string, supabaseReady: boolean) {
+  const normalized = shareTokenParam(token) ?? token;
+  if (!normalized) return true;
+  if (isDemoShareToken(normalized) || normalized === DEMO_SHARE_TOKEN) return true;
+  return !supabaseReady;
 }
 
 function notifyLive() {

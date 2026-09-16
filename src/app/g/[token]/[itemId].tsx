@@ -20,7 +20,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { patchGiverCatalog, pickSharedItem, shareTokenParam, useGiverCatalog } from '@/lib/giver-catalog';
-import { giverStatusChip } from '@/lib/giver-status';
+import { applyItemStatus, giverStatusChip } from '@/lib/giver-status';
 import type { DeliveryMethod, ItemStatus, WishlistItem } from '@/lib/types';
 import {
   addSharedPledge,
@@ -100,10 +100,13 @@ export default function GiverItemScreen() {
     }
     setError(null);
     setBusy(true);
+    const snapshot = current;
+    commitItem(applyItemStatus(snapshot, status, name.trim() || undefined));
     try {
-      commitItem(await setSharedItemStatus(token, current.id, status, name.trim() || undefined));
+      commitItem(await setSharedItemStatus(token, snapshot.id, status, name.trim() || undefined));
       track('giver_status', { status });
     } catch (err) {
+      commitItem(snapshot);
       setError(err instanceof Error ? err.message : 'Could not update item');
     } finally {
       setBusy(false);

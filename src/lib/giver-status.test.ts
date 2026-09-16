@@ -183,4 +183,19 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.equal(owner.status, 'available');
     assert.equal(JSON.stringify(owner).includes('Bought'), false);
   });
+
+  it('sparse live RPC row that looks available still keeps Taken/Bought', () => {
+    const mug = getDemoItem('demo-mug')!;
+    const bought = applyItemStatus(mug, 'purchased', 'Alex');
+    const stripped = {
+      ...bought,
+      status: 'available' as const,
+      reserved_by: bought.reserved_by,
+      reserved_at: bought.reserved_at,
+    };
+    const merged = mergeGiverItem(stripped, bought);
+    assert.equal(giverStatusChip(merged).label, 'Bought');
+    assert.equal(merged.status, 'purchased');
+    assert.equal(ownerSafeItem(merged).status, 'available');
+  });
 });

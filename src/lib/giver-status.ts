@@ -43,8 +43,23 @@ export function mergeGiverItem(remote: WishlistItem, previous?: WishlistItem | n
     };
   }
 
-  if (remote.status === 'available' && !remote.reserved_at) {
+  if (remote.status === 'available' && !remote.reserved_at && !remote.reserved_by) {
     return { ...remote, status: 'available', reserved_by: null, reserved_at: null };
+  }
+
+  // Status omitted from a live RPC row looks like `available` after coerce, but lock
+  // fields remain. Keep Taken/Bought from the in-memory catalog.
+  if (
+    remote.status === 'available' &&
+    previous.status !== 'available' &&
+    (remote.reserved_at || remote.reserved_by)
+  ) {
+    return {
+      ...remote,
+      status: previous.status,
+      reserved_by: previous.reserved_by ?? remote.reserved_by,
+      reserved_at: previous.reserved_at ?? remote.reserved_at,
+    };
   }
 
   if (
