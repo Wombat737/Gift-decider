@@ -21,9 +21,13 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     const inner = styleBlock(screen, 'inner');
     const scroll = styleBlock(screen, 'scroll');
     const scrollView = styleBlock(screen, 'scrollView');
+    const scrollSlot = styleBlock(screen, 'scrollSlot');
 
     assert.match(scrollView, /width: '100%'/);
     assert.match(scrollView, /maxWidth: '100%'/);
+    assert.match(scrollSlot, /minHeight: 0/);
+    assert.match(scrollSlot, /flexShrink: 1/);
+    assert.match(screen, /styles\.scrollSlot/);
     assert.match(scroll, /width: '100%'/);
     assert.match(scroll, /maxWidth: '100%'/);
     // flexGrow: 1 on the Fabric content container keeps its native frame
@@ -54,6 +58,9 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     const button = source('components/button.tsx');
     const base = styleBlock(button, 'base');
     assert.match(button, /NativePressable/);
+    assert.match(button, /nativePress/);
+    assert.match(button, /TouchableOpacity/);
+    assert.match(button, /pointerEvents: 'none'/);
     assert.match(base, /width: '100%'/);
     assert.match(base, /alignSelf: 'stretch'/);
     assert.match(base, /minHeight: 50/);
@@ -85,6 +92,13 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     const share = source('app/(app)/share.tsx');
     assert.match(add, /<Screen>/);
     assert.match(share, /<Screen>/);
+    assert.equal(/footer=/.test(add), false);
+    assert.equal(/footer=/.test(share), false);
+    // No footer → #16 ScrollView tree (not the giver-only scrollSlot wrap).
+    assert.match(
+      screen,
+      /footer \? <View collapsable=\{false\} style=\{styles\.scrollSlot\}>\{scrollView\}<\/View> : scrollView/,
+    );
     assert.match(screen, /KeyboardAvoidingView/);
     assert.match(screen, /behavior=\{Platform\.OS === 'ios' \? 'padding' : undefined\}/);
     assert.match(screen, /keyboardShouldPersistTaps="handled"/);
@@ -108,14 +122,52 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     assert.match(itemScreen, /pointerEvents="none"/);
   });
 
+  it('giver status CTAs sit in a Screen footer outside ScrollView and use RN Pressable', () => {
+    const screen = source('components/screen.tsx');
+    const itemScreen = source('app/g/[token]/[itemId].tsx');
+    const layout = source('app/_layout.tsx');
+    const footerDock = styleBlock(screen, 'footerDock');
+    const footerInner = styleBlock(screen, 'footerInner');
+
+    assert.match(screen, /footer\?: ReactNode/);
+    assert.match(screen, /\{footer \? \(/);
+    assert.match(screen, /styles\.footerDock/);
+    assert.match(footerDock, /width: '100%'/);
+    assert.match(footerDock, /maxWidth: '100%'/);
+    assert.match(footerDock, /zIndex: 2/);
+    assert.match(footerDock, /flexShrink: 0/);
+    assert.equal(/overflow:\s*'hidden'/.test(footerDock), false);
+    assert.match(footerInner, /maxWidth: MaxContentWidth/);
+    assert.match(footerInner, /minWidth: 0/);
+    // Footer is a KeyboardAvoidingView sibling of ScrollView, not a child of it.
+    const afterScroll = screen.split('</ScrollView>')[1] ?? '';
+    assert.match(afterScroll, /\{footer \? \(/);
+    assert.match(afterScroll, /styles\.footerDock/);
+
+    assert.match(itemScreen, /footer=\{/);
+    assert.match(itemScreen, /nativePress/);
+    assert.match(itemScreen, /Keyboard\.dismiss\(\)/);
+    assert.match(itemScreen, /styles\.imageFrame/);
+    assert.match(styleBlock(itemScreen, 'imageFrame'), /overflow: 'hidden'/);
+    assert.match(layout, /GestureHandlerRootView/);
+    assert.match(layout, /width: '100%'/);
+  });
+
   it('giver status mutations do not early-return past a live share token', () => {
     const itemScreen = source('app/g/[token]/[itemId].tsx');
     const wishlist = source('services/wishlist.ts');
-    assert.match(itemScreen, /if \(!token\) \{\s*setError\('This share link is missing a token\.'\);/);
+    assert.match(itemScreen, /if \(!token\) \{\s*setError\('Tap registered — this share link is missing a token\.'\);/);
+    assert.match(itemScreen, /Tap registered — live list did not save/);
     assert.match(itemScreen, /commitItem\(await setSharedItemStatus/);
     assert.match(wishlist, /function useDemoShare\(token: string\)/);
     assert.match(wishlist, /shouldUseDemoShare\(token, Boolean\(env\.isSupabaseConfigured && supabase\)\)/);
     assert.match(wishlist, /export async function setSharedItemStatus/);
     assert.equal(/if \(usesDemoData\(\)\) return setDemoItemStatus/.test(wishlist), false);
+    const start = wishlist.indexOf('export async function setSharedItemStatus');
+    const nextExport = wishlist.indexOf('export async function', start + 1);
+    const statusFn = wishlist.slice(start, nextExport);
+    assert.match(statusFn, /rpc\('set_shared_item_status'/);
+    assert.equal(/await loadSharedGiverExtras/.test(statusFn), false);
+    assert.match(statusFn, /applyItemStatus\(base, status, reservedBy\)/);
   });
 });

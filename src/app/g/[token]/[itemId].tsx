@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 
 import { AuBuyLinks } from '@/components/au-buy-links';
 import { Button } from '@/components/button';
@@ -95,8 +95,13 @@ export default function GiverItemScreen() {
   async function updateStatus(status: ItemStatus) {
     if (!current) return;
     if (!token) {
-      setError('This share link is missing a token.');
+      setError('Tap registered — this share link is missing a token.');
       return;
+    }
+    try {
+      Keyboard.dismiss();
+    } catch {
+      // web / headless: dismissing is best-effort and must not block the lock
     }
     setError(null);
     setBusy(true);
@@ -107,7 +112,8 @@ export default function GiverItemScreen() {
       track('giver_status', { status });
     } catch (err) {
       commitItem(snapshot);
-      setError(err instanceof Error ? err.message : 'Could not update item');
+      const detail = err instanceof Error ? err.message : 'Could not update item';
+      setError(`Tap registered — live list did not save. ${detail}`);
     } finally {
       setBusy(false);
     }
@@ -283,24 +289,63 @@ export default function GiverItemScreen() {
 
   const statusChip = giverStatusChip(current);
   const taken = current.status === 'reserved' || current.status === 'purchased';
+  const statusLabel = `${statusChip.label}${current.item_kind === 'vibe' ? ' · vibe' : ''}`;
 
   return (
-    <Screen>
-      <Image
-        source={{ uri: current.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
-        style={[styles.image, { backgroundColor: theme.paper }]}
-        contentFit="cover"
+    <Screen
+      footer={
+        <>
+          <StatusChip label={statusLabel} tone={statusChip.tone} />
+          {error ? (
+            <ThemedText type="small" themeColor="accent">
+              {error}
+            </ThemedText>
+          ) : null}
+          <Button
+            nativePress
+            label={
+              busy
+                ? 'Saving…'
+                : taken && current.status === 'reserved'
+                  ? 'Already taken — steal the lock?'
+                  : 'Soft-lock this'
+            }
+            onPress={() => void updateStatus('reserved')}
+            disabled={busy}
+          />
+          <Button
+            nativePress
+            label={current.status === 'purchased' ? 'Already purchased' : 'Mark purchased'}
+            variant="secondary"
+            disabled={busy}
+            onPress={() => void updateStatus('purchased')}
+          />
+          <Button
+            nativePress
+            label={current.status === 'available' ? 'Not on hold' : 'Release hold'}
+            variant="ghost"
+            disabled={busy}
+            onPress={() => void updateStatus('available')}
+          />
+        </>
+      }>
+      <View
+        collapsable={false}
         pointerEvents="none"
-      />
+        style={[styles.imageFrame, { backgroundColor: theme.paper }]}>
+        <Image
+          source={{ uri: current.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
+          style={styles.image}
+          contentFit="cover"
+          pointerEvents="none"
+        />
+      </View>
       <View style={styles.block}>
         <ThemedText type="eyebrow" themeColor="brand">
           Giver view · they won’t see this
         </ThemedText>
         <ThemedText type="heading">{current.title || 'Untitled gift'}</ThemedText>
-        <StatusChip
-          label={`${statusChip.label}${current.item_kind === 'vibe' ? ' · vibe' : ''}`}
-          tone={statusChip.tone}
-        />
+        <StatusChip label={statusLabel} tone={statusChip.tone} />
         <ThemedText type="small" themeColor="textSecondary">
           Soft lock is honour-system. Other givers see Taken/Bought — not names.
         </ThemedText>
@@ -322,18 +367,6 @@ export default function GiverItemScreen() {
         value={name}
         onChangeText={setName}
       />
-      {error ? (
-        <ThemedText type="small" themeColor="accent">
-          {error}
-        </ThemedText>
-      ) : null}
-      <Button
-        label={taken && current.status === 'reserved' ? 'Already taken — steal the lock?' : 'Soft-lock this'}
-        onPress={() => void updateStatus('reserved')}
-        disabled={busy}
-      />
-      <Button label="Mark purchased" variant="secondary" disabled={busy} onPress={() => void updateStatus('purchased')} />
-      <Button label="Release hold" variant="ghost" disabled={busy} onPress={() => void updateStatus('available')} />
 
       <PledgePanel
         item={current}
@@ -366,12 +399,18 @@ export default function GiverItemScreen() {
 }
 
 const styles = StyleSheet.create({
-  image: {
+  imageFrame: {
     width: '100%',
+    maxWidth: '100%',
     aspectRatio: 1,
     borderRadius: Radius.card,
+    overflow: 'hidden',
     flexGrow: 0,
     flexShrink: 0,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
   },
   block: {
     gap: Spacing.one,

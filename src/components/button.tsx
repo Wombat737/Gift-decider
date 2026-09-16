@@ -1,4 +1,9 @@
-import { Platform, StyleSheet, type PressableProps } from 'react-native';
+import {
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  type PressableProps,
+} from 'react-native';
 
 import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
@@ -8,9 +13,14 @@ import { useTheme } from '@/hooks/use-theme';
 type ButtonProps = Omit<PressableProps, 'style'> & {
   label: string;
   variant?: 'primary' | 'secondary' | 'ghost' | 'pledge';
+  /**
+   * TouchableOpacity (native responder), not Gesture Handler. Use for CTAs
+   * mounted outside a ScrollView so a pan gesture cannot cancel the press.
+   */
+  nativePress?: boolean;
 };
 
-export function Button({ label, variant = 'primary', disabled, ...rest }: ButtonProps) {
+export function Button({ label, variant = 'primary', disabled, nativePress = false, ...rest }: ButtonProps) {
   const theme = useTheme();
   const background =
     variant === 'primary'
@@ -30,6 +40,39 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
         : theme.text;
   const borderColor =
     variant === 'secondary' ? theme.border : variant === 'ghost' ? 'transparent' : variant === 'pledge' ? theme.accent : theme.brand;
+  const face = [
+    styles.base,
+    {
+      backgroundColor: background,
+      borderColor,
+      opacity: disabled ? 0.45 : 1,
+    },
+  ];
+
+  const labelNode = (
+    <ThemedText type="smallBold" style={{ color, textAlign: 'center', pointerEvents: 'none' }}>
+      {label}
+    </ThemedText>
+  );
+
+  if (nativePress) {
+    return (
+      <TouchableOpacity
+        accessibilityRole="button"
+        disabled={disabled ?? false}
+        activeOpacity={0.84}
+        hitSlop={8}
+        delayPressIn={0}
+        style={face}
+        onPress={rest.onPress ?? undefined}
+        onPressIn={rest.onPressIn ?? undefined}
+        onPressOut={rest.onPressOut ?? undefined}
+        testID={rest.testID}
+        accessibilityLabel={typeof rest.accessibilityLabel === 'string' ? rest.accessibilityLabel : undefined}>
+        {labelNode}
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <NativePressable
@@ -44,9 +87,7 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
         },
       ]}
       {...rest}>
-      <ThemedText type="smallBold" style={{ color, textAlign: 'center' }}>
-        {label}
-      </ThemedText>
+      {labelNode}
     </NativePressable>
   );
 }

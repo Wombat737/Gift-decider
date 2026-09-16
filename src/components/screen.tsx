@@ -1,4 +1,4 @@
-import { use } from 'react';
+import { use, type ReactNode } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -14,10 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DemoBanner } from '@/components/demo-banner';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 type ScreenProps = ViewProps & {
   scroll?: boolean;
   padded?: boolean;
+  /** Mounted as a sibling of ScrollView, not inside it. Use for primary CTAs. */
+  footer?: ReactNode;
 };
 
 function useKeyboardVerticalOffset() {
@@ -25,7 +28,8 @@ function useKeyboardVerticalOffset() {
   return Platform.OS === 'ios' ? (headerHeight ?? 0) : 0;
 }
 
-export function Screen({ children, style, scroll = true, padded = true, ...rest }: ScreenProps) {
+export function Screen({ children, style, scroll = true, padded = true, footer, ...rest }: ScreenProps) {
+  const theme = useTheme();
   const keyboardVerticalOffset = useKeyboardVerticalOffset();
   const body = (
     <View
@@ -39,6 +43,25 @@ export function Screen({ children, style, scroll = true, padded = true, ...rest 
     </View>
   );
 
+  // Identical to PR #16 unless a footer is passed. Add-gift / share must keep
+  // that ScrollView tree so keyboard dismiss and KAV padding stay intact.
+  const scrollView = (
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scroll}
+      // handled = tap-outside dismisses unless a child (button/input)
+      // claimed the tap. always left the keyboard stuck on add/share.
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      onScrollBeginDrag={Keyboard.dismiss}
+      nestedScrollEnabled
+      removeClippedSubviews={false}
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}>
+      {body}
+    </ScrollView>
+  );
+
   return (
     <ThemedView style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
@@ -47,24 +70,22 @@ export function Screen({ children, style, scroll = true, padded = true, ...rest 
           enabled={Platform.OS === 'ios'}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={keyboardVerticalOffset}>
-          {scroll ? (
-            <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.scroll}
-              // handled = tap-outside dismisses unless a child (button/input)
-              // claimed the tap. always left the keyboard stuck on add/share.
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-              onScrollBeginDrag={Keyboard.dismiss}
-              nestedScrollEnabled
-              removeClippedSubviews={false}
-              showsVerticalScrollIndicator={false}
-              showsHorizontalScrollIndicator={false}>
-              {body}
-            </ScrollView>
-          ) : (
-            body
-          )}
+          {scroll ? (footer ? <View collapsable={false} style={styles.scrollSlot}>{scrollView}</View> : scrollView) : body}
+          {footer ? (
+            <View
+              collapsable={false}
+              style={[
+                styles.footerDock,
+                {
+                  borderTopColor: theme.border,
+                  backgroundColor: theme.background,
+                },
+              ]}>
+              <View collapsable={false} style={[styles.footerInner, padded && styles.footerPadded]}>
+                {footer}
+              </View>
+            </View>
+          ) : null}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </ThemedView>
@@ -84,6 +105,16 @@ const styles = StyleSheet.create({
   },
   avoid: {
     flex: 1,
+    width: '100%',
+    maxWidth: '100%',
+    minHeight: 0,
+  },
+  // Wrapper so RNW ScrollView cannot expand over the footer sibling.
+  scrollSlot: {
+    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    minHeight: 0,
     width: '100%',
     maxWidth: '100%',
   },
@@ -123,5 +154,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     paddingBottom: Spacing.five,
+  },
+  footerDock: {
+    width: '100%',
+    maxWidth: '100%',
+    flexGrow: 0,
+    flexShrink: 0,
+    zIndex: 2,
+    elevation: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    pointerEvents: 'auto',
+  },
+  footerInner: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    minWidth: 0,
+    alignSelf: 'center',
+    gap: Spacing.two,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.two,
+  },
+  footerPadded: {
+    paddingHorizontal: Spacing.four,
   },
 });

@@ -2,6 +2,8 @@ import { DefaultTheme, ThemeProvider } from 'expo-router';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { WishlistProvider } from '@/context/wishlist-context';
@@ -21,13 +23,15 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <WishlistProvider>
-        <WebFonts />
-        <SplashController />
-        <ThemedRoot />
-      </WishlistProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <AuthProvider>
+        <WishlistProvider>
+          <WebFonts />
+          <SplashController />
+          <ThemedRoot />
+        </WishlistProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -97,3 +101,11 @@ function RootNavigator({
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    width: '100%',
+    maxWidth: '100%',
+  },
+});
