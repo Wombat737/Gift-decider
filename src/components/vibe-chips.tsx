@@ -1,5 +1,6 @@
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
+import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -31,7 +32,7 @@ export function VibeChips({ tags, selected, onToggle }: VibeChipsProps) {
     <View style={styles.row}>
       {tags.map((tag) => {
         const active = selected ? selected.includes(tag) : true;
-        const ChipWrap = onToggle ? Pressable : View;
+        const ChipWrap = onToggle ? NativePressable : View;
         return (
           <ChipWrap
             key={tag}
@@ -67,7 +68,7 @@ export function FilterChips({ options, value, onChange }: FilterChipsProps) {
       {options.map((option) => {
         const active = option.id === value;
         return (
-          <Pressable
+          <NativePressable
             key={option.id}
             onPress={() => onChange(option.id)}
             style={[
@@ -80,7 +81,7 @@ export function FilterChips({ options, value, onChange }: FilterChipsProps) {
             <ThemedText type="smallBold" style={{ color: active ? theme.brandText : theme.text }}>
               {option.label}
             </ThemedText>
-          </Pressable>
+          </NativePressable>
         );
       })}
     </View>

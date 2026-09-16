@@ -1,5 +1,6 @@
-import { Platform, Pressable, StyleSheet, type PressableProps } from 'react-native';
+import { Platform, StyleSheet, type PressableProps } from 'react-native';
 
+import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -31,7 +32,7 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
     variant === 'secondary' ? theme.border : variant === 'ghost' ? 'transparent' : variant === 'pledge' ? theme.accent : theme.brand;
 
   return (
-    <Pressable
+    <NativePressable
       accessibilityRole="button"
       disabled={disabled}
       style={({ pressed }) => [
@@ -46,7 +47,7 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
       <ThemedText type="smallBold" style={{ color, textAlign: 'center' }}>
         {label}
       </ThemedText>
-    </Pressable>
+    </NativePressable>
   );
 }
 
@@ -55,6 +56,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: '100%',
     alignSelf: 'stretch',
+    flexGrow: 0,
+    flexShrink: 0,
     minHeight: 50,
     borderRadius: Radius.button,
     alignItems: 'center',

@@ -12,7 +12,12 @@ type ScreenProps = ViewProps & {
 
 export function Screen({ children, style, scroll = true, padded = true, ...rest }: ScreenProps) {
   const body = (
-    <View style={[styles.inner, padded && styles.padded, style]} {...rest}>
+    <View
+      {...rest}
+      // Fabric may flatten this wrapper into the ScrollView content UIView.
+      // That UIView is viewport-tall; overflowing Pressables then miss hits.
+      collapsable={false}
+      style={[styles.inner, padded && styles.padded, style]}>
       <DemoBanner />
       {children}
     </View>
@@ -26,6 +31,8 @@ export function Screen({ children, style, scroll = true, padded = true, ...rest 
             style={styles.scrollView}
             contentContainerStyle={styles.scroll}
             keyboardShouldPersistTaps="always"
+            nestedScrollEnabled
+            removeClippedSubviews={false}
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}>
             {body}
@@ -57,11 +64,17 @@ const styles = StyleSheet.create({
   // Width must be the viewport, not the content. alignItems: 'center' on an
   // unbounded ScrollView makes % widths fail and text stay on one line — the
   // page then grows to the longest sentence (feels zoomed-in on iPhone).
+  //
+  // Do not flexGrow this box. On iOS Fabric the content container's native
+  // frame stays viewport-tall, so the gift image + wrapped copy overflow it
+  // and every Pressable below the fold (soft-lock, sign-in, add, share) misses
+  // the hit test — TestFlight 0.4.0 (11) reported all buttons dead.
   scroll: {
-    flexGrow: 1,
     width: '100%',
     maxWidth: '100%',
     alignItems: 'stretch',
+    flexGrow: 0,
+    flexShrink: 0,
   },
   // Content-sized column. flexGrow: 1 here made inner as tall as the viewport
   // while wrapped text + the gift image overflowed. iOS Fabric then skipped
@@ -70,6 +83,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: MaxContentWidth,
     minWidth: 0,
+    flexGrow: 0,
+    flexShrink: 0,
     alignSelf: 'center',
     gap: Spacing.three + 2,
   },

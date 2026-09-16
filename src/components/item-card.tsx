@@ -1,8 +1,9 @@
 import { Image } from 'expo-image';
 import { Link, type Href } from 'expo-router';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { Card } from '@/components/card';
+import { NativePressable } from '@/components/native-pressable';
 import { StatusChip } from '@/components/status-chip';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -34,6 +35,7 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
           source={{ uri: item.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
           style={styles.image}
           contentFit="cover"
+          pointerEvents="none"
         />
       </View>
       <View style={styles.meta}>
@@ -72,21 +74,21 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
   if (href) {
     return (
       <Link href={href} asChild>
-        <Pressable style={styles.press} accessibilityRole="link">
+        <NativePressable style={styles.press} accessibilityRole="link">
           <Card padded={false} style={styles.card}>
             {body}
           </Card>
-        </Pressable>
+        </NativePressable>
       </Link>
     );
   }
 
   return (
-    <Pressable onPress={onPress} style={styles.press}>
+    <NativePressable onPress={onPress} style={styles.press}>
       <Card padded={false} style={styles.card}>
         {body}
       </Card>
-    </Pressable>
+    </NativePressable>
   );
 }
 

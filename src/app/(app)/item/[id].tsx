@@ -93,6 +93,7 @@ export default function ItemDetailScreen() {
         source={{ uri: item.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
         style={[styles.image, { backgroundColor: theme.paper }]}
         contentFit="cover"
+        pointerEvents="none"
       />
 
       {editing ? (
@@ -166,6 +167,8 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: Radius.card,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   block: {
     gap: Spacing.one,
