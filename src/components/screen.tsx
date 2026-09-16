@@ -25,7 +25,7 @@ export function Screen({ children, style, scroll = true, padded = true, ...rest 
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scroll}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}>
             {body}
@@ -61,13 +61,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     width: '100%',
     maxWidth: '100%',
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
+  // Content-sized column. flexGrow: 1 here made inner as tall as the viewport
+  // while wrapped text + the gift image overflowed. iOS Fabric then skipped
+  // hits on Pressables below the fold — soft-lock looked dead.
   inner: {
     width: '100%',
     maxWidth: MaxContentWidth,
     minWidth: 0,
-    flexGrow: 1,
     alignSelf: 'center',
     gap: Spacing.three + 2,
   },

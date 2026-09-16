@@ -73,6 +73,16 @@ function getGiverCatalogVersion() {
   return getDemoStoreVersion() * 1_000_000 + liveRoot().version;
 }
 
+/** Prefer the process-wide catalog so list + detail chips stay aligned after lock. */
+export function pickSharedItem(
+  itemId: string | undefined,
+  catalog: WishlistItem[],
+  fallback: WishlistItem[] = [],
+): WishlistItem | null {
+  if (!itemId) return null;
+  return catalog.find((item) => item.id === itemId) ?? fallback.find((item) => item.id === itemId) ?? null;
+}
+
 /** List and item screens subscribe here so badges update even if the nested stack remounts. */
 export function useGiverCatalog(token: string | undefined): WishlistItem[] {
   const version = useSyncExternalStore(subscribeGiverCatalog, getGiverCatalogVersion, getGiverCatalogVersion);

@@ -9,7 +9,7 @@ import {
   setDemoItemStatus,
   subscribeDemoStore,
 } from './demo-store';
-import { peekGiverCatalog } from './giver-catalog';
+import { patchGiverCatalog, peekGiverCatalog, pickSharedItem, shareTokenParam, writeGiverCatalog } from './giver-catalog';
 import {
   applyItemStatus,
   coerceItemStatus,
@@ -126,6 +126,36 @@ describe('Giver status icon after lock / purchase / release', () => {
     const owner = ownerSafeItem(bought);
     assert.equal(owner.status, 'available');
     assert.equal(JSON.stringify(owner).includes('Bought'), false);
+    assert.equal(JSON.stringify(owner).includes('Taken'), false);
+  });
+
+  it('live share catalog and detail pick the same chip after lock / purchase / release', () => {
+    const token = 'live-share-token';
+    const mug = getDemoItem('demo-mug')!;
+    writeGiverCatalog(token, [mug]);
+
+    const listOpen = pickSharedItem('demo-mug', peekGiverCatalog(token));
+    assert.ok(listOpen);
+    assert.equal(giverStatusChip(listOpen).label, 'Open');
+
+    const taken = applyItemStatus(mug, 'reserved', 'Alex');
+    patchGiverCatalog(token, taken);
+    const listTaken = pickSharedItem('demo-mug', peekGiverCatalog(token), [mug]);
+    assert.ok(listTaken);
+    assert.equal(giverStatusChip(listTaken).label, 'Taken');
+    assert.equal(listTaken.status, 'reserved');
+
+    patchGiverCatalog(token, applyItemStatus(taken, 'purchased', 'Alex'));
+    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(token))!).label, 'Bought');
+
+    patchGiverCatalog(token, applyItemStatus(taken, 'available'));
+    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(token))!).label, 'Open');
+
+    assert.equal(shareTokenParam(['demo-mug']), 'demo-mug');
+    assert.equal(pickSharedItem(shareTokenParam(['demo-mug']), peekGiverCatalog(token))?.id, 'demo-mug');
+
+    const owner = ownerSafeItem(pickSharedItem('demo-mug', peekGiverCatalog(token))!);
+    assert.equal(owner.status, 'available');
     assert.equal(JSON.stringify(owner).includes('Taken'), false);
   });
 });

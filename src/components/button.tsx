@@ -52,7 +52,9 @@ export function Button({ label, variant = 'primary', disabled, ...rest }: Button
 
 const styles = StyleSheet.create({
   base: {
+    width: '100%',
     maxWidth: '100%',
+    alignSelf: 'stretch',
     minHeight: 50,
     borderRadius: Radius.button,
     alignItems: 'center',
