@@ -290,6 +290,7 @@ export default function GiverItemScreen() {
         source={{ uri: current.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
         style={[styles.image, { backgroundColor: theme.paper }]}
         contentFit="cover"
+        pointerEvents="none"
       />
       <View style={styles.block}>
         <ThemedText type="eyebrow" themeColor="brand">
@@ -369,6 +370,8 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: Radius.card,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   block: {
     gap: Spacing.one,
