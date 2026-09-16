@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
   },
   body: {
     textAlign: 'center',
-    maxWidth: '100%',
+    width: '100%',
+    maxWidth: 360,
   },
 });
