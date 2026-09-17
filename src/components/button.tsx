@@ -58,6 +58,7 @@ export function Button({ label, variant = 'primary', disabled, nativePress = fal
   if (nativePress) {
     return (
       <TouchableOpacity
+        key={label}
         accessibilityRole="button"
         disabled={disabled ?? false}
         activeOpacity={0.84}

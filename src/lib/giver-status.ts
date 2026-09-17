@@ -85,10 +85,44 @@ export function replaceSharedItem(items: WishlistItem[], next: WishlistItem) {
   return [next, ...items];
 }
 
+/**
+ * Item-screen display. Local optimistic/confirmed status wins while the catalog
+ * still holds a stale Open/Taken row. `catalog ?? local` would keep painting the
+ * old chip until a remount. Different ids (navigating to another gift) take the catalog.
+ */
+export function preferLocalGiverItem(
+  catalogItem: WishlistItem | null,
+  localItem: WishlistItem | null,
+): WishlistItem | null {
+  if (!localItem) return catalogItem;
+  if (!catalogItem) return localItem;
+  if (catalogItem.id !== localItem.id) return catalogItem;
+  if (localItem.status !== catalogItem.status) return localItem;
+  return mergeGiverItem(catalogItem, localItem);
+}
+
 /** Giver list badge + item indicator. Owners must not render this. */
 export function giverStatusChip(item: WishlistItem): { label: string; tone: GiverChipTone } {
   return {
     label: giverItemChipLabel(item),
     tone: giverChipTone(item),
+  };
+}
+
+/** Footer chip + CTA copy derived from the same item the list badge uses. */
+export function giverStatusActions(item: WishlistItem, busy = false) {
+  const chip = giverStatusChip(item);
+  const taken = item.status === 'reserved' || item.status === 'purchased';
+  return {
+    chipLabel: `${chip.label}${item.item_kind === 'vibe' ? ' · vibe' : ''}`,
+    chipTone: chip.tone,
+    lockLabel: busy
+      ? 'Saving…'
+      : taken && item.status === 'reserved'
+        ? 'Already taken — steal the lock?'
+        : 'Soft-lock this',
+    purchaseLabel: item.status === 'purchased' ? 'Already purchased' : 'Mark purchased',
+    releaseLabel: item.status === 'available' ? 'Not on hold' : 'Release hold',
+    taken,
   };
 }

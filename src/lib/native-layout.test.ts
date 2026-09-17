@@ -60,6 +60,7 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     assert.match(button, /NativePressable/);
     assert.match(button, /nativePress/);
     assert.match(button, /TouchableOpacity/);
+    assert.match(button, /key=\{label\}/);
     assert.match(button, /pointerEvents: 'none'/);
     assert.match(base, /width: '100%'/);
     assert.match(base, /alignSelf: 'stretch'/);
@@ -115,6 +116,9 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     const listScreen = source('app/g/[token]/index.tsx');
     assert.match(itemScreen, /useGiverCatalog/);
     assert.match(itemScreen, /pickSharedItem/);
+    assert.match(itemScreen, /preferLocalGiverItem/);
+    assert.match(itemScreen, /giverStatusActions/);
+    assert.equal(/const current = shareItem \?\? item/.test(itemScreen), false);
     assert.match(listScreen, /useGiverCatalog/);
     assert.match(itemScreen, /updateStatus\('reserved'\)/);
     assert.match(itemScreen, /updateStatus\('purchased'\)/);
@@ -130,6 +134,7 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     const footerInner = styleBlock(screen, 'footerInner');
 
     assert.match(screen, /footer\?: ReactNode/);
+    assert.match(screen, /footerKey\?: string/);
     assert.match(screen, /\{footer \? \(/);
     assert.match(screen, /styles\.footerDock/);
     assert.match(footerDock, /width: '100%'/);
@@ -139,12 +144,14 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     assert.equal(/overflow:\s*'hidden'/.test(footerDock), false);
     assert.match(footerInner, /maxWidth: MaxContentWidth/);
     assert.match(footerInner, /minWidth: 0/);
+    assert.match(screen, /key=\{footerKey\}/);
     // Footer is a KeyboardAvoidingView sibling of ScrollView, not a child of it.
     const afterScroll = screen.split('</ScrollView>')[1] ?? '';
     assert.match(afterScroll, /\{footer \? \(/);
     assert.match(afterScroll, /styles\.footerDock/);
 
     assert.match(itemScreen, /footer=\{/);
+    assert.match(itemScreen, /footerKey=\{/);
     assert.match(itemScreen, /nativePress/);
     assert.match(itemScreen, /Keyboard\.dismiss\(\)/);
     assert.match(itemScreen, /styles\.imageFrame/);

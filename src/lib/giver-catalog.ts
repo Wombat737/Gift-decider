@@ -7,7 +7,7 @@ import {
   listDemoSharedItems,
   subscribeDemoStore,
 } from '@/lib/demo-store';
-import { mergeGiverItem, replaceSharedItem } from '@/lib/giver-status';
+import { mergeGiverItem, preferLocalGiverItem, replaceSharedItem } from '@/lib/giver-status';
 import type { WishlistItem } from '@/lib/types';
 
 const LIVE_KEY = '__giftdeciderGiverLiveCatalog';
@@ -81,7 +81,7 @@ export function peekGiverCatalog(token: string): WishlistItem[] {
   if (isDemoShareToken(token)) {
     const demo = listDemoSharedItems(token);
     if (overlay.length === 0) return demo;
-    return demo.map((item) => mergeGiverItem(item, overlay.find((row) => row.id === item.id) ?? null));
+    return demo.map((item) => preferLocalGiverItem(item, overlay.find((row) => row.id === item.id) ?? null) ?? item);
   }
   return overlay;
 }
