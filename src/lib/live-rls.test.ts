@@ -87,6 +87,15 @@ describe('Surprise-safe RLS contract', () => {
     assert.match(giverRefresh, /create or replace function public\.get_shared_wishlist_items/);
     assert.match(giverRefresh, /volatile/i);
     assert.match(giverRefresh, /grant execute on function public\.get_shared_wishlist_items/);
+
+    const socialA = migration('20260918090000_giver_social_foundations.sql');
+    assert.match(socialA, /search_profiles_by_handle/);
+    assert.match(socialA, /giver_people/);
+    const socialB = migration('20260918100000_item_giver_comments.sql');
+    assert.match(socialB, /item_giver_comments_deny_owner/);
+    const socialC = migration('20260918110000_taste_tags_search.sql');
+    assert.match(socialC, /search_wishlist_items/);
+    assert.match(socialC, /shared_gift_search_hit/);
   });
 
   it('owner helper still strips reserve / funded / heal / pledges', () => {

@@ -36,6 +36,7 @@ export function ownerSafeItem(item: WishlistItem): WishlistItem {
     pledges: undefined,
     notices: undefined,
     reveal: revealed ? revealFromItem(item) : undefined,
+    // Giver comments never ride on an owner payload.
   };
 }
 
@@ -60,5 +61,7 @@ export function ownerPayloadLeaksGiftProgress(item: WishlistItem) {
   if (item.funded_at) return 'funded_at';
   if (!item.reveal && item.reveal_at) return 'early_reveal_at';
   if (item.reveal?.contributors.some((name) => /\d/.test(name) && /\$|aud/i.test(name))) return 'amount_in_name';
+  const json = JSON.stringify(item);
+  if (/"author_display_name"/.test(json) && /comment/i.test(json)) return 'giver_comments';
   return null;
 }

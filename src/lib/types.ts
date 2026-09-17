@@ -5,12 +5,17 @@ export type MemberRole = 'owner' | 'viewer';
 export type ConfidenceLevel = 'safe' | 'bold' | 'needs-size';
 export type DeliveryMethod = 'to_organiser' | 'collect' | 'other';
 export type GroupGiftPhase = 'collecting' | 'ready_to_buy' | 'purchased' | 'revealed';
+export type Discoverability = 'private' | 'handle';
+export type MemberAccessStatus = 'active' | 'pending_request' | 'declined' | 'revoked' | 'blocked';
 
 export type Profile = {
   id: string;
   handle: string | null;
   display_name: string | null;
   locale: string;
+  discoverability: Discoverability;
+  /** Owner-only. Never send this array to a giver-facing payload. */
+  taste_tags: string[];
 };
 
 export type Wishlist = {
@@ -108,6 +113,54 @@ export type WishlistMember = {
   role: MemberRole;
   invite_token: string;
   accepted_at: string | null;
+  status?: MemberAccessStatus;
+  requested_by?: string | null;
+  responded_at?: string | null;
+};
+
+export type HandleSearchHit = {
+  id: string;
+  handle: string | null;
+  display_name: string | null;
+  access_status: MemberAccessStatus | 'none';
+  can_open: boolean;
+  share_token: string | null;
+  is_public_link: boolean;
+};
+
+export type GiverPerson = {
+  id: string;
+  recipient_id: string;
+  handle: string | null;
+  display_name: string | null;
+  label: string | null;
+  access_status: MemberAccessStatus | 'none';
+  can_open: boolean;
+  share_token: string | null;
+  created_at: string;
+};
+
+export type GiverAccessRequest = {
+  member_id: string;
+  giver_id: string | null;
+  handle: string | null;
+  display_name: string | null;
+  created_at: string;
+};
+
+export type ItemGiverComment = {
+  id: string;
+  item_id: string;
+  author_id: string;
+  author_display_name: string;
+  body: string;
+  created_at: string;
+  edited_at: string | null;
+};
+
+export type GiftSearchHit = {
+  id: string;
+  rank: number;
 };
 
 export type LinkPreview = {
