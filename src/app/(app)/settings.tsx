@@ -14,6 +14,9 @@ import { track } from '@/lib/analytics';
 import { env } from '@/lib/env';
 import { accountDeletionMailto, privacyPolicyUrl, supportEmail } from '@/lib/legal';
 import { getOwnProfile, updateOwnProfile } from '@/services/profile';
+import { TasteTagEditor } from '@/components/taste-tag-editor';
+import { FilterChips } from '@/components/vibe-chips';
+import type { Discoverability } from '@/lib/types';
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
@@ -21,29 +24,39 @@ export default function SettingsScreen() {
   const live = env.isSupabaseConfigured && !user?.demo;
   const [displayName, setDisplayName] = useState('');
   const [handle, setHandle] = useState('');
+  const [discoverability, setDiscoverability] = useState<Discoverability>('handle');
+  const [tasteTags, setTasteTags] = useState<string[]>([]);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!live) return;
     void getOwnProfile()
       .then((profile) => {
         if (!profile) return;
         setDisplayName(profile.display_name ?? '');
         setHandle(profile.handle ?? '');
+        setDiscoverability(profile.discoverability ?? 'handle');
+        setTasteTags(profile.taste_tags ?? []);
       })
       .catch(() => {
         setProfileMessage('Could not load profile. Apply supabase/migrations if this is a new project.');
       });
-  }, [live]);
+  }, []);
 
   async function onSaveProfile() {
     setSaving(true);
     setProfileMessage(null);
     try {
-      const profile = await updateOwnProfile({ display_name: displayName, handle });
+      const profile = await updateOwnProfile({
+        display_name: displayName,
+        handle,
+        discoverability,
+        taste_tags: tasteTags,
+      });
       setDisplayName(profile.display_name ?? '');
       setHandle(profile.handle ?? '');
+      setDiscoverability(profile.discoverability ?? 'handle');
+      setTasteTags(profile.taste_tags ?? []);
       setProfileMessage('Profile saved.');
     } catch (error) {
       setProfileMessage(error instanceof Error ? error.message : 'Could not save profile');
@@ -81,8 +94,7 @@ export default function SettingsScreen() {
         Signed in as {user?.email ?? 'you'}. Store-required privacy and deletion live here.
       </ThemedText>
 
-      {live ? (
-        <Card>
+      <Card>
           <ThemedText type="eyebrow" themeColor="brand">
             Profile
           </ThemedText>
@@ -104,6 +116,19 @@ export default function SettingsScreen() {
             placeholder="jordan"
             hint="3–30 characters: lowercase letters, numbers, underscore."
           />
+          <ThemedText type="smallBold">Discoverability</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Handle search never matches your display name. Share links always work.
+          </ThemedText>
+          <FilterChips
+            options={[
+              { id: 'handle', label: 'Anyone with handle' },
+              { id: 'private', label: 'Only people with my link' },
+            ]}
+            value={discoverability}
+            onChange={(id) => setDiscoverability(id === 'private' ? 'private' : 'handle')}
+          />
+          <TasteTagEditor tags={tasteTags} onChange={setTasteTags} />
           <Button label={saving ? 'Saving…' : 'Save profile'} disabled={saving} onPress={() => void onSaveProfile()} />
           {profileMessage ? (
             <ThemedText type="small" themeColor="textSecondary">
@@ -111,7 +136,6 @@ export default function SettingsScreen() {
             </ThemedText>
           ) : null}
         </Card>
-      ) : null}
 
       <Card>
         <ThemedText type="eyebrow" themeColor="brand">

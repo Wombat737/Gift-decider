@@ -53,7 +53,7 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
             Vibe
           </ThemedText>
         ) : null}
-        {item.tags.length > 0 ? (
+        {!showStatus && item.tags.length > 0 ? (
           <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1}>
             {item.tags.join(' · ')}
           </ThemedText>

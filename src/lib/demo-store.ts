@@ -928,4 +928,12 @@ export function resetDemoStore() {
   pledges = fallback.pledges;
   notices = fallback.notices;
   saveBundle();
+  for (const extra of demoExtraResets) extra();
+}
+
+const demoExtraResets: Array<() => void> = [];
+
+/** Other demo modules (giver social) hook in without an import cycle. */
+export function registerDemoReset(fn: () => void) {
+  demoExtraResets.push(fn);
 }

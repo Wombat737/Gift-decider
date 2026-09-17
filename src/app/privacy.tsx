@@ -21,8 +21,10 @@ export default function PrivacyScreen() {
         <ThemedText type="smallBold">What we collect</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           If you sign in: email (magic link) and the photos, notes, vibes, and buy URLs you pin. Share links use a
-          random token. Givers may leave an optional name on a soft-lock or chip-in — other givers see Taken/Bought,
-          not names. Recipients never see in-flight reservations or pledge amounts.
+          random token. Optional Coral Coast handle search only matches your handle if you set discoverability to
+          Anyone with handle — never your display name. Givers may leave an optional name on a soft-lock or chip-in —
+          other givers see Taken/Bought, not names. Recipients never see in-flight reservations, pledge amounts, or
+          giver-only item notes.
         </ThemedText>
       </Card>
 

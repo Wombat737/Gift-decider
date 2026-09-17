@@ -31,7 +31,7 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
 
   function toggleTag(tag: string) {
     const next = value.tags.includes(tag) ? value.tags.filter((entry) => entry !== tag) : [...value.tags, tag];
-    onChange({ tags: next });
+    onChange({ tags: next.slice(0, 10) });
   }
 
   return (

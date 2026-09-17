@@ -266,6 +266,11 @@ SQL lives in `supabase/migrations/`. Apply **in order**:
 4. `20260914210000_reveal_at.sql`
 5. `20260914220000_organiser.sql`
 6. `20260915120000_live_rls.sql` — column-level surprise-safe SELECT + `ensure_own_workspace`
+7. `20260915180000_giver_status_rpc.sql` — giver status composite + `giftdecider.giver_rpc`
+8. `20260916140000_giver_list_refresh.sql` — volatile `get_shared_wishlist_items`
+9. `20260918090000_giver_social_foundations.sql` — handle search, `giver_people` pins, member `status`, requests
+10. `20260918100000_item_giver_comments.sql` — giver-only item comments (owner deny)
+11. `20260918110000_taste_tags_search.sql` — `taste_tags` + strict `search_wishlist_items`
 
 **Dashboard:** SQL Editor → paste each file → Run. Wait for success before the next file.
 
@@ -294,14 +299,19 @@ npx supabase db push
 - `wishlist_items` — image, title, notes, source, buy URL, vibe tags, `item_kind`, size hint, target amount, occasion, no-substitution, giver-only status / group-gift / `buy_url_dead`, `funded_at`, `reveal_at` (calendar date), organiser name, pay instructions, delivery method/note, `ready_to_buy_notified_at`
 - `item_pledges` — honour-system chip-ins (givers via RPC). **Owners have no SELECT.** After `reveal_at` (not merely `funded_at`), `list_owned_revealed_contributors` returns **names only** (Anonymous if blank) — never amounts
 - `organiser_notices` — giver-only “Funded — time to buy” rows (same surprise-safe rule as pledges)
-- `wishlist_members` — email invites
+- `wishlist_members` — email invites + giver access requests (`status`: active / pending_request / declined / revoked / blocked)
+- `giver_people` — private “People I buy for” pins (pin is free; opening items still needs accept or a share/public link)
+- `giver_blocks` / `giver_email_invites` / `giver_social_rate_events` — block + outbound email stub + rate limits
+- `item_giver_comments` — giver-only item notes. **Owners have no SELECT** (no count, no teaser)
 - `link_previews` — URL cache for the paste flow
 - Storage bucket `wishlist-images` (`{user_id}/...`)
 - Trigger: new `auth.users` row → profile + empty wishlist; `ensure_own_workspace()` recovers that if the trigger missed
-- RLS: owner catalog CRUD (no SELECT on reserve / purchased / funded / heal / organiser / `reveal_at` columns); accepted members may UPDATE reserve fields only; pledges and organiser notices hidden from owners; givers use share-token RPCs
+- RLS: owner catalog CRUD (no SELECT on reserve / purchased / funded / heal / organiser / `reveal_at` columns); accepted **active** members may UPDATE reserve fields only; pledges, organiser notices, and giver comments hidden from owners; givers use share-token RPCs
 - Owner view: `owner_wishlist_items` (catalog columns only)
-- RPCs for anonymous givers: `get_shared_wishlist`, `get_shared_wishlist_items`, `set_shared_item_status`, `set_shared_item_group_gift` (requires reveal date when enabling; optional organiser + PayID), `set_shared_item_reveal_at`, `set_shared_item_organiser`, `set_shared_item_pay_instructions`, `set_shared_item_delivery`, `list_shared_item_pledges`, `list_shared_organiser_notices`, `add_shared_item_pledge`, `mark_shared_item_funded`, `set_shared_item_link_dead` (wishlist **or** occasion token)
+- RPCs for anonymous givers: `get_shared_wishlist`, `get_shared_wishlist_items`, `set_shared_item_status`, `set_shared_item_group_gift` (requires reveal date when enabling; optional organiser + PayID), `set_shared_item_reveal_at`, `set_shared_item_organiser`, `set_shared_item_pay_instructions`, `set_shared_item_delivery`, `list_shared_item_pledges`, `list_shared_organiser_notices`, `add_shared_item_pledge`, `mark_shared_item_funded`, `set_shared_item_link_dead` (wishlist **or** occasion token), `search_shared_wishlist_items` (id + rank only — no tags)
+- Authenticated giver RPCs: `search_profiles_by_handle`, `request_giver_access`, `respond_giver_access`, `invite_giver_by_email`, `list_giver_people`, `claim_share_as_giver`, `list_item_giver_comments` / `post_item_giver_comment` (not owner, not anon), `search_wishlist_items`
 - Owner RPC: `list_owned_revealed_contributors` (authenticated owner, group gifts on/after `reveal_at` only — not merely funded)
+- `profiles.discoverability` (`private` \| `handle`) and `profiles.taste_tags` (owner CRUD; givers only via search WHERE)
 
 ### 4. Auth settings
 
@@ -360,6 +370,28 @@ npx supabase functions deploy notify-organiser-ready-to-buy
 
 Demo never needs keys: the giver UI shows the would-be email and the browser console logs it. If `RESEND_API_KEY` or `POSTMARK_SERVER_TOKEN` are set on the function, it sends **one** email when a group gift hits Ready to buy. Recipient is `organiser_email` on the request, or function env `NOTIFY_TO_EMAIL`. Push notifications are out of scope (next).
 
+## Giver social (A → B → C)
+
+Share links stay primary. This adds handle search + email invite (no global browse), giver-only item comments, and recipient taste tags that givers **search** (no chips).
+
+**Already on a hosted project?** SQL Editor → run in order (after `giver_list_refresh`):
+
+9. `supabase/migrations/20260918090000_giver_social_foundations.sql`
+10. `supabase/migrations/20260918100000_item_giver_comments.sql`
+11. `supabase/migrations/20260918110000_taste_tags_search.sql`
+
+Locks in this ship:
+
+- Pin is free (`giver_people`). Opening/viewing items needs accept **or** an existing share-token / public-link path.
+- Handle search + email invite only. No display-name search, no people directory.
+- Comments: item-only; owner JWT cannot read (RLS deny + no UI/count); logged-in active giver to post; token anon can still view/reserve.
+- Tags: recipient editor (chips for edit). Giver list: search field only, **strict mode** (RPC returns `id` + `rank`, never `taste_tags` / `tags`).
+- Givers remain Free. Sticky giver footer, keyboard, dd/mm/yyyy, live status, chip-in/reveal, flair pass are unchanged.
+
+**Deferred (Slice D):** notify other givers of comments, display-name search opt-in, controlled tag vocab, contacts upload, comment mute, SPF mail for invites.
+
+Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Requests** (Alex). `/g/demo` has a search field (`linen`) and mug **Giver notes**. Owner `/item/demo-mug` has no comment section.
+
 ## Screens
 
 | Route | Who | What |
@@ -371,10 +403,12 @@ Demo never needs keys: the giver UI shows the would-be email and the browser con
 | `/paste` | Recipient | Paste Instagram URL → stub preview → pin |
 | `/item/[id]` | Recipient | Item detail + edit vibes. Group reveal (names) on/after the reveal date |
 | `/share` | Recipient | Whole-list + occasion **Copy invite** (mate-ready text) |
-| `/settings` | Recipient | Live profile (name / handle), privacy link, account-deletion mailto stub, sign out |
+| `/settings` | Recipient | Live profile (name / handle / discoverability / taste tags), privacy link, account-deletion mailto stub, sign out |
+| `/people` | Giver (signed in) | People I buy for — pin, handle search, email invite stub, paste share link |
+| `/requests` | Recipient | Accept / Decline / Block giver access requests |
 | `/privacy` | Anyone | Store-listing privacy stub (works on `/Gift-decider/privacy`) |
-| `/g/[token]` | Giver | Read-only list **with** Taken/Bought (no names), confidence, **Link may be broken** badge, **Funded — time to buy** banner |
-| `/g/[token]/[itemId]` | Giver | Soft lock, group pledges, organiser / PayID / delivery, reveal date, mark funded, dead-link heal sheet, AU buy helpers |
+| `/g/[token]` | Giver | Read-only list **with** Taken/Bought (no names), search field (no tag chips), confidence, **Link may be broken** badge, **Funded — time to buy** banner |
+| `/g/[token]/[itemId]` | Giver | Soft lock, group pledges, organiser / PayID / delivery, reveal date, mark funded, dead-link heal sheet, AU buy helpers, giver-only comments (logged-in) |
 | `/auth/callback` | Auth | Completes the magic-link session, then `/wishlist` |
 
 ## What’s stubbed (on purpose)
@@ -382,7 +416,8 @@ Demo never needs keys: the giver UI shows the would-be email and the browser con
 - **Instagram** — paste URL only. No Meta OAuth, no Saves API, no scrapers
 - **`preview-url` / `heal-link` / `improv-substitutes`** — stubs. The app uses in-app fallbacks when env vars or the function are missing
 - **Apple / Google Sign-In** — buttons that explain they are placeholders. **Email magic link is live** once URL + anon key are set
-- **Email invites** — inserts `wishlist_members` when Supabase is configured; does not send mail
+- **Email invites** — inserts `wishlist_members` / `giver_email_invites` when Supabase is configured; does not send mail
+- **Giver comments notify** — none in MVP (Slice D)
 - **Camera / Storage upload** — add-item takes an image URL; bucket + RLS are ready
 - **AI matches / dead-link heal** — `healLink` heuristic catalog + optional `heal-link` HEAD stub. No OpenAI/Anthropic key. `HealLinkLlm` is the future plug-in; demo is offline-safe
 - **Group-gift reveal to recipient** — names / Anonymous on/after the reveal date, not when funded. No Stripe
@@ -454,7 +489,7 @@ src/app/                 Expo Router screens
 src/context/             Auth + wishlist
 src/services/            Preview + wishlist API (Supabase or demo store)
 src/lib/                 Env, types, confidence, AU buy URLs, heal-link contract, substitutes, analytics stub, demo store
-supabase/migrations/     Schema + RLS (init + phase2 + phase3 + reveal_at + organiser + live_rls)
+supabase/migrations/     Schema + RLS (init through live_rls, giver status, giver social A/B/C)
 supabase/functions/      preview-url stub, heal-link stub, optional improv-substitutes, notify-organiser-ready-to-buy stub
 ```
 

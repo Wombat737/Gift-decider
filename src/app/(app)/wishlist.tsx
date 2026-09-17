@@ -37,6 +37,27 @@ export default function WishlistGridScreen() {
       <Stack.Screen
         options={{
           headerRight: () => (
+            <View style={styles.headerRow}>
+            <Pressable
+              onPress={() => {
+                router.push('/people');
+              }}
+              hitSlop={12}
+              style={styles.headerBtn}>
+              <ThemedText type="smallBold" themeColor="brand">
+                People
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                router.push('/requests');
+              }}
+              hitSlop={12}
+              style={styles.headerBtn}>
+              <ThemedText type="smallBold" themeColor="brand">
+                Requests
+              </ThemedText>
+            </Pressable>
             <Pressable
               onPress={() => {
                 track('settings_opened', { source: 'wishlist_header' });
@@ -48,6 +69,7 @@ export default function WishlistGridScreen() {
                 Settings
               </ThemedText>
             </Pressable>
+            </View>
           ),
         }}
       />
@@ -113,6 +135,11 @@ export default function WishlistGridScreen() {
 const styles = StyleSheet.create({
   actions: {
     gap: Spacing.twoHalf,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
   },
   headerBtn: {
     paddingHorizontal: Spacing.two,

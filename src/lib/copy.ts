@@ -18,6 +18,12 @@ export const PrettyCopy = {
   softLock: 'You’ve got this one.',
   purchasedGiver: 'Bought — nice one.',
   revealDay: 'The mates chipped in — here’s who.',
+  peopleTitle: 'People you buy for',
+  peopleEmptyTitle: 'Got a link? Paste it.',
+  peopleEmptyBody: 'Or search their Coral Coast handle. Pin is private — you only see gifts after they accept, or if you already have their share link.',
+  peopleCta: 'Add someone',
+  requestsTitle: 'Giver requests',
+  commentsHint: 'Only other givers see this — not them.',
 } as const;
 
 export function mateNudgeMessage() {

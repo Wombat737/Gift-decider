@@ -7,6 +7,7 @@ import { AuBuyLinks } from '@/components/au-buy-links';
 import { Button } from '@/components/button';
 import { ConfidenceBadge } from '@/components/confidence-badge';
 import { DollarFlick } from '@/components/dollar-flick';
+import { GiverComments } from '@/components/giver-comments';
 import { LinkHealPanel } from '@/components/link-heal-panel';
 import { NoSubLock } from '@/components/no-sub-lock';
 import { PledgePanel } from '@/components/pledge-panel';
@@ -17,6 +18,7 @@ import { ThemedText } from '@/components/themed-text';
 import { VibeChips } from '@/components/vibe-chips';
 import { Radius, Spacing } from '@/constants/theme';
 import { useGiverShare } from '@/context/giver-share-context';
+import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
@@ -76,7 +78,8 @@ function GiverItemStatusFooter({
 export default function GiverItemScreen() {
   const theme = useTheme();
   const { token: paramToken, itemId: paramItemId } = useLocalSearchParams<{ token: string; itemId: string }>();
-  const { token: shareToken, items, loading: shareLoading, patchItem } = useGiverShare();
+  const { token: shareToken, items, loading: shareLoading, patchItem, meta } = useGiverShare();
+  const { user } = useAuth();
   const token = shareToken ?? shareTokenParam(paramToken);
   const itemId = shareTokenParam(paramItemId);
   const catalogItems = useGiverCatalog(token);
@@ -414,6 +417,13 @@ export default function GiverItemScreen() {
         demo={demo}
         onMarkDead={(dead) => void onMarkDead(dead)}
         onCheckLink={() => void onCheckLink()}
+      />
+      <GiverComments
+        itemId={current.id}
+        ownerName={meta?.owner_display_name || meta?.owner_handle || 'them'}
+        loggedIn={Boolean(user)}
+        userId={user?.id ?? null}
+        demoGiverPersona={demo}
       />
       <AuBuyLinks item={current} />
     </Screen>

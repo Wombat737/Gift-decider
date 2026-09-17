@@ -20,6 +20,8 @@ export default function AppLayout() {
       <Stack.Screen name="paste" options={{ title: 'Paste Instagram URL' }} />
       <Stack.Screen name="share" options={{ title: 'Share & occasions' }} />
       <Stack.Screen name="item/[id]" options={{ title: 'Item' }} />
+      <Stack.Screen name="people" options={{ title: 'People' }} />
+      <Stack.Screen name="requests" options={{ title: 'Requests' }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
     </Stack>
   );

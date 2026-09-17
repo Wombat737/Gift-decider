@@ -4,6 +4,8 @@ import { createContext, use, useCallback, useEffect, useMemo, useState, type Pro
 import { patchGiverCatalog, shareTokenParam, writeGiverCatalog } from '@/lib/giver-catalog';
 import { replaceSharedItem } from '@/lib/giver-status';
 import type { SharedWishlist, WishlistItem } from '@/lib/types';
+import { useAuth } from '@/context/auth-context';
+import { claimShareAsGiver } from '@/services/giver-social';
 import { getSharedItems, getSharedWishlist } from '@/services/wishlist';
 
 type GiverShareContextValue = {
@@ -21,6 +23,7 @@ const GiverShareContext = createContext<GiverShareContextValue | null>(null);
 export function GiverShareProvider({ children }: PropsWithChildren) {
   const params = useLocalSearchParams<{ token: string }>();
   const token = shareTokenParam(params.token);
+  const { user } = useAuth();
   const [meta, setMeta] = useState<SharedWishlist | null>(null);
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +57,11 @@ export function GiverShareProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!token || !user || user.demo) return;
+    void claimShareAsGiver(token);
+  }, [token, user]);
 
   const patchItem = useCallback(
     (item: WishlistItem) => {
