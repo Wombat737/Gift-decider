@@ -34,7 +34,7 @@ describe('Pretty pass punch-list', () => {
     assert.equal(CoralCoast.brand, '#E85D4C');
     assert.equal(CoralCoast.accent, '#F5B942');
     const theme = source('constants/theme.ts');
-    assert.match(theme, /0 1px 2px rgb\(0 0 0 \/ 0\.04\), 0 4px 12px rgb\(0 0 0 \/ 0\.06\)/);
+    assert.match(theme, /0 2px 4px rgb\(0 0 0 \/ 0\.05\), 0 8px 20px rgb\(0 0 0 \/ 0\.07\)/);
     assert.match(theme, /twoHalf: 12/);
     assert.equal(source('global.css').includes('Fraunces'), false);
     assert.match(source('global.css'), /--bg:\s*#fafafa/);
@@ -88,11 +88,11 @@ describe('Pretty pass punch-list', () => {
     assert.match(giverList, /PrettyCopy\.giverEmptyCta/);
     assert.match(share, /PrettyCopy\.shareTitle/);
     assert.match(share, /PrettyCopy\.shareCta/);
-    assert.equal(PrettyCopy.ownerEmptyTitle, 'What are you after?');
+    assert.equal(PrettyCopy.ownerEmptyTitle, 'What are you after, legend?');
     assert.equal(PrettyCopy.ownerEmptyCta, 'Add a gift');
-    assert.equal(PrettyCopy.giverEmptyTitle, 'Their list is quiet — nudge them to add a few things.');
+    assert.equal(PrettyCopy.giverEmptyTitle, 'Quiet list — nudge them to add a couple of bits.');
     assert.equal(PrettyCopy.shareTitle, 'Send this to whoever’s buying.');
-    assert.equal(PrettyCopy.chipInHonour, 'PayID on honour — mark what you’ve sent.');
+    assert.equal(PrettyCopy.chipInHonour, 'PayID on honour — tick off what you’ve sent.');
   });
 
   it('P2 chip-in strip, ready-to-buy banner, and purchased success chip stay giver-only', () => {
@@ -129,7 +129,7 @@ describe('Pretty pass punch-list', () => {
     assert.equal(trickle.includes('lottie'), false);
     assert.match(button, /BUTTON_PRESS_SCALE/);
     assert.match(button, /useReducedMotion/);
-    assert.equal(BUTTON_PRESS_SCALE, 0.96);
+    assert.equal(BUTTON_PRESS_SCALE, 0.97);
     assert.equal(BUTTON_PRESS_MS, 100);
     assert.equal(DOLLAR_FLICK_MS, 800);
     assert.ok(COIN_TRICKLE_MS <= 900);

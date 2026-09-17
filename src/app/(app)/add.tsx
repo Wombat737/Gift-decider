@@ -69,7 +69,7 @@ export default function AddItemScreen() {
         </ThemedText>
       ) : null}
 
-      <Button label={busy ? 'Saving…' : 'Pin to wishlist'} disabled={busy} onPress={() => void onSave()} />
+      <Button label={busy ? 'Saving…' : 'Pin to wishlist'} icon="add" disabled={busy} onPress={() => void onSave()} />
       <Button label="Or paste an Instagram URL" variant="ghost" onPress={() => router.push('/paste')} />
     </Screen>
   );

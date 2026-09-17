@@ -19,7 +19,9 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useGiverShare } from '@/context/giver-share-context';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
+import { PrettyCopy } from '@/lib/copy';
 import { tryStartDelight } from '@/lib/delight';
+import { hapticLight } from '@/lib/haptics';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { patchGiverCatalog, pickSharedItem, shareTokenParam, useGiverCatalog } from '@/lib/giver-catalog';
 import { applyItemStatus, giverStatusActions, preferLocalGiverItem } from '@/lib/giver-status';
@@ -64,8 +66,8 @@ function GiverItemStatusFooter({
           {error}
         </ThemedText>
       ) : null}
-      <Button nativePress label={actions.lockLabel} onPress={onLock} disabled={busy} />
-      <Button nativePress label={actions.purchaseLabel} variant="secondary" disabled={busy} onPress={onPurchase} />
+      <Button nativePress icon="lock" label={actions.lockLabel} onPress={onLock} disabled={busy} />
+      <Button nativePress icon="bought" label={actions.purchaseLabel} variant="secondary" disabled={busy} onPress={onPurchase} />
       <Button nativePress label={actions.releaseLabel} variant="ghost" disabled={busy} onPress={onRelease} />
     </>
   );
@@ -143,6 +145,9 @@ export default function GiverItemScreen() {
     if (status === 'purchased' && snapshot.status !== 'purchased' && tryStartDelight('flick')) {
       setFlickKey((count) => count + 1);
       track('delight_purchased_flick', { status });
+    }
+    if (status === 'reserved' || (status === 'available' && snapshot.status !== 'available')) {
+      void hapticLight();
     }
     try {
       commitItem(await setSharedItemStatus(token, snapshot.id, status, name.trim() || undefined));
@@ -360,7 +365,11 @@ export default function GiverItemScreen() {
           <DollarFlick playKey={flickKey} />
         </View>
         <ThemedText type="small" themeColor="textSecondary">
-          Soft lock is honour-system. Other givers see Taken/Bought — not names.
+          {current.status === 'purchased'
+            ? PrettyCopy.purchasedGiver
+            : current.status === 'reserved'
+              ? PrettyCopy.softLock
+              : 'Soft lock is honour-system. Other givers see Taken/Bought — not names.'}
         </ThemedText>
       </View>
 

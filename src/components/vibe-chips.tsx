@@ -2,7 +2,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 
 import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { ChipPad, Radius, RingSelected, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export const SUGGESTED_VIBES = [
@@ -41,7 +41,7 @@ export function VibeChips({ tags, selected, onToggle }: VibeChipsProps) {
               styles.chip,
               {
                 backgroundColor: active ? theme.brandSoft : theme.backgroundElement,
-                borderColor: active ? theme.brand : theme.border,
+                borderColor: active ? RingSelected : theme.border,
               },
             ]}>
             <ThemedText type="small" style={{ color: active ? theme.brandInk : theme.text }}>
@@ -74,11 +74,11 @@ export function FilterChips({ options, value, onChange }: FilterChipsProps) {
             style={[
               styles.chip,
               {
-                backgroundColor: active ? theme.brand : theme.backgroundElement,
-                borderColor: active ? theme.brand : theme.border,
+                backgroundColor: active ? theme.brandSoft : theme.backgroundElement,
+                borderColor: active ? RingSelected : theme.border,
               },
             ]}>
-            <ThemedText type="smallBold" style={{ color: active ? theme.brandText : theme.text }}>
+            <ThemedText type="smallBold" style={{ color: active ? theme.brandInk : theme.text }}>
               {option.label}
             </ThemedText>
           </NativePressable>
@@ -100,9 +100,15 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
     flexShrink: 1,
     borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one + 3,
-    borderWidth: 1,
-    ...Platform.select({ web: { cursor: 'pointer' as const } }),
+    paddingHorizontal: ChipPad.horizontal,
+    paddingVertical: ChipPad.vertical,
+    borderWidth: 2,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer' as const,
+        transitionDuration: '120ms',
+        transitionProperty: 'background-color, border-color',
+      },
+    }),
   },
 });

@@ -58,10 +58,11 @@ export default function WishlistGridScreen() {
       />
 
       <View style={styles.actions}>
-        <Button label="Add a gift" onPress={() => router.push('/add')} />
+        <Button label="Add a gift" icon="gift" onPress={() => router.push('/add')} />
         <Button label="Paste Instagram URL" variant="secondary" onPress={() => router.push('/paste')} />
         <Button
           label="Share / occasions"
+          icon="share"
           variant="ghost"
           onPress={() => {
             track('share_screen_opened');
@@ -100,6 +101,7 @@ export default function WishlistGridScreen() {
           onEmptyAction={() => router.push('/add')}
           emptySecondaryLabel={PrettyCopy.ownerEmptySecondary}
           onEmptySecondary={() => router.push('/paste')}
+          emptyKind="owner"
         />
       ) : null}
 

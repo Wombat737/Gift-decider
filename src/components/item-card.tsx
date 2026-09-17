@@ -1,12 +1,14 @@
 import { Image } from 'expo-image';
 import { Link, type Href } from 'expo-router';
+import { useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { Card } from '@/components/card';
 import { NativePressable } from '@/components/native-pressable';
 import { StatusChip } from '@/components/status-chip';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { ChipPad, Radius, Spacing } from '@/constants/theme';
+import { PrettyCopy } from '@/lib/copy';
 import { giverStatusChip } from '@/lib/giver-status';
 import { HEAL_BADGE, shouldRenderHealUi } from '@/lib/heal-link';
 import { improvisedConfidence } from '@/lib/improv';
@@ -25,6 +27,7 @@ type ItemCardProps = {
 
 export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardProps) {
   const theme = useTheme();
+  const [pressed, setPressed] = useState(false);
   const confidence = showStatus ? improvisedConfidence(item) : null;
   const revealTone = ownerMomentTone();
   const statusChip = showStatus ? giverStatusChip(item) : null;
@@ -80,7 +83,7 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
         {chipIn ? (
           <View style={[styles.chipIn, { backgroundColor: theme.accentSoft, borderColor: theme.accentSoft }]}>
             <ThemedText type="caption" themeColor="accent">
-              Chip in
+              {PrettyCopy.chipInCta}
             </ThemedText>
           </View>
         ) : null}
@@ -91,8 +94,12 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
   if (href) {
     return (
       <Link href={href} asChild>
-        <NativePressable style={styles.press} accessibilityRole="link">
-          <Card padded={false} style={styles.card}>
+        <NativePressable
+          style={styles.press}
+          accessibilityRole="link"
+          onPressIn={() => setPressed(true)}
+          onPressOut={() => setPressed(false)}>
+          <Card padded={false} selected={pressed} style={styles.card}>
             {body}
           </Card>
         </NativePressable>
@@ -101,8 +108,12 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
   }
 
   return (
-    <NativePressable onPress={onPress} style={styles.press}>
-      <Card padded={false} style={styles.card}>
+    <NativePressable
+      onPress={onPress}
+      style={styles.press}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}>
+      <Card padded={false} selected={pressed} style={styles.card}>
         {body}
       </Card>
     </NativePressable>
@@ -140,8 +151,8 @@ const styles = StyleSheet.create({
   chipIn: {
     alignSelf: 'flex-start',
     borderRadius: Radius.pill,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.two + 2,
-    paddingVertical: Spacing.one,
+    borderWidth: 2,
+    paddingHorizontal: ChipPad.horizontal,
+    paddingVertical: ChipPad.vertical,
   },
 });

@@ -8,8 +8,10 @@ import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { FilterChips } from '@/components/vibe-chips';
+import { PrettyCopy } from '@/lib/copy';
 import { tryStartDelight } from '@/lib/delight';
 import { formatAud, parseAud } from '@/lib/format';
+import { hapticSuccess } from '@/lib/haptics';
 import {
   asDeliveryMethod,
   asRevealDate,
@@ -98,6 +100,7 @@ export function PledgePanel({
     try {
       await onPledge(parsed, name.trim() || undefined);
       setAmount('');
+      void hapticSuccess();
       if (tryStartDelight('trickle')) setTrickleKey((count) => count + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save pledge');
@@ -171,7 +174,8 @@ export function PledgePanel({
             onChangeText={setName}
           />
           <Button
-            label={busy ? 'Saving…' : 'I’ve chipped in'}
+            label={busy ? 'Saving…' : PrettyCopy.chipInCta}
+            icon="chip-in"
             variant="pledge"
             disabled={busy}
             onPress={() => void submit()}
@@ -264,6 +268,7 @@ export function PledgePanel({
               {item.status !== 'purchased' ? (
                 <Button
                   label="Mark purchased"
+                  icon="bought"
                   disabled={busy}
                   accessibilityLabel="organiser-mark-purchased"
                   onPress={onMarkPurchased}

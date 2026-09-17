@@ -77,6 +77,7 @@ export function ReadyToBuyBanner({
       {canMark ? (
         <Button
           label="Mark purchased"
+          icon="bought"
           disabled={busy}
           onPress={onMarkPurchased}
         />
