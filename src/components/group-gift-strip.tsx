@@ -78,8 +78,12 @@ export function GroupGiftStrip({ item, trickleKey = 0 }: GroupGiftStripProps) {
       </View>
       <ThemedText type="caption" themeColor="textSecondary" accessibilityLabel="group-gift-payid">
         {PrettyCopy.chipInHonour}
-        {item.pay_instructions ? ` ${item.pay_instructions}` : ''}
       </ThemedText>
+      {item.pay_instructions ? (
+        <ThemedText type="caption" themeColor="textSecondary">
+          {item.pay_instructions}
+        </ThemedText>
+      ) : null}
     </View>
   );
 }
