@@ -3,6 +3,7 @@ import { Keyboard, Platform, TextInput, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { asRevealDate, formatRevealDate } from '@/lib/pledges';
 
 type DateFieldProps = {
   label: string;
@@ -15,6 +16,8 @@ type DateFieldProps = {
 /** Calendar date (YYYY-MM-DD). Native date input on web; typed ISO date elsewhere. */
 export function DateField({ label, value, onChange, hint, accessibilityLabel }: DateFieldProps) {
   const theme = useTheme();
+  const iso = asRevealDate(value);
+  const confirmation = iso ? formatRevealDate(iso) : null;
 
   return (
     <View style={{ gap: Spacing.one }}>
@@ -42,6 +45,11 @@ export function DateField({ label, value, onChange, hint, accessibilityLabel }: 
           borderColor: theme.border,
         }}
       />
+      {confirmation ? (
+        <ThemedText type="small" themeColor="textSecondary" accessibilityLabel="date-field-confirmation">
+          Shows as {confirmation}
+        </ThemedText>
+      ) : null}
       {hint ? (
         <ThemedText type="small" themeColor="textSecondary">
           {hint}

@@ -10,6 +10,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { giverStatusChip } from '@/lib/giver-status';
 import { HEAL_BADGE, shouldRenderHealUi } from '@/lib/heal-link';
 import { improvisedConfidence } from '@/lib/improv';
+import { formatRevealDate } from '@/lib/pledges';
 import { ownerMomentTone } from '@/lib/tones';
 import type { WishlistItem } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -59,6 +60,11 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
           </ThemedText>
         ) : null}
         {statusChip ? <StatusChip label={statusChip.label} tone={statusChip.tone} /> : null}
+        {showStatus && item.is_group_gift && item.reveal_at ? (
+          <ThemedText type="small" themeColor="textSecondary" accessibilityLabel="giver-reveal-date">
+            Reveal {formatRevealDate(item.reveal_at)}
+          </ThemedText>
+        ) : null}
         {showStatus && shouldRenderHealUi('giver', item) ? (
           <StatusChip label={HEAL_BADGE} tone="brand" />
         ) : null}

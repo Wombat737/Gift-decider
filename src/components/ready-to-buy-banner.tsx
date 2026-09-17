@@ -39,7 +39,8 @@ export function ReadyToBuyBanner({ item, items, revealLabel }: ReadyToBuyBannerP
           </ThemedText>
           {list.map((row) => (
             <ThemedText key={row.id} type="small" themeColor="textSecondary">
-              {row.title || 'Untitled gift'} · organiser {pickOrganiserName(row)}
+              {row.title || 'Untitled gift'} · organiser {pickOrganiserName(row)} · reveal{' '}
+              {formatRevealDate(row.reveal_at)}
             </ThemedText>
           ))}
           <ThemedText type="small" themeColor="textSecondary">
