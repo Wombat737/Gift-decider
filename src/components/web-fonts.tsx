@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 const FONT_HREF =
-  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap';
+  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
 
-/** Loads Plus Jakarta Sans + Fraunces in expo start --web as well as static export. */
+/** Loads Plus Jakarta Sans in expo start --web as well as static export. Headings use the same sans. */
 export function WebFonts() {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;

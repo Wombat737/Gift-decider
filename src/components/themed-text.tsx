@@ -68,14 +68,14 @@ const styles = StyleSheet.create({
     fontWeight: 500,
   },
   heading: {
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.sans,
     fontSize: 26,
     lineHeight: 32,
     fontWeight: 700,
     letterSpacing: -0.4,
   },
   title: {
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.sans,
     fontSize: 36,
     fontWeight: 700,
     lineHeight: 42,
@@ -88,14 +88,14 @@ const styles = StyleSheet.create({
     fontWeight: 600,
   },
   moment: {
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.sans,
     fontSize: 22,
     lineHeight: 28,
     fontWeight: 600,
     letterSpacing: -0.2,
   },
   momentSmall: {
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.sans,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: 600,
