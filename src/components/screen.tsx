@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     flexShrink: 0,
     alignSelf: 'center',
-    gap: Spacing.three + 2,
+    gap: Spacing.four,
   },
   padded: {
     paddingHorizontal: Spacing.four,

@@ -1,12 +1,17 @@
 import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, readableThemeColor, ThemeColor } from '@/constants/theme';
+import { Fonts, readableThemeColor, ThemeColor, TypeScale } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
   type?:
-    | 'default'
+    | 'caption'
+    | 'body'
+    | 'bodyEm'
+    | 'titleSm'
     | 'title'
+    | 'display'
+    | 'default'
     | 'heading'
     | 'small'
     | 'smallBold'
@@ -27,6 +32,11 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
       style={[
         styles.base,
         { color: readableThemeColor(theme, themeColor ?? 'text') },
+        type === 'caption' && styles.caption,
+        type === 'body' && styles.body,
+        type === 'bodyEm' && styles.bodyEm,
+        type === 'titleSm' && styles.titleSm,
+        type === 'display' && styles.display,
         type === 'default' && styles.default,
         type === 'title' && styles.title,
         type === 'heading' && styles.heading,
@@ -49,75 +59,78 @@ const styles = StyleSheet.create({
   base: {
     maxWidth: '100%',
   },
+  caption: {
+    fontFamily: Fonts.sans,
+    ...TypeScale.caption,
+  },
+  body: {
+    fontFamily: Fonts.sans,
+    ...TypeScale.body,
+  },
+  bodyEm: {
+    fontFamily: Fonts.sans,
+    ...TypeScale.bodyEm,
+  },
+  titleSm: {
+    fontFamily: Fonts.sans,
+    ...TypeScale.titleSm,
+  },
+  display: {
+    fontFamily: Fonts.sans,
+    ...TypeScale.display,
+    letterSpacing: -0.4,
+  },
   small: {
     fontFamily: Fonts.sans,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: 500,
+    ...TypeScale.caption,
   },
   smallBold: {
     fontFamily: Fonts.sans,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: 700,
+    ...TypeScale.bodyEm,
   },
   default: {
     fontFamily: Fonts.sans,
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 500,
+    ...TypeScale.body,
   },
   heading: {
     fontFamily: Fonts.sans,
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: 700,
-    letterSpacing: -0.4,
+    ...TypeScale.title,
+    letterSpacing: -0.2,
   },
   title: {
     fontFamily: Fonts.sans,
-    fontSize: 36,
-    fontWeight: 700,
-    lineHeight: 42,
-    letterSpacing: -0.7,
+    ...TypeScale.display,
+    letterSpacing: -0.4,
   },
   subtitle: {
     fontFamily: Fonts.sans,
-    fontSize: 18,
-    lineHeight: 26,
-    fontWeight: 600,
+    ...TypeScale.titleSm,
   },
   moment: {
     fontFamily: Fonts.sans,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: 600,
+    ...TypeScale.title,
     letterSpacing: -0.2,
   },
   momentSmall: {
     fontFamily: Fonts.sans,
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: 600,
+    ...TypeScale.caption,
   },
   link: {
     fontFamily: Fonts.sans,
-    lineHeight: 22,
-    fontSize: 15,
-    fontWeight: 600,
+    ...TypeScale.bodyEm,
   },
   eyebrow: {
     fontFamily: Fonts.sans,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: 700,
-    letterSpacing: 1.4,
+    fontSize: TypeScale.caption.fontSize,
+    lineHeight: TypeScale.caption.lineHeight,
+    fontWeight: 600,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   code: {
     fontFamily: Fonts.mono,
     fontWeight: Platform.select({ android: 700 }) ?? 500,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: TypeScale.caption.fontSize,
+    lineHeight: TypeScale.caption.lineHeight,
   },
 });

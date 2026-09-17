@@ -48,7 +48,7 @@ describe('Giver status icon after lock / purchase / release', () => {
     const bought = setDemoItemStatus('demo-mug', 'purchased', 'Alex');
     const afterBuy = replaceSharedItem(afterLock, bought);
     assert.equal(giverStatusChip(bought).label, 'Bought');
-    assert.equal(giverStatusChip(bought).tone, 'brand');
+    assert.equal(giverStatusChip(bought).tone, 'success');
     assert.equal(giverStatusChip(afterBuy.find((item) => item.id === 'demo-mug')!).label, 'Bought');
 
     const released = setDemoItemStatus('demo-mug', 'available');

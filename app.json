@@ -9,7 +9,7 @@
     "scheme": "giftdecider",
     "userInterfaceStyle": "light",
     "primaryColor": "#E85D4C",
-    "backgroundColor": "#FFFFFF",
+    "backgroundColor": "#FAFAFA",
     "description": "Pick gifts from a living photo wishlist. Recipients pin photos and vibes; givers open a surprise-safe share link.",
     "githubUrl": "https://github.com/Wombat737/Gift-decider",
     "ios": {
@@ -44,7 +44,7 @@
       "name": "Gift Decider",
       "shortName": "Gift Decider",
       "themeColor": "#E85D4C",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#FAFAFA"
     },
     "plugins": [
       "expo-router",
@@ -52,7 +52,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFFFFF",
+          "backgroundColor": "#FAFAFA",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 128
         }

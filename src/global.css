@@ -6,7 +6,7 @@
   --font-display: var(--font-sans);
   --font-rounded: 'Plus Jakarta Sans', 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic',
     sans-serif;
-  --bg: #ffffff;
+  --bg: #fafafa;
   --ink: #171717;
   --brand: #e85d4c;
   --accent: #f5b942;
@@ -34,7 +34,7 @@ body {
 }
 
 ::selection {
-  background: #fde8e5;
+  background: #ffe8e4;
   color: var(--ink);
 }
 
@@ -48,17 +48,17 @@ button {
   font-family: inherit;
 }
 
-/* Coral Coast stays on a pure white canvas — no cream, lemon wash, or dark base. */
+/* Coral Coast stays on off-white chrome — no cream, lemon wash, or dark base. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #ffffff;
+    --bg: #fafafa;
     --ink: #171717;
     --brand: #e85d4c;
     --accent: #f5b942;
   }
 
   ::selection {
-    background: #fde8e5;
+    background: #ffe8e4;
     color: var(--ink);
   }
 }

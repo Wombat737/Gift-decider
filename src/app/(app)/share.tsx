@@ -10,6 +10,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
+import { PrettyCopy } from '@/lib/copy';
 import { track } from '@/lib/analytics';
 import { shareLink } from '@/lib/env';
 import { mateInviteMessage } from '@/lib/invite';
@@ -71,18 +72,18 @@ export default function ShareScreen() {
     <Screen>
       <FlowHeader
         role="owner"
-        title="Invite mates"
-        subtitle="Whole-list or occasion packs. Friends open a read-only link. You won’t see what they reserved, pledged, or bought. Group gifts stay unspoiled until the reveal date."
+        title={PrettyCopy.shareTitle}
+        subtitle={PrettyCopy.shareSubtitle}
       />
 
       <Card>
         <ThemedText type="eyebrow" themeColor="brand">
           Whole wishlist
         </ThemedText>
-        <ThemedText type="smallBold">Every pinned gift</ThemedText>
+        <ThemedText type="titleSm">Every pinned gift</ThemedText>
         <ThemedText type="code">{link || 'Loading…'}</ThemedText>
         <View style={styles.row}>
-          <Button label="Copy invite" onPress={() => link && void sharePack(wishlist!.share_token)} />
+          <Button label={PrettyCopy.shareCta} onPress={() => link && void sharePack(wishlist!.share_token)} />
           <Button
             label="Open giver view"
             variant="secondary"
@@ -115,7 +116,7 @@ export default function ShareScreen() {
                 <ThemedText type="code">{occasionLink}</ThemedText>
                 <View style={styles.row}>
                   <Button
-                    label="Copy invite"
+                    label={PrettyCopy.shareCta}
                     variant="secondary"
                     onPress={() => void sharePack(occasion.share_token, occasion.title)}
                   />

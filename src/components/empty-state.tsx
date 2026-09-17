@@ -11,9 +11,18 @@ type EmptyStateProps = {
   body: string;
   actionLabel?: string;
   onAction?: () => void;
+  secondaryLabel?: string;
+  onSecondary?: () => void;
 };
 
-export function EmptyState({ title, body, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({
+  title,
+  body,
+  actionLabel,
+  onAction,
+  secondaryLabel,
+  onSecondary,
+}: EmptyStateProps) {
   const theme = useTheme();
 
   return (
@@ -29,13 +38,16 @@ export function EmptyState({ title, body, actionLabel, onAction }: EmptyStatePro
       <View style={[styles.markHalo, { backgroundColor: theme.brandSoft }]}>
         <BrandMark size={48} />
       </View>
-      <ThemedText type="moment" style={styles.title}>
+      <ThemedText type="display" style={styles.title}>
         {title}
       </ThemedText>
       <ThemedText themeColor="textSecondary" style={styles.body}>
         {body}
       </ThemedText>
       {actionLabel && onAction ? <Button label={actionLabel} onPress={onAction} /> : null}
+      {secondaryLabel && onSecondary ? (
+        <Button label={secondaryLabel} variant="ghost" onPress={onSecondary} />
+      ) : null}
     </View>
   );
 }
@@ -46,7 +58,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     width: '100%',
     maxWidth: '100%',
-    gap: Spacing.two,
+    gap: Spacing.twoHalf,
     paddingVertical: Spacing.five,
     paddingHorizontal: Spacing.three,
     borderRadius: Radius.card,

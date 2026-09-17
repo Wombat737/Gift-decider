@@ -4,11 +4,13 @@ import {
   TouchableOpacity,
   type PressableProps,
 } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { BUTTON_PRESS_MS, BUTTON_PRESS_SCALE } from '@/lib/delight';
 
 type ButtonProps = Omit<PressableProps, 'style'> & {
   label: string;
@@ -20,8 +22,46 @@ type ButtonProps = Omit<PressableProps, 'style'> & {
   nativePress?: boolean;
 };
 
-export function Button({ label, variant = 'primary', disabled, nativePress = false, ...rest }: ButtonProps) {
+const PRESS_EASING = Easing.out(Easing.cubic);
+
+function usePressScale() {
+  const reduceMotion = useReducedMotion();
+  const scale = useSharedValue(1);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  function pressIn() {
+    if (reduceMotion) return;
+    scale.value = withTiming(BUTTON_PRESS_SCALE, { duration: BUTTON_PRESS_MS, easing: PRESS_EASING });
+  }
+
+  function pressOut() {
+    scale.value = withTiming(1, { duration: BUTTON_PRESS_MS, easing: PRESS_EASING });
+  }
+
+  return { style, pressIn, pressOut };
+}
+
+export function Button({
+  label,
+  variant = 'primary',
+  disabled,
+  nativePress = false,
+  onPressIn,
+  onPressOut,
+  ...rest
+}: ButtonProps) {
   const theme = useTheme();
+  const { style: pressStyle, pressIn, pressOut } = usePressScale();
+  function handlePressIn(...args: Parameters<NonNullable<PressableProps['onPressIn']>>) {
+    pressIn();
+    onPressIn?.(...args);
+  }
+  function handlePressOut(...args: Parameters<NonNullable<PressableProps['onPressOut']>>) {
+    pressOut();
+    onPressOut?.(...args);
+  }
   const background =
     variant === 'primary'
       ? theme.brand
@@ -50,50 +90,56 @@ export function Button({ label, variant = 'primary', disabled, nativePress = fal
   ];
 
   const labelNode = (
-    <ThemedText type="smallBold" style={{ color, textAlign: 'center', pointerEvents: 'none' }}>
+    <ThemedText type="bodyEm" style={{ color, textAlign: 'center', pointerEvents: 'none' }}>
       {label}
     </ThemedText>
   );
 
   if (nativePress) {
     return (
-      <TouchableOpacity
-        key={label}
-        accessibilityRole="button"
-        disabled={disabled ?? false}
-        activeOpacity={0.84}
-        hitSlop={8}
-        delayPressIn={0}
-        style={face}
-        onPress={rest.onPress ?? undefined}
-        onPressIn={rest.onPressIn ?? undefined}
-        onPressOut={rest.onPressOut ?? undefined}
-        testID={rest.testID}
-        accessibilityLabel={typeof rest.accessibilityLabel === 'string' ? rest.accessibilityLabel : undefined}>
-        {labelNode}
-      </TouchableOpacity>
+      <Animated.View style={[styles.scaleWrap, pressStyle]}>
+        <TouchableOpacity
+          key={label}
+          accessibilityRole="button"
+          disabled={disabled ?? false}
+          activeOpacity={1}
+          hitSlop={8}
+          delayPressIn={0}
+          style={face}
+          onPress={rest.onPress ?? undefined}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          testID={rest.testID}
+          accessibilityLabel={typeof rest.accessibilityLabel === 'string' ? rest.accessibilityLabel : undefined}>
+          {labelNode}
+        </TouchableOpacity>
+      </Animated.View>
     );
   }
 
   return (
-    <NativePressable
-      accessibilityRole="button"
-      disabled={disabled}
-      style={({ pressed }) => [
-        styles.base,
-        {
-          backgroundColor: background,
-          borderColor,
-          opacity: disabled ? 0.45 : pressed ? 0.84 : 1,
-        },
-      ]}
-      {...rest}>
-      {labelNode}
-    </NativePressable>
+    <Animated.View style={[styles.scaleWrap, pressStyle]}>
+      <NativePressable
+        {...rest}
+        accessibilityRole="button"
+        disabled={disabled}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={face}>
+        {labelNode}
+      </NativePressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  scaleWrap: {
+    width: '100%',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   base: {
     width: '100%',
     maxWidth: '100%',

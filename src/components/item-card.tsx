@@ -10,7 +10,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { giverStatusChip } from '@/lib/giver-status';
 import { HEAL_BADGE, shouldRenderHealUi } from '@/lib/heal-link';
 import { improvisedConfidence } from '@/lib/improv';
-import { formatRevealDate } from '@/lib/pledges';
+import { formatRevealDate, groupGiftPhase } from '@/lib/pledges';
 import { ownerMomentTone } from '@/lib/tones';
 import type { WishlistItem } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -28,6 +28,7 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
   const confidence = showStatus ? improvisedConfidence(item) : null;
   const revealTone = ownerMomentTone();
   const statusChip = showStatus ? giverStatusChip(item) : null;
+  const chipIn = showStatus && groupGiftPhase(item) === 'collecting';
 
   const body = (
     <>
@@ -40,28 +41,28 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
         />
       </View>
       <View style={styles.meta}>
-        <ThemedText type="smallBold" numberOfLines={2}>
+        <ThemedText type="titleSm" numberOfLines={2}>
           {item.no_substitution ? '🔒 ' : ''}
           {item.title || 'Untitled gift'}
         </ThemedText>
         {item.item_kind === 'vibe' ? (
-          <ThemedText type="small" themeColor="textSecondary">
+          <ThemedText type="caption" themeColor="textSecondary">
             Vibe
           </ThemedText>
         ) : null}
         {item.tags.length > 0 ? (
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+          <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1}>
             {item.tags.join(' · ')}
           </ThemedText>
         ) : null}
         {item.reveal ? (
-          <ThemedText type="momentSmall" themeColor={revealTone} accessibilityLabel="from-the-group">
+          <ThemedText type="caption" themeColor={revealTone} accessibilityLabel="from-the-group">
             From the group
           </ThemedText>
         ) : null}
         {statusChip ? <StatusChip label={statusChip.label} tone={statusChip.tone} /> : null}
         {showStatus && item.is_group_gift && item.reveal_at ? (
-          <ThemedText type="small" themeColor="textSecondary" accessibilityLabel="giver-reveal-date">
+          <ThemedText type="caption" themeColor="textSecondary" accessibilityLabel="giver-reveal-date">
             Reveal {formatRevealDate(item.reveal_at)}
           </ThemedText>
         ) : null}
@@ -69,9 +70,19 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
           <StatusChip label={HEAL_BADGE} tone="brand" />
         ) : null}
         {confidence ? (
-          <ThemedText type="small" themeColor="textSecondary">
+          <ThemedText type="caption" themeColor="textSecondary">
             {confidence.label}
           </ThemedText>
+        ) : null}
+        <ThemedText type="bodyEm" themeColor="brand">
+          Open
+        </ThemedText>
+        {chipIn ? (
+          <View style={[styles.chipIn, { backgroundColor: theme.accentSoft, borderColor: theme.accentSoft }]}>
+            <ThemedText type="caption" themeColor="accent">
+              Chip in
+            </ThemedText>
+          </View>
         ) : null}
       </View>
     </>
@@ -109,14 +120,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     gap: 0,
-    padding: Spacing.two,
-    paddingBottom: Spacing.one,
+    padding: Spacing.three,
+    paddingBottom: Spacing.two,
   },
   imageWrap: {
     width: '100%',
-    aspectRatio: 1,
+    aspectRatio: 4 / 5,
     overflow: 'hidden',
-    borderRadius: Radius.card - 6,
+    borderRadius: Radius.card - 4,
   },
   image: {
     width: '100%',
@@ -124,8 +135,13 @@ const styles = StyleSheet.create({
   },
   meta: {
     gap: Spacing.one,
-    paddingHorizontal: Spacing.one,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.two,
+    paddingTop: Spacing.twoHalf,
+  },
+  chipIn: {
+    alignSelf: 'flex-start',
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.two + 2,
+    paddingVertical: Spacing.one,
   },
 });

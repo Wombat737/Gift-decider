@@ -13,6 +13,7 @@ import { useAuth } from '@/context/auth-context';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
 import { track } from '@/lib/analytics';
+import { PrettyCopy } from '@/lib/copy';
 
 export default function WishlistGridScreen() {
   const { user } = useAuth();
@@ -57,7 +58,7 @@ export default function WishlistGridScreen() {
       />
 
       <View style={styles.actions}>
-        <Button label="Add item" onPress={() => router.push('/add')} />
+        <Button label="Add a gift" onPress={() => router.push('/add')} />
         <Button label="Paste Instagram URL" variant="secondary" onPress={() => router.push('/paste')} />
         <Button
           label="Share / occasions"
@@ -93,10 +94,12 @@ export default function WishlistGridScreen() {
         <ItemGrid
           items={visible}
           hrefFor={(item) => `/item/${item.id}`}
-          emptyTitle="Nothing pinned yet"
-          emptyBody="Add a photo, a vibe, or paste a public Instagram URL. Givers only see what you share."
-          emptyActionLabel="Add item"
+          emptyTitle={PrettyCopy.ownerEmptyTitle}
+          emptyBody={PrettyCopy.ownerEmptyBody}
+          emptyActionLabel={PrettyCopy.ownerEmptyCta}
           onEmptyAction={() => router.push('/add')}
+          emptySecondaryLabel={PrettyCopy.ownerEmptySecondary}
+          onEmptySecondary={() => router.push('/paste')}
         />
       ) : null}
 
@@ -107,7 +110,7 @@ export default function WishlistGridScreen() {
 
 const styles = StyleSheet.create({
   actions: {
-    gap: Spacing.two,
+    gap: Spacing.twoHalf,
   },
   headerBtn: {
     paddingHorizontal: Spacing.two,

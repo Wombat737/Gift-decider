@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type FlowHeaderProps = {
@@ -16,17 +16,33 @@ export function FlowHeader({ role, title, subtitle }: FlowHeaderProps) {
 
   return (
     <View style={styles.wrap}>
-      <View
-        style={[
-          styles.pill,
-          {
-            backgroundColor: owner ? theme.brandSoft : theme.backgroundSelected,
-            borderColor: owner ? theme.brandSoft : theme.border,
-          },
-        ]}>
-        <ThemedText type="eyebrow" style={{ color: owner ? theme.brandInk : theme.textSecondary }}>
-          {owner ? 'Your list' : 'Giver view'}
-        </ThemedText>
+      <View style={styles.pills} accessibilityRole="text">
+        <View
+          style={[
+            styles.pill,
+            owner
+              ? { backgroundColor: theme.brandSoft, borderColor: theme.brandSoft }
+              : { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+          ]}>
+          <ThemedText
+            type="eyebrow"
+            style={{ color: owner ? theme.brandInk : theme.textSecondary }}>
+            Your list
+          </ThemedText>
+        </View>
+        <View
+          style={[
+            styles.pill,
+            !owner
+              ? { backgroundColor: theme.brandSoft, borderColor: theme.brandSoft }
+              : { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+          ]}>
+          <ThemedText
+            type="eyebrow"
+            style={{ color: !owner ? theme.brandInk : theme.textSecondary }}>
+            Giver view
+          </ThemedText>
+        </View>
       </View>
       <ThemedText type="heading">{title}</ThemedText>
       {subtitle ? (
@@ -45,13 +61,21 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
     minWidth: 0,
   },
+  pills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+    width: '100%',
+  },
   pill: {
-    alignSelf: 'flex-start',
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
     maxWidth: '100%',
-    borderRadius: 999,
+    borderRadius: Radius.pill,
     borderWidth: 1,
-    paddingHorizontal: Spacing.two + 4,
-    paddingVertical: Spacing.one + 1,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   sub: {
     maxWidth: '100%',

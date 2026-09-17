@@ -1,5 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { Platform, Share } from 'react-native';
 
 import { DeadLinkBanner } from '@/components/dead-link-banner';
 import { FlowHeader } from '@/components/flow-header';
@@ -9,6 +10,7 @@ import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { useGiverShare } from '@/context/giver-share-context';
+import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
 import { useGiverCatalog } from '@/lib/giver-catalog';
 import { groupGiftPhase } from '@/lib/pledges';
 
@@ -32,6 +34,15 @@ export default function GiverShareScreen() {
   const who = meta?.owner_display_name || meta?.owner_handle || 'a friend';
   const occasion = meta?.occasion_title;
   const readyToBuy = items.filter((item) => groupGiftPhase(item) === 'ready_to_buy');
+
+  async function remindThem() {
+    const text = mateNudgeMessage();
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    await Share.share({ message: text });
+  }
 
   return (
     <Screen>
@@ -62,8 +73,10 @@ export default function GiverShareScreen() {
           items={items}
           showStatus
           hrefFor={(item) => `/g/${token}/${item.id}`}
-          emptyTitle="Nothing in this pack"
-          emptyBody="This share link is valid but has no gifts yet. Ask them to pin a photo or assign items to the occasion."
+          emptyTitle={PrettyCopy.giverEmptyTitle}
+          emptyBody={PrettyCopy.giverEmptyBody}
+          emptyActionLabel={PrettyCopy.giverEmptyCta}
+          onEmptyAction={() => void remindThem()}
         />
       ) : (
         <ThemedText themeColor="textSecondary">Loading gifts…</ThemedText>

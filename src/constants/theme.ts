@@ -1,6 +1,6 @@
 import '@/global.css';
 
-import { Platform, type ViewStyle } from 'react-native';
+import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 
 import { CoralCoast, CoralCoastDark } from '@/constants/coral-coast';
 
@@ -17,9 +17,11 @@ export const Colors = {
     brandInk: CoralCoast.brandInk,
     accent: CoralCoast.accent,
     accentMuted: CoralCoast.accentMuted,
+    accentSoft: CoralCoast.accentSoft,
     accentText: CoralCoast.accentText,
     accentInk: CoralCoast.accentInk,
-    success: CoralCoast.brand,
+    success: CoralCoast.success,
+    successSoft: CoralCoast.successSoft,
     warning: CoralCoast.warning,
     reserved: CoralCoast.reserved,
     reservedSoft: CoralCoast.reservedSoft,
@@ -39,9 +41,11 @@ export const Colors = {
     brandInk: CoralCoastDark.brandInk,
     accent: CoralCoastDark.accent,
     accentMuted: CoralCoastDark.accentMuted,
+    accentSoft: CoralCoastDark.accentSoft,
     accentText: CoralCoastDark.accentText,
     accentInk: CoralCoastDark.accentInk,
-    success: CoralCoastDark.brand,
+    success: CoralCoastDark.success,
+    successSoft: CoralCoastDark.successSoft,
     warning: CoralCoastDark.warning,
     reserved: CoralCoastDark.reserved,
     reservedSoft: CoralCoastDark.reservedSoft,
@@ -56,8 +60,9 @@ export type ThemePalette = (typeof Colors)[keyof typeof Colors];
 
 /** Brand/accent fills fail AA as small text on white; map those keys to ink variants. */
 export function readableThemeColor(theme: ThemePalette, key: ThemeColor = 'text') {
-  if (key === 'brand' || key === 'success') return theme.brandInk;
+  if (key === 'brand') return theme.brandInk;
   if (key === 'accent') return theme.accentInk;
+  if (key === 'success') return theme.success;
   return theme[key];
 }
 
@@ -93,10 +98,21 @@ export const Fonts = Platform.select({
   },
 });
 
+/** Pretty-pass type scale — Plus Jakarta Sans, body min 16. */
+export const TypeScale = {
+  caption: { fontSize: 12, lineHeight: 16, fontWeight: '500' as const },
+  body: { fontSize: 16, lineHeight: 24, fontWeight: '400' as const },
+  bodyEm: { fontSize: 16, lineHeight: 24, fontWeight: '500' as const },
+  titleSm: { fontSize: 18, lineHeight: 24, fontWeight: '600' as const },
+  title: { fontSize: 22, lineHeight: 28, fontWeight: '600' as const },
+  display: { fontSize: 28, lineHeight: 34, fontWeight: '700' as const },
+} satisfies Record<string, Pick<TextStyle, 'fontSize' | 'lineHeight' | 'fontWeight'>>;
+
 export const Spacing = {
   half: 2,
   one: 4,
   two: 8,
+  twoHalf: 12,
   three: 16,
   four: 24,
   five: 32,
@@ -116,15 +132,20 @@ export const Radius = {
 export const CardShadow: ViewStyle = Platform.select({
   ios: {
     shadowColor: CoralCoast.ink,
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
   android: {
     elevation: 2,
   },
   web: {
-    boxShadow: '0 10px 28px rgba(23, 23, 23, 0.07)',
+    boxShadow: '0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.06)',
   },
-  default: {},
+  default: {
+    shadowColor: CoralCoast.ink,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
 }) as ViewStyle;
