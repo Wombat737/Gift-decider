@@ -14,6 +14,8 @@ type ItemGridProps = {
   emptyBody: string;
   emptyActionLabel?: string;
   onEmptyAction?: () => void;
+  emptySecondaryLabel?: string;
+  onEmptySecondary?: () => void;
 };
 
 export function ItemGrid({
@@ -24,10 +26,19 @@ export function ItemGrid({
   emptyBody,
   emptyActionLabel,
   onEmptyAction,
+  emptySecondaryLabel,
+  onEmptySecondary,
 }: ItemGridProps) {
   if (items.length === 0) {
     return (
-      <EmptyState title={emptyTitle} body={emptyBody} actionLabel={emptyActionLabel} onAction={onEmptyAction} />
+      <EmptyState
+        title={emptyTitle}
+        body={emptyBody}
+        actionLabel={emptyActionLabel}
+        onAction={onEmptyAction}
+        secondaryLabel={emptySecondaryLabel}
+        onSecondary={onEmptySecondary}
+      />
     );
   }
 
@@ -56,6 +67,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
     flexGrow: 0,
     flexShrink: 0,
-    padding: Spacing.one,
+    padding: Spacing.one + 2,
   },
 });

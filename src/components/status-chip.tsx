@@ -20,30 +20,36 @@ export function StatusChip({ label, tone = 'muted' }: StatusChipProps) {
         ? theme.reserved
         : tone === 'accent'
           ? theme.accentInk
-          : theme.textSecondary;
+          : tone === 'success'
+            ? theme.success
+            : theme.textSecondary;
   const background =
     tone === 'brand'
       ? theme.brandSoft
       : tone === 'accent'
-        ? theme.accentMuted
+        ? theme.accentSoft
         : tone === 'reserved'
           ? theme.reservedSoft
-          : theme.background;
+          : tone === 'success'
+            ? theme.successSoft
+            : theme.background;
   const border =
     tone === 'brand'
       ? theme.brandSoft
       : tone === 'accent'
-        ? theme.accentMuted
+        ? theme.accentSoft
         : tone === 'reserved'
           ? theme.reservedSoft
-          : theme.border;
+          : tone === 'success'
+            ? theme.successSoft
+            : theme.border;
 
   return (
     <View
       style={[styles.chip, { backgroundColor: background, borderColor: border }]}
       accessibilityRole="text"
       accessibilityLabel={`Status: ${label}`}>
-      <ThemedText type="smallBold" style={{ color }}>
+      <ThemedText type="caption" style={{ color, fontWeight: 600 }}>
         {label}
       </ThemedText>
     </View>

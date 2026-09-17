@@ -8,6 +8,7 @@ import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { FilterChips } from '@/components/vibe-chips';
+import { tryStartDelight } from '@/lib/delight';
 import { formatAud, parseAud } from '@/lib/format';
 import {
   asDeliveryMethod,
@@ -72,6 +73,7 @@ export function PledgePanel({
   const [organiserDraft, setOrganiserDraft] = useState(item.organiser_name ?? '');
   const [payDraft, setPayDraft] = useState(item.pay_instructions ?? '');
   const [deliveryNote, setDeliveryNote] = useState(item.delivery_note ?? '');
+  const [trickleKey, setTrickleKey] = useState(0);
   const funded = isFunded(item);
   const revealed = isRevealDue(item);
   const phase = groupGiftPhase(item);
@@ -96,6 +98,7 @@ export function PledgePanel({
     try {
       await onPledge(parsed, name.trim() || undefined);
       setAmount('');
+      if (tryStartDelight('trickle')) setTrickleKey((count) => count + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save pledge');
     }
@@ -140,8 +143,10 @@ export function PledgePanel({
             {groupGiftPhaseLabel(phase)}
             {phase === 'ready_to_buy' ? ' — organiser should purchase' : ''}
           </ThemedText>
-          {funded && item.status !== 'purchased' ? <ReadyToBuyBanner item={item} /> : null}
-          <GroupGiftStrip item={item} />
+          {funded && item.status !== 'purchased' ? (
+            <ReadyToBuyBanner item={item} busy={busy} onMarkPurchased={onMarkPurchased} />
+          ) : null}
+          <GroupGiftStrip item={item} trickleKey={trickleKey} />
           <ThemedText type="small" themeColor="textSecondary">
             Organiser: {organiser}. Reveal to them on {revealLabel}
             {revealed ? ' (that date has arrived).' : ' — they stay unspoiled until then.'}
@@ -264,7 +269,7 @@ export function PledgePanel({
                   onPress={onMarkPurchased}
                 />
               ) : (
-                <ThemedText type="small" themeColor="brand">
+                <ThemedText type="bodyEm" themeColor="brand">
                   Purchased. They still only see who chipped in on {revealLabel}.
                 </ThemedText>
               )}

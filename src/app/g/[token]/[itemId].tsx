@@ -6,6 +6,7 @@ import { Keyboard, StyleSheet, View } from 'react-native';
 import { AuBuyLinks } from '@/components/au-buy-links';
 import { Button } from '@/components/button';
 import { ConfidenceBadge } from '@/components/confidence-badge';
+import { DollarFlick } from '@/components/dollar-flick';
 import { LinkHealPanel } from '@/components/link-heal-panel';
 import { NoSubLock } from '@/components/no-sub-lock';
 import { PledgePanel } from '@/components/pledge-panel';
@@ -18,6 +19,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useGiverShare } from '@/context/giver-share-context';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
+import { tryStartDelight } from '@/lib/delight';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { patchGiverCatalog, pickSharedItem, shareTokenParam, useGiverCatalog } from '@/lib/giver-catalog';
 import { applyItemStatus, giverStatusActions, preferLocalGiverItem } from '@/lib/giver-status';
@@ -82,6 +84,7 @@ export default function GiverItemScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!shareItem);
   const [busy, setBusy] = useState(false);
+  const [flickKey, setFlickKey] = useState(0);
   const autoChecked = useRef<string | null>(null);
   const demo = Boolean(token && isDemoShareToken(token));
 
@@ -137,6 +140,10 @@ export default function GiverItemScreen() {
     setBusy(true);
     const snapshot = current;
     commitItem(applyItemStatus(snapshot, status, name.trim() || undefined));
+    if (status === 'purchased' && snapshot.status !== 'purchased' && tryStartDelight('flick')) {
+      setFlickKey((count) => count + 1);
+      track('delight_purchased_flick', { status });
+    }
     try {
       commitItem(await setSharedItemStatus(token, snapshot.id, status, name.trim() || undefined));
       track('giver_status', { status });
@@ -348,7 +355,10 @@ export default function GiverItemScreen() {
           Giver view · they won’t see this
         </ThemedText>
         <ThemedText type="heading">{current.title || 'Untitled gift'}</ThemedText>
-        <StatusChip label={actions.chipLabel} tone={actions.chipTone} />
+        <View style={styles.chipRow}>
+          <StatusChip label={actions.chipLabel} tone={actions.chipTone} />
+          <DollarFlick playKey={flickKey} />
+        </View>
         <ThemedText type="small" themeColor="textSecondary">
           Soft lock is honour-system. Other givers see Taken/Bought — not names.
         </ThemedText>
@@ -417,5 +427,10 @@ const styles = StyleSheet.create({
   },
   block: {
     gap: Spacing.one,
+  },
+  chipRow: {
+    position: 'relative',
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
   },
 });
