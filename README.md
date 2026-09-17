@@ -2,7 +2,7 @@
 
 Mobile wishlist app for gift-givers who need to pick from a recipient’s **living photo wishlist**.
 
-**Coral Coast** is the locked visual direction: pure white (`#FFFFFF` / `#FAFAFA`), coral brand (`#E85D4C`), sunshine only for chip-in and pledges (`#F5B942`). Plus Jakarta Sans for UI; Fraunces for moment titles, empty states, and group-gift reveal. Success / purchased / reserved styling never appears on owner views.
+**Coral Coast** is the locked visual direction: pure white (`#FFFFFF` / `#FAFAFA`), coral brand (`#E85D4C`), sunshine only for chip-in and pledges (`#F5B942`). Plus Jakarta Sans for UI and titles (no serif headings). Success / purchased / reserved styling never appears on owner views.
 
 - Recipients curate photos + notes + taste/vibes + an optional buy URL
 - Occasion packs (birthday, housewarming, …) each get their own giver link
@@ -174,7 +174,7 @@ npm test    # surprise-safe + live RLS contract + env switch (no hosted project 
 ## Stack
 
 - Expo SDK 57, React Native, Expo Router, TypeScript
-- **Coral Coast** UI: Plus Jakarta Sans + Fraunces on web (Google Fonts); native uses system-ui / Georgia as the closest Expo stand-ins
+- **Coral Coast** UI: Plus Jakarta Sans on web (Google Fonts); native uses system-ui. Headings stay sans — Design may swap the exact sans later.
 - Supabase: Postgres, Auth, Storage, Edge Functions
 - Session storage: `expo-sqlite` on iOS/Android, `localStorage` on web
 - Demo mode so you can run the UI before a Supabase project exists

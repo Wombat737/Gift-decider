@@ -18,12 +18,12 @@ export function asRevealDate(value: string | null | undefined) {
   return match ? match[1] : null;
 }
 
+/** Display-only AU calendar date (`dd/mm/yyyy`). Storage stays YYYY-MM-DD. */
 export function formatRevealDate(value: string | null | undefined) {
   const iso = asRevealDate(value);
   if (!iso) return 'the reveal date';
-  const [year, month, day] = iso.split('-').map((part) => Number(part));
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+  const [year, month, day] = iso.split('-');
+  return `${day}/${month}/${year}`;
 }
 
 export function isRevealDue(item: Pick<WishlistItem, 'reveal_at'>, now = new Date()) {

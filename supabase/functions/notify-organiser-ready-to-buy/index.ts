@@ -22,11 +22,17 @@ function json(payload: unknown, status = 200) {
   });
 }
 
+function formatRevealDate(value: string | undefined) {
+  const match = (value ?? '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return (value ?? '').trim() || 'the reveal date';
+  return `${match[3]}/${match[2]}/${match[1]}`;
+}
+
 function compose(body: Body) {
   const who = (body.organiser_name ?? '').trim() || 'Organiser';
   const title = (body.item_title ?? '').trim() || 'the group gift';
   const pay = (body.pay_instructions ?? '').trim() || '(no PayID / BSB note yet)';
-  const reveal = (body.reveal_at ?? '').trim() || 'the reveal date';
+  const reveal = formatRevealDate(body.reveal_at);
   const subject = `Funded — time to buy ${title}`;
   const text = [
     `Hi ${who},`,

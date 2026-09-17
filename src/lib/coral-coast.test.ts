@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { CoralCoast, CoralCoastDark } from '../constants/coral-coast';
 import { getDemoItem, resetDemoStore, simulateDemoFunded } from './demo-store';
@@ -82,3 +85,29 @@ describe('Coral Coast colour law — no success/purchased/reserved on owner view
     assert.equal(JSON.stringify(ownerEspresso).includes('Ready to buy'), false);
   });
 });
+
+describe('Headings use the existing sans — no Fraunces / serif titles', () => {
+  it('title, heading, and moment styles use Fonts.sans', () => {
+    const text = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/themed-text.tsx'), 'utf8');
+    for (const name of ['heading', 'title', 'moment', 'momentSmall']) {
+      const block = text.match(new RegExp(`${name}:\\s*\\{([\\s\\S]*?)\\n  \\},`))?.[1] ?? '';
+      assert.match(block, /fontFamily: Fonts\.sans/);
+      assert.equal(/Fonts\.display/.test(block), false);
+    }
+  });
+
+  it('does not load Fraunces or pin display to a serif stack', () => {
+    const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../global.css'), 'utf8');
+    const fonts = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/web-fonts.tsx'), 'utf8');
+    const html = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../app/+html.tsx'), 'utf8');
+    const theme = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../constants/theme.ts'), 'utf8');
+    assert.equal(css.includes('Fraunces'), false);
+    assert.equal(fonts.includes('Fraunces'), false);
+    assert.equal(html.includes('Fraunces'), false);
+    assert.match(css, /--font-display:\s*var\(--font-sans\)/);
+    assert.match(theme, /display: 'var\(--font-sans\)'/);
+    assert.equal(/display: 'Georgia'/.test(theme), false);
+    assert.equal(/display: 'serif'/.test(theme), false);
+  });
+});
+

@@ -63,33 +63,33 @@ export function readableThemeColor(theme: ThemePalette, key: ThemeColor = 'text'
 
 export const Fonts = Platform.select({
   ios: {
-    /** Closest Expo stand-in for Plus Jakarta Sans / Fraunces until google fonts are bundled. */
+    /** Plus Jakarta Sans on web; system-ui stand-in on native. No serif headings. */
     sans: 'system-ui',
-    serif: 'Georgia',
+    serif: 'system-ui',
     rounded: 'ui-rounded',
     mono: 'ui-monospace',
-    display: 'Georgia',
+    display: 'system-ui',
   },
   android: {
     sans: 'sans-serif',
-    serif: 'serif',
+    serif: 'sans-serif',
     rounded: 'sans-serif-medium',
     mono: 'monospace',
-    display: 'serif',
+    display: 'sans-serif',
   },
   default: {
     sans: 'normal',
-    serif: 'serif',
+    serif: 'normal',
     rounded: 'normal',
     mono: 'monospace',
-    display: 'serif',
+    display: 'normal',
   },
   web: {
     sans: 'var(--font-sans)',
-    serif: 'var(--font-display)',
+    serif: 'var(--font-sans)',
     rounded: 'var(--font-rounded)',
     mono: 'var(--font-mono)',
-    display: 'var(--font-display)',
+    display: 'var(--font-sans)',
   },
 });
 
