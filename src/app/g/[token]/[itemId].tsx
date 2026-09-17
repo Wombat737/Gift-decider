@@ -20,7 +20,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { patchGiverCatalog, pickSharedItem, shareTokenParam, useGiverCatalog } from '@/lib/giver-catalog';
-import { applyItemStatus, giverStatusChip } from '@/lib/giver-status';
+import { applyItemStatus, giverStatusActions, preferLocalGiverItem } from '@/lib/giver-status';
 import type { DeliveryMethod, ItemStatus, WishlistItem } from '@/lib/types';
 import {
   addSharedPledge,
@@ -37,6 +37,37 @@ import {
   simulateSharedFunded,
   simulateSharedReveal,
 } from '@/services/wishlist';
+
+function GiverItemStatusFooter({
+  item,
+  busy,
+  error,
+  onLock,
+  onPurchase,
+  onRelease,
+}: {
+  item: WishlistItem;
+  busy: boolean;
+  error: string | null;
+  onLock: () => void;
+  onPurchase: () => void;
+  onRelease: () => void;
+}) {
+  const actions = giverStatusActions(item, busy);
+  return (
+    <>
+      <StatusChip label={actions.chipLabel} tone={actions.chipTone} />
+      {error ? (
+        <ThemedText type="small" themeColor="accent">
+          {error}
+        </ThemedText>
+      ) : null}
+      <Button nativePress label={actions.lockLabel} onPress={onLock} disabled={busy} />
+      <Button nativePress label={actions.purchaseLabel} variant="secondary" disabled={busy} onPress={onPurchase} />
+      <Button nativePress label={actions.releaseLabel} variant="ghost" disabled={busy} onPress={onRelease} />
+    </>
+  );
+}
 
 export default function GiverItemScreen() {
   const theme = useTheme();
@@ -55,10 +86,9 @@ export default function GiverItemScreen() {
   const demo = Boolean(token && isDemoShareToken(token));
 
   useEffect(() => {
-    if (shareItem) {
-      setItem(shareItem);
-      setLoading(false);
-    }
+    if (!shareItem) return;
+    setItem((current) => preferLocalGiverItem(shareItem, current) ?? shareItem);
+    setLoading(false);
   }, [shareItem]);
 
   useEffect(() => {
@@ -90,7 +120,7 @@ export default function GiverItemScreen() {
     if (token) patchGiverCatalog(token, next);
   }
 
-  const current = shareItem ?? item;
+  const current = preferLocalGiverItem(shareItem, item);
 
   async function updateStatus(status: ItemStatus) {
     if (!current) return;
@@ -287,47 +317,20 @@ export default function GiverItemScreen() {
     );
   }
 
-  const statusChip = giverStatusChip(current);
-  const taken = current.status === 'reserved' || current.status === 'purchased';
-  const statusLabel = `${statusChip.label}${current.item_kind === 'vibe' ? ' · vibe' : ''}`;
+  const actions = giverStatusActions(current, busy);
 
   return (
     <Screen
+      footerKey={`${current.id}:${current.status}:${busy ? 'busy' : 'idle'}`}
       footer={
-        <>
-          <StatusChip label={statusLabel} tone={statusChip.tone} />
-          {error ? (
-            <ThemedText type="small" themeColor="accent">
-              {error}
-            </ThemedText>
-          ) : null}
-          <Button
-            nativePress
-            label={
-              busy
-                ? 'Saving…'
-                : taken && current.status === 'reserved'
-                  ? 'Already taken — steal the lock?'
-                  : 'Soft-lock this'
-            }
-            onPress={() => void updateStatus('reserved')}
-            disabled={busy}
-          />
-          <Button
-            nativePress
-            label={current.status === 'purchased' ? 'Already purchased' : 'Mark purchased'}
-            variant="secondary"
-            disabled={busy}
-            onPress={() => void updateStatus('purchased')}
-          />
-          <Button
-            nativePress
-            label={current.status === 'available' ? 'Not on hold' : 'Release hold'}
-            variant="ghost"
-            disabled={busy}
-            onPress={() => void updateStatus('available')}
-          />
-        </>
+        <GiverItemStatusFooter
+          item={current}
+          busy={busy}
+          error={error}
+          onLock={() => void updateStatus('reserved')}
+          onPurchase={() => void updateStatus('purchased')}
+          onRelease={() => void updateStatus('available')}
+        />
       }>
       <View
         collapsable={false}
@@ -345,7 +348,7 @@ export default function GiverItemScreen() {
           Giver view · they won’t see this
         </ThemedText>
         <ThemedText type="heading">{current.title || 'Untitled gift'}</ThemedText>
-        <StatusChip label={statusLabel} tone={statusChip.tone} />
+        <StatusChip label={actions.chipLabel} tone={actions.chipTone} />
         <ThemedText type="small" themeColor="textSecondary">
           Soft lock is honour-system. Other givers see Taken/Bought — not names.
         </ThemedText>

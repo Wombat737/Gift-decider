@@ -21,6 +21,8 @@ type ScreenProps = ViewProps & {
   padded?: boolean;
   /** Mounted as a sibling of ScrollView, not inside it. Use for primary CTAs. */
   footer?: ReactNode;
+  /** Remount the native footer dock when status copy changes (Fabric can keep stale labels). */
+  footerKey?: string;
 };
 
 function useKeyboardVerticalOffset() {
@@ -28,7 +30,7 @@ function useKeyboardVerticalOffset() {
   return Platform.OS === 'ios' ? (headerHeight ?? 0) : 0;
 }
 
-export function Screen({ children, style, scroll = true, padded = true, footer, ...rest }: ScreenProps) {
+export function Screen({ children, style, scroll = true, padded = true, footer, footerKey, ...rest }: ScreenProps) {
   const theme = useTheme();
   const keyboardVerticalOffset = useKeyboardVerticalOffset();
   const body = (
@@ -81,7 +83,10 @@ export function Screen({ children, style, scroll = true, padded = true, footer, 
                   backgroundColor: theme.background,
                 },
               ]}>
-              <View collapsable={false} style={[styles.footerInner, padded && styles.footerPadded]}>
+              <View
+                key={footerKey}
+                collapsable={false}
+                style={[styles.footerInner, padded && styles.footerPadded]}>
                 {footer}
               </View>
             </View>

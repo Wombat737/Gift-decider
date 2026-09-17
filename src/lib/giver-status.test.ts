@@ -13,8 +13,10 @@ import { patchGiverCatalog, peekGiverCatalog, pickSharedItem, resetGiverCatalog,
 import {
   applyItemStatus,
   coerceItemStatus,
+  giverStatusActions,
   giverStatusChip,
   mergeGiverItem,
+  preferLocalGiverItem,
   replaceSharedItem,
 } from './giver-status';
 import { ownerSafeItem } from './surprise-safe';
@@ -215,5 +217,75 @@ describe('Giver status icon after lock / purchase / release', () => {
     const released = setDemoItemStatus('demo-mug', 'available');
     patchGiverCatalog('demo', released);
     assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
+  });
+
+  it('item screen paints Taken/Bought/Open immediately while the catalog is still stale', () => {
+    const mug = getDemoItem('demo-mug')!;
+    const liveToken = 'live-share-item-screen';
+    writeGiverCatalog(liveToken, [mug]);
+
+    let local: typeof mug | null = mug;
+    const paint = () => preferLocalGiverItem(pickSharedItem('demo-mug', peekGiverCatalog(liveToken)), local);
+
+    const open = paint();
+    assert.ok(open);
+    assert.equal(giverStatusChip(open).label, 'Open');
+    assert.equal(giverStatusActions(open).lockLabel, 'Soft-lock this');
+    assert.equal(giverStatusActions(open).purchaseLabel, 'Mark purchased');
+    assert.equal(giverStatusActions(open).releaseLabel, 'Not on hold');
+
+    local = applyItemStatus(open, 'reserved', 'Alex');
+    const taken = paint();
+    assert.ok(taken);
+    assert.equal(taken.status, 'reserved');
+    assert.equal(giverStatusChip(taken).label, 'Taken');
+    assert.equal(giverStatusActions(taken).lockLabel, 'Already taken — steal the lock?');
+    assert.equal(giverStatusActions(taken).purchaseLabel, 'Mark purchased');
+    assert.equal(giverStatusActions(taken).releaseLabel, 'Release hold');
+    assert.equal(giverStatusActions(taken, true).lockLabel, 'Saving…');
+    // Catalog not patched yet — the old `shareItem ?? item` paint would stay Open.
+    assert.equal(giverStatusChip((pickSharedItem('demo-mug', peekGiverCatalog(liveToken)) ?? local)!).label, 'Open');
+    assert.equal(giverStatusChip(preferLocalGiverItem(pickSharedItem('demo-mug', peekGiverCatalog(liveToken)), local)!).label, 'Taken');
+
+    patchGiverCatalog(liveToken, local);
+    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(liveToken))!).label, 'Taken');
+    assert.equal(giverStatusChip(paint()!).label, 'Taken');
+
+    local = applyItemStatus(taken, 'purchased', 'Alex');
+    const bought = paint();
+    assert.ok(bought);
+    assert.equal(giverStatusChip(bought).label, 'Bought');
+    assert.equal(giverStatusActions(bought).purchaseLabel, 'Already purchased');
+    assert.equal(giverStatusActions(bought).lockLabel, 'Soft-lock this');
+    assert.equal(giverStatusActions(bought).releaseLabel, 'Release hold');
+    patchGiverCatalog(liveToken, local);
+    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(liveToken))!).label, 'Bought');
+
+    local = applyItemStatus(bought, 'available');
+    const released = paint();
+    assert.ok(released);
+    assert.equal(released.status, 'available');
+    assert.equal(giverStatusChip(released).label, 'Open');
+    assert.equal(giverStatusActions(released).releaseLabel, 'Not on hold');
+    assert.equal(giverStatusActions(released).lockLabel, 'Soft-lock this');
+    patchGiverCatalog(liveToken, local);
+    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(liveToken))!).label, 'Open');
+
+    const socks = getDemoItem('demo-socks')!;
+    assert.equal(preferLocalGiverItem(socks, local)?.id, 'demo-socks');
+    assert.equal(ownerSafeItem(bought).status, 'available');
+    assert.equal(JSON.stringify(ownerSafeItem(bought)).includes('Bought'), false);
+  });
+
+  it('demo overlay write-through keeps Taken while the demo store is still Open', () => {
+    const mug = getDemoItem('demo-mug')!;
+    assert.equal(giverStatusChip(mug).label, 'Open');
+    patchGiverCatalog('demo', applyItemStatus(mug, 'reserved', 'Alex'));
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Taken');
+    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
+    patchGiverCatalog('demo', applyItemStatus(mug, 'purchased', 'Alex'));
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Bought');
+    const owner = ownerSafeItem(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!);
+    assert.equal(owner.status, 'available');
   });
 });
