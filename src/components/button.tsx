@@ -100,7 +100,7 @@ export function Button({
   ];
 
   const labelNode = icon ? (
-    <View style={styles.labelRow} pointerEvents="none">
+    <View style={styles.labelRow}>
       <FlairIcon name={icon} color={color} />
       <ThemedText type="bodyEm" style={{ color, textAlign: 'center', pointerEvents: 'none' }}>
         {label}

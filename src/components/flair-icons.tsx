@@ -23,12 +23,7 @@ export function FlairIcon({ name, color, size = 24, active = false }: FlairIconP
   };
 
   return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      accessibilityElementsHidden
-      importantForAccessibility="no">
+    <Svg width={size} height={size} viewBox="0 0 24 24">
       {name === 'add' ? (
         <Path d="M12 5 V19 M5 12 H19" {...common} />
       ) : name === 'share' ? (

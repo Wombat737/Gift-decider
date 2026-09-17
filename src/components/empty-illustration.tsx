@@ -68,13 +68,7 @@ function GiverBag({ size }: { size: number }) {
       <Rect x="50" y="56" width="60" height="12" rx="4" fill={CoralCoast.ink} />
       <Circle cx="118" cy="50" r="20" fill={CoralCoast.accent} />
       <Circle cx="118" cy="50" r="20" fill="none" stroke={CoralCoast.ink} strokeWidth={3} />
-      <Path
-        d="M118 40 V60 M111 46 H125"
-        fill="none"
-        stroke={CoralCoast.ink}
-        strokeWidth={3}
-        strokeLinecap="round"
-      />
+      <Circle cx="118" cy="50" r="8" fill="none" stroke={CoralCoast.ink} strokeWidth={3} />
     </Svg>
   );
 }
