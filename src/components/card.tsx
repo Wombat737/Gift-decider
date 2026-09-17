@@ -1,14 +1,23 @@
 import { StyleSheet, View, type ViewProps } from 'react-native';
 
-import { CardShadow, Radius, Spacing } from '@/constants/theme';
+import { CardShadow, Radius, RingSelected, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type CardProps = ViewProps & {
   padded?: boolean;
   raised?: boolean;
+  /** Press / selected coral-tint ring. */
+  selected?: boolean;
 };
 
-export function Card({ children, style, padded = true, raised = true, ...rest }: CardProps) {
+export function Card({
+  children,
+  style,
+  padded = true,
+  raised = true,
+  selected = false,
+  ...rest
+}: CardProps) {
   const theme = useTheme();
 
   return (
@@ -19,7 +28,7 @@ export function Card({ children, style, padded = true, raised = true, ...rest }:
         raised && CardShadow,
         {
           backgroundColor: theme.backgroundElement,
-          borderColor: theme.border,
+          borderColor: selected ? RingSelected : theme.border,
         },
         style,
       ]}

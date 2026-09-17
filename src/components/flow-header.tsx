@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { ChipPad, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type FlowHeaderProps = {
@@ -74,8 +74,8 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
     borderRadius: Radius.pill,
     borderWidth: 1,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingHorizontal: ChipPad.horizontal,
+    paddingVertical: ChipPad.vertical,
   },
   sub: {
     maxWidth: '100%',

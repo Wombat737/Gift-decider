@@ -77,6 +77,7 @@ export default function GiverShareScreen() {
           emptyBody={PrettyCopy.giverEmptyBody}
           emptyActionLabel={PrettyCopy.giverEmptyCta}
           onEmptyAction={() => void remindThem()}
+          emptyKind="giver"
         />
       ) : (
         <ThemedText themeColor="textSecondary">Loading gifts…</ThemedText>

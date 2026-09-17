@@ -31,5 +31,9 @@ export function endDelight(kind: DelightKind) {
 export const DOLLAR_FLICK_MS = 800;
 export const COIN_TRICKLE_MS = 900;
 export const REDUCE_MOTION_TOAST_MS = 400;
-export const BUTTON_PRESS_SCALE = 0.96;
+export const BUTTON_PRESS_SCALE = 0.97;
 export const BUTTON_PRESS_MS = 100;
+export const SPARK_TRAVEL_PX = 12;
+export const BAR_PULSE_MS = 150;
+/** Celebration variant — v2 is default; A/B wiring later. */
+export const DELIGHT_VARIANT = 'v2' as const;

@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { ChipPad, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { GiverChipTone } from '@/lib/tones';
 
@@ -61,8 +61,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     maxWidth: '100%',
     borderRadius: Radius.pill,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.two + 2,
-    paddingVertical: Spacing.one,
+    borderWidth: 2,
+    paddingHorizontal: ChipPad.horizontal,
+    paddingVertical: ChipPad.vertical,
   },
 });

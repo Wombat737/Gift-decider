@@ -1,10 +1,10 @@
 import { StyleSheet, View } from 'react-native';
 
-import { BrandMark } from '@/components/brand-mark';
 import { Button } from '@/components/button';
+import { EmptyIllustration, type EmptyIllustrationKind } from '@/components/empty-illustration';
+import { HeroWash } from '@/components/hero-wash';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { Spacing } from '@/constants/theme';
 
 type EmptyStateProps = {
   title: string;
@@ -13,6 +13,7 @@ type EmptyStateProps = {
   onAction?: () => void;
   secondaryLabel?: string;
   onSecondary?: () => void;
+  kind?: EmptyIllustrationKind;
 };
 
 export function EmptyState({
@@ -22,33 +23,32 @@ export function EmptyState({
   onAction,
   secondaryLabel,
   onSecondary,
+  kind = 'owner',
 }: EmptyStateProps) {
-  const theme = useTheme();
-
   return (
-    <View
-      style={[
-        styles.wrap,
-        {
-          backgroundColor: theme.backgroundElement,
-          borderColor: theme.border,
-        },
-      ]}
-      accessibilityLabel="empty-state">
-      <View style={[styles.markHalo, { backgroundColor: theme.brandSoft }]}>
-        <BrandMark size={48} />
-      </View>
+    <HeroWash variant="hero" style={styles.wrap} accessibilityLabel="empty-state">
+      <EmptyIllustration kind={kind} />
       <ThemedText type="display" style={styles.title}>
         {title}
       </ThemedText>
       <ThemedText themeColor="textSecondary" style={styles.body}>
         {body}
       </ThemedText>
-      {actionLabel && onAction ? <Button label={actionLabel} onPress={onAction} /> : null}
-      {secondaryLabel && onSecondary ? (
-        <Button label={secondaryLabel} variant="ghost" onPress={onSecondary} />
+      {actionLabel && onAction ? (
+        <View style={styles.actions}>
+          <Button
+            label={actionLabel}
+            icon={kind === 'giver' ? 'nudge' : kind === 'invites' ? 'share' : 'add'}
+            onPress={onAction}
+          />
+        </View>
       ) : null}
-    </View>
+      {secondaryLabel && onSecondary ? (
+        <View style={styles.actions}>
+          <Button label={secondaryLabel} variant="ghost" onPress={onSecondary} />
+        </View>
+      ) : null}
+    </HeroWash>
   );
 }
 
@@ -56,29 +56,22 @@ const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    width: '100%',
-    maxWidth: '100%',
     gap: Spacing.twoHalf,
     paddingVertical: Spacing.five,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Radius.card,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-  },
-  markHalo: {
-    width: 72,
-    height: 72,
-    borderRadius: Radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.one,
+    overflow: 'visible',
   },
   title: {
     textAlign: 'center',
+    letterSpacing: -0.14,
   },
   body: {
     textAlign: 'center',
     width: '100%',
     maxWidth: 360,
+  },
+  actions: {
+    width: '100%',
+    maxWidth: 360,
+    alignSelf: 'center',
   },
 });

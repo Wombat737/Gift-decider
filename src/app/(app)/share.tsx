@@ -4,6 +4,7 @@ import { Platform, Share, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { EmptyIllustration } from '@/components/empty-illustration';
 import { FlowHeader } from '@/components/flow-header';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
@@ -83,7 +84,7 @@ export default function ShareScreen() {
         <ThemedText type="titleSm">Every pinned gift</ThemedText>
         <ThemedText type="code">{link || 'Loading…'}</ThemedText>
         <View style={styles.row}>
-          <Button label={PrettyCopy.shareCta} onPress={() => link && void sharePack(wishlist!.share_token)} />
+          <Button label={PrettyCopy.shareCta} icon="share" onPress={() => link && void sharePack(wishlist!.share_token)} />
           <Button
             label="Open giver view"
             variant="secondary"
@@ -101,9 +102,12 @@ export default function ShareScreen() {
           Each pack gets its own giver link so mates only see the right gifts.
         </ThemedText>
         {occasions.length === 0 ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            No packs yet.
-          </ThemedText>
+          <View style={styles.invitesEmpty}>
+            <EmptyIllustration kind="invites" size={120} />
+            <ThemedText type="small" themeColor="textSecondary">
+              No packs yet.
+            </ThemedText>
+          </View>
         ) : (
           occasions.map((occasion) => {
             const count = items.filter((item) => item.occasion_id === occasion.id).length;
@@ -117,6 +121,7 @@ export default function ShareScreen() {
                 <View style={styles.row}>
                   <Button
                     label={PrettyCopy.shareCta}
+                    icon="share"
                     variant="secondary"
                     onPress={() => void sharePack(occasion.share_token, occasion.title)}
                   />
@@ -171,5 +176,10 @@ const styles = StyleSheet.create({
   occasion: {
     gap: Spacing.one,
     paddingTop: Spacing.two,
+  },
+  invitesEmpty: {
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.two,
   },
 });

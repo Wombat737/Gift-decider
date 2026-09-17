@@ -129,23 +129,64 @@ export const Radius = {
   pill: CoralCoast.radius.pill,
 } as const;
 
+/** Flair-pass hero washes — splash, empty heroes, reveal header. Not list rows. */
+export const Washes = {
+  hero: ['#FFE8E4', '#FAFAFA'] as const,
+  chipin: ['#FFF3D1', '#FFFFFF'] as const,
+};
+
+/** Selected / press ring — coral at 40%. */
+export const RingSelected = 'rgba(232, 93, 76, 0.4)';
+
+/** Sticker chips — taller than pretty v1. */
+export const ChipPad = {
+  vertical: 10,
+  horizontal: 14,
+} as const;
+
+/** Empty-state hero art. */
+export const IlluSize = 140;
+
+/** Richer gift-card lift (pretty v2). */
 export const CardShadow: ViewStyle = Platform.select({
   ios: {
     shadowColor: CoralCoast.ink,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
   },
   android: {
-    elevation: 2,
+    elevation: 3,
   },
   web: {
-    boxShadow: '0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.06)',
+    boxShadow: '0 2px 4px rgb(0 0 0 / 0.05), 0 8px 20px rgb(0 0 0 / 0.07)',
   },
   default: {
     shadowColor: CoralCoast.ink,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+  },
+}) as ViewStyle;
+
+/** Primary CTA press lift — coral-tinted, web + native. */
+export const ShadowFloat: ViewStyle = Platform.select({
+  ios: {
+    shadowColor: CoralCoast.brand,
+    shadowOpacity: 0.18,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  android: {
+    elevation: 6,
+  },
+  web: {
+    boxShadow: '0 8px 28px rgb(232 93 76 / 0.18)',
+  },
+  default: {
+    shadowColor: CoralCoast.brand,
+    shadowOpacity: 0.18,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 8 },
   },
 }) as ViewStyle;

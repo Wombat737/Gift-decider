@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { EmptyState } from '@/components/empty-state';
 import { ItemCard } from '@/components/item-card';
 import { Spacing } from '@/constants/theme';
+import type { EmptyIllustrationKind } from '@/components/empty-illustration';
 import type { WishlistItem } from '@/lib/types';
 
 type ItemGridProps = {
@@ -16,6 +17,7 @@ type ItemGridProps = {
   onEmptyAction?: () => void;
   emptySecondaryLabel?: string;
   onEmptySecondary?: () => void;
+  emptyKind?: EmptyIllustrationKind;
 };
 
 export function ItemGrid({
@@ -28,6 +30,7 @@ export function ItemGrid({
   onEmptyAction,
   emptySecondaryLabel,
   onEmptySecondary,
+  emptyKind = 'owner',
 }: ItemGridProps) {
   if (items.length === 0) {
     return (
@@ -38,6 +41,7 @@ export function ItemGrid({
         onAction={onEmptyAction}
         secondaryLabel={emptySecondaryLabel}
         onSecondary={onEmptySecondary}
+        kind={emptyKind}
       />
     );
   }
