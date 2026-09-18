@@ -19,8 +19,9 @@ export const PrettyCopy = {
   purchasedGiver: 'Bought — nice one.',
   revealDay: 'The mates chipped in — here’s who.',
   peopleTitle: 'People you buy for',
-  peopleEmptyTitle: 'Got a link? Paste it.',
-  peopleEmptyBody: 'Or search their Coral Coast handle. Pin is private — you only see gifts after they accept, or if you already have their share link.',
+  peopleEmptyTitle: 'Who are you buying for?',
+  peopleEmptyBody:
+    'Search their Coral Coast handle or email. Pin is private — you only see gifts after they accept.',
   peopleCta: 'Add someone',
   requestsTitle: 'Giver requests',
   commentsHint: 'Only other givers see this — not them.',

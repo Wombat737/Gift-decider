@@ -102,6 +102,30 @@ function id(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function demoEmailFor(handle: string) {
+  return `${handle}@giftdecider.local`;
+}
+
+function asDirectoryHit(person: DemoDirectoryPerson): HandleSearchHit {
+  const member = memberFor(person.id);
+  const status = member?.status ?? 'none';
+  const canOpen = canGiverOpenWishlist({
+    memberStatus: status,
+    accepted: Boolean(member?.accepted_at),
+    hasShareToken: Boolean(person.share_token),
+    isPublicLink: person.is_public_link,
+  });
+  return {
+    id: person.id,
+    handle: person.handle,
+    display_name: person.display_name,
+    access_status: status,
+    can_open: canOpen,
+    share_token: canOpen ? person.share_token : null,
+    is_public_link: person.is_public_link,
+  };
+}
+
 function seedBundle(): DemoSocialBundle {
   return {
     discoverability: 'handle',
@@ -337,25 +361,16 @@ export function searchDemoProfilesByHandle(query: string): HandleSearchHit[] {
         discoverability: person.discoverability,
       }),
     )
-    .map((person) => {
-      const member = memberFor(person.id);
-      const status = member?.status ?? 'none';
-      const canOpen = canGiverOpenWishlist({
-        memberStatus: status,
-        accepted: Boolean(member?.accepted_at),
-        hasShareToken: Boolean(person.share_token),
-        isPublicLink: person.is_public_link,
-      });
-      return {
-        id: person.id,
-        handle: person.handle,
-        display_name: person.display_name,
-        access_status: status,
-        can_open: canOpen,
-        share_token: canOpen ? person.share_token : null,
-        is_public_link: person.is_public_link,
-      };
-    });
+    .map(asDirectoryHit);
+}
+
+export function lookupDemoProfileByEmail(email: string): HandleSearchHit[] {
+  adopt();
+  assertRateLimit(bundle.rate, 'handle_search');
+  write({ ...bundle, rate: [...bundle.rate, { kind: 'handle_search', at: Date.now() }] });
+  const cleaned = email.trim().toLowerCase();
+  const person = directory.find((row) => demoEmailFor(row.handle) === cleaned);
+  return person ? [asDirectoryHit(person)] : [];
 }
 
 export function requestDemoGiverAccess(recipientId: string) {
@@ -424,7 +439,7 @@ export function inviteDemoGiverByEmail(email: string) {
   const cleaned = email.trim().toLowerCase();
   if (!cleaned || !cleaned.includes('@')) throw new Error('Enter an email');
   assertRateLimit(bundle.rate, 'email_invite');
-  const known = directory.find((person) => `${person.handle}@giftdecider.local` === cleaned);
+  const known = directory.find((person) => demoEmailFor(person.handle) === cleaned);
   write({
     ...bundle,
     rate: [...bundle.rate, { kind: 'email_invite', at: Date.now() }],

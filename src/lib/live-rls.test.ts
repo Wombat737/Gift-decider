@@ -91,6 +91,8 @@ describe('Surprise-safe RLS contract', () => {
     const socialA = migration('20260918090000_giver_social_foundations.sql');
     assert.match(socialA, /search_profiles_by_handle/);
     assert.match(socialA, /giver_people/);
+    const socialEmail = migration('20260918120000_lookup_profile_by_email.sql');
+    assert.match(socialEmail, /lookup_profile_by_email/);
     const socialB = migration('20260918100000_item_giver_comments.sql');
     assert.match(socialB, /item_giver_comments_deny_owner/);
     const socialC = migration('20260918110000_taste_tags_search.sql');

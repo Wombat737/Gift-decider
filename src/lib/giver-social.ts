@@ -24,6 +24,17 @@ export function normalizeHandleQuery(raw: string) {
   return raw.trim().replace(/^@+/, '').toLowerCase();
 }
 
+/** `@handle` stays a handle. Email needs `@` plus a dotted domain. */
+export function looksLikeEmailQuery(raw: string) {
+  const q = raw.trim();
+  if (!q || q.startsWith('@')) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(q);
+}
+
+export function classifyPeopleSearchQuery(raw: string): 'email' | 'handle' {
+  return looksLikeEmailQuery(raw) ? 'email' : 'handle';
+}
+
 export function matchesHandleSearch(opts: {
   handle: string | null;
   displayName?: string | null;
