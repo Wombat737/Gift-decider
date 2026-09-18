@@ -14,11 +14,12 @@ import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { PrettyCopy } from '@/lib/copy';
-import { giverAccessChip, shareTokenFromInput } from '@/lib/giver-social';
+import { classifyPeopleSearchQuery, giverAccessChip } from '@/lib/giver-social';
 import type { GiverPerson, HandleSearchHit } from '@/lib/types';
 import {
   inviteGiverByEmail,
   listGiverPeople,
+  lookupProfileByEmail,
   requestGiverAccess,
   searchProfilesByHandle,
   unlistGiverPerson,
@@ -34,9 +35,8 @@ export default function PeopleScreen() {
   const params = useLocalSearchParams<{ add?: string | string[] }>();
   const [people, setPeople] = useState<GiverPerson[]>([]);
   const [addingOverride, setAddingOverride] = useState<boolean | null>(null);
-  const [handle, setHandle] = useState('');
+  const [query, setQuery] = useState('');
   const [email, setEmail] = useState('');
-  const [link, setLink] = useState('');
   const [hits, setHits] = useState<HandleSearchHit[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,10 +69,16 @@ export default function PeopleScreen() {
     setBusy(true);
     setMessage(null);
     try {
-      const next = await searchProfilesByHandle(handle);
+      const kind = classifyPeopleSearchQuery(query);
+      const next =
+        kind === 'email' ? await lookupProfileByEmail(query) : await searchProfilesByHandle(query);
       setHits(next);
       if (next.length === 0) {
-        setMessage('No handle matched. Private lists stay off search — try a share link.');
+        setMessage(
+          kind === 'email'
+            ? 'No account matched that email. Invite them below if they’re new.'
+            : 'No handle matched. Private lists stay off search — invite by email below if they’re new.',
+        );
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Search failed');
@@ -118,37 +124,21 @@ export default function PeopleScreen() {
     }
   }
 
-  function onPasteLink() {
-    const token = shareTokenFromInput(link);
-    if (!token) {
-      setMessage('Paste a /g/… share link, or the token itself.');
-      return;
-    }
-    router.push(`/g/${token}`);
-  }
-
   const addForm = (
     <Card>
       <ThemedText type="eyebrow" themeColor="brand">
         {PrettyCopy.peopleCta}
       </ThemedText>
       <TextField
-        label="Paste a share link"
-        value={link}
-        onChangeText={setLink}
-        autoCapitalize="none"
-        placeholder="https://…/g/token"
-      />
-      <Button label="Open link" variant="secondary" onPress={onPasteLink} />
-      <TextField
-        label="Search handle"
-        value={handle}
-        onChangeText={setHandle}
+        label="Handle or email"
+        value={query}
+        onChangeText={setQuery}
         autoCapitalize="none"
         autoCorrect={false}
         autoFocus
-        placeholder="@mumhandle"
-        hint="Exact or prefix on their handle. Display names are not searchable."
+        keyboardType="email-address"
+        placeholder="@mumhandle or mum@example.com"
+        hint="Exact or prefix on their handle, or their email. Display names are not searchable."
       />
       <Button label={busy ? 'Searching…' : 'Search'} disabled={busy} onPress={() => void onSearch()} />
       {hits.map((hit) => (
@@ -177,7 +167,7 @@ export default function PeopleScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         placeholder="mum@example.com"
-        hint="Authenticated sender only. Scaffold does not send mail yet."
+        hint="For someone who isn’t on Gift Decider yet. Authenticated sender only — scaffold does not send mail yet."
       />
       <Button label="Send invite" variant="ghost" disabled={busy} onPress={() => void onInvite()} />
       {message ? (
@@ -224,8 +214,6 @@ export default function PeopleScreen() {
             actionLabel={PrettyCopy.peopleCta}
             actionIcon="add"
             onAction={openAdd}
-            secondaryLabel="Paste a share link"
-            onSecondary={openAdd}
           />
         )
       ) : (

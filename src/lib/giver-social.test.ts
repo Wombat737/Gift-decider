@@ -10,6 +10,7 @@ import {
   listDemoGiverAccessRequests,
   listDemoGiverPeople,
   listDemoItemGiverComments,
+  lookupDemoProfileByEmail,
   postDemoItemGiverComment,
   respondDemoGiverAccess,
   searchDemoProfilesByHandle,
@@ -17,9 +18,11 @@ import {
 } from './demo-social';
 import {
   canGiverOpenWishlist,
+  classifyPeopleSearchQuery,
   commentVisibleOnOwnerItem,
   giverCanUseComments,
   handleSearchPayloadLeaks,
+  looksLikeEmailQuery,
   matchesHandleSearch,
   normalizeTasteTags,
   ownerMayReadGiverComments,
@@ -127,9 +130,30 @@ describe('Giver social A — handle search, pins, access gate', () => {
     assert.match(people, /footer=\{/);
     assert.match(people, /nativePress icon="add" label=\{PrettyCopy\.peopleCta\}/);
     assert.match(people, /searchProfilesByHandle/);
+    assert.match(people, /lookupProfileByEmail/);
+    assert.match(people, /classifyPeopleSearchQuery/);
     assert.match(people, /inviteGiverByEmail/);
-    assert.match(people, /shareTokenFromInput/);
+    assert.equal(/shareTokenFromInput/.test(people), false);
+    assert.equal(/Paste a share link/.test(people), false);
+    assert.match(source('src/lib/copy.ts'), /handle or email/i);
     assert.match(empty, /actionIcon/);
+  });
+
+  it('Add someone search routes handle vs email by input shape', () => {
+    assert.equal(classifyPeopleSearchQuery('@mumhandle'), 'handle');
+    assert.equal(classifyPeopleSearchQuery('mum'), 'handle');
+    assert.equal(classifyPeopleSearchQuery('mum@'), 'handle');
+    assert.equal(classifyPeopleSearchQuery('mum@giftdecider'), 'handle');
+    assert.equal(looksLikeEmailQuery('mum@giftdecider.local'), true);
+    assert.equal(classifyPeopleSearchQuery('mum@giftdecider.local'), 'email');
+    assert.equal(classifyPeopleSearchQuery('  Priya@Example.com  '), 'email');
+
+    const mum = lookupDemoProfileByEmail('mum@giftdecider.local');
+    assert.equal(mum.length, 1);
+    assert.equal(mum[0]?.handle, 'mum');
+    assert.equal(handleSearchPayloadLeaks(mum), null);
+    assert.equal(lookupDemoProfileByEmail('nobody@example.com').length, 0);
+    assert.equal(lookupDemoProfileByEmail('@mum').length, 0);
   });
 
   it('email invite stubs unknown addresses and parses share links', () => {
@@ -154,6 +178,13 @@ describe('Giver social A — handle search, pins, access gate', () => {
     assert.match(sql, /m\.status = 'active'/);
     assert.equal(/display_name ilike/i.test(sql), false);
     assert.equal(/select[\s\S]*email/i.test(sql.split('search_profiles_by_handle')[1]?.slice(0, 800) ?? 'select email'), false);
+
+    const lookupSql = migration('20260918120000_lookup_profile_by_email.sql');
+    assert.match(lookupSql, /lookup_profile_by_email/);
+    assert.match(lookupSql, /auth\.users/);
+    assert.match(lookupSql, /grant execute on function public\.lookup_profile_by_email\(text\) to authenticated/);
+    assert.match(lookupSql, /revoke all on function public\.lookup_profile_by_email\(text\) from anon, public/);
+    assert.equal(/p\.email|u\.email as/i.test(lookupSql), false);
   });
 });
 
@@ -257,15 +288,15 @@ describe('Giver social C — strict tag search', () => {
     assert.equal(/TasteTagEditor/.test(giverList), false);
     assert.equal(/taste_tags/.test(giverList), false);
     assert.match(giverItem, /GiverComments/);
-    assert.match(people, /Search handle/);
-    assert.equal(/display name/i.test(people.split('Search handle')[1]?.slice(0, 400) ?? ''), true);
+    assert.match(people, /Handle or email/);
+    assert.equal(/display name/i.test(people.split('Handle or email')[1]?.slice(0, 400) ?? ''), true);
     assert.match(people, /PrettyCopy\.peopleCta/);
     assert.match(people, /headerRight/);
     assert.match(people, /accessibilityLabel=\{PrettyCopy\.peopleCta\}/);
     assert.match(people, /icon="add"/);
     assert.match(people, /actionLabel=\{PrettyCopy\.peopleCta\}/);
     assert.match(people, /Invite by email/);
-    assert.match(people, /Paste a share link/);
+    assert.equal(/Paste a share link/.test(people), false);
     assert.match(people, /nativePress/);
     assert.match(giverList, /PrettyCopy\.peopleCta/);
     assert.match(giverList, /\/people\?add=1/);

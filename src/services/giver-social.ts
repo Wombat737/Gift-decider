@@ -12,6 +12,7 @@ import {
   postDemoItemGiverComment,
   requestDemoGiverAccess,
   respondDemoGiverAccess,
+  lookupDemoProfileByEmail,
   searchDemoProfilesByHandle,
   searchDemoWishlistItems,
   unlistDemoGiverPerson,
@@ -113,6 +114,13 @@ export async function unlistGiverPerson(pinId: string) {
 export async function searchProfilesByHandle(query: string): Promise<HandleSearchHit[]> {
   if (usesDemoData() || !supabase) return searchDemoProfilesByHandle(query);
   const { data, error } = await supabase.rpc('search_profiles_by_handle', { p_q: query });
+  if (error) throw rpcError(error);
+  return ((data ?? []) as Record<string, unknown>[]).map(asHit);
+}
+
+export async function lookupProfileByEmail(email: string): Promise<HandleSearchHit[]> {
+  if (usesDemoData() || !supabase) return lookupDemoProfileByEmail(email);
+  const { data, error } = await supabase.rpc('lookup_profile_by_email', { p_email: email });
   if (error) throw rpcError(error);
   return ((data ?? []) as Record<string, unknown>[]).map(asHit);
 }
