@@ -1,16 +1,18 @@
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
+import { FlairIcon } from '@/components/flair-icons';
 import { FlowHeader } from '@/components/flow-header';
 import { Screen } from '@/components/screen';
 import { StatusChip } from '@/components/status-chip';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { PrettyCopy } from '@/lib/copy';
 import { giverAccessChip, shareTokenFromInput } from '@/lib/giver-social';
 import type { GiverPerson, HandleSearchHit } from '@/lib/types';
@@ -22,14 +24,23 @@ import {
   unlistGiverPerson,
 } from '@/services/giver-social';
 
+function wantsAddParam(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw === '1' || raw === 'true';
+}
+
 export default function PeopleScreen() {
+  const theme = useTheme();
+  const params = useLocalSearchParams<{ add?: string | string[] }>();
   const [people, setPeople] = useState<GiverPerson[]>([]);
+  const [addingOverride, setAddingOverride] = useState<boolean | null>(null);
   const [handle, setHandle] = useState('');
   const [email, setEmail] = useState('');
   const [link, setLink] = useState('');
   const [hits, setHits] = useState<HandleSearchHit[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const adding = addingOverride ?? wantsAddParam(params.add);
 
   const refresh = useCallback(async () => {
     try {
@@ -44,6 +55,15 @@ export default function PeopleScreen() {
       void refresh();
     }, [refresh]),
   );
+
+  function openAdd() {
+    setAddingOverride(true);
+    setMessage(null);
+  }
+
+  function closeAdd() {
+    setAddingOverride(false);
+  }
 
   async function onSearch() {
     setBusy(true);
@@ -107,75 +127,107 @@ export default function PeopleScreen() {
     router.push(`/g/${token}`);
   }
 
+  const addForm = (
+    <Card>
+      <ThemedText type="eyebrow" themeColor="brand">
+        {PrettyCopy.peopleCta}
+      </ThemedText>
+      <TextField
+        label="Paste a share link"
+        value={link}
+        onChangeText={setLink}
+        autoCapitalize="none"
+        placeholder="https://…/g/token"
+      />
+      <Button label="Open link" variant="secondary" onPress={onPasteLink} />
+      <TextField
+        label="Search handle"
+        value={handle}
+        onChangeText={setHandle}
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoFocus
+        placeholder="@mumhandle"
+        hint="Exact or prefix on their handle. Display names are not searchable."
+      />
+      <Button label={busy ? 'Searching…' : 'Search'} disabled={busy} onPress={() => void onSearch()} />
+      {hits.map((hit) => (
+        <View key={hit.id} style={styles.hit}>
+          <ThemedText type="smallBold">@{hit.handle}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {hit.display_name}
+          </ThemedText>
+          <StatusChip label={giverAccessChip(hit.access_status).label} tone={giverAccessChip(hit.access_status).tone} />
+          {hit.can_open && hit.share_token ? (
+            <Button label="Open list" onPress={() => router.push(`/g/${hit.share_token}`)} />
+          ) : (
+            <Button
+              label="Request access"
+              variant="secondary"
+              disabled={busy || hit.access_status === 'pending_request'}
+              onPress={() => void onRequest(hit.id)}
+            />
+          )}
+        </View>
+      ))}
+      <TextField
+        label="Invite by email"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        placeholder="mum@example.com"
+        hint="Authenticated sender only. Scaffold does not send mail yet."
+      />
+      <Button label="Send invite" variant="ghost" disabled={busy} onPress={() => void onInvite()} />
+      {message ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {message}
+        </ThemedText>
+      ) : null}
+      <Button label="Not now" variant="ghost" onPress={closeAdd} />
+    </Card>
+  );
+
   return (
-    <Screen>
-      <Stack.Screen options={{ title: 'People' }} />
+    <Screen
+      footer={
+        !adding && people.length > 0 ? (
+          <Button nativePress icon="add" label={PrettyCopy.peopleCta} onPress={openAdd} />
+        ) : undefined
+      }>
+      <Stack.Screen
+        options={{
+          title: 'People',
+          headerRight: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={PrettyCopy.peopleCta}
+              hitSlop={12}
+              onPress={openAdd}
+              style={[styles.headerAdd, { backgroundColor: theme.brand }]}>
+              <FlairIcon name="add" color={theme.brandText} />
+            </Pressable>
+          ),
+        }}
+      />
       <FlowHeader role="giver" title={PrettyCopy.peopleTitle} subtitle={PrettyCopy.peopleEmptyBody} />
 
-      <Card>
-        <ThemedText type="eyebrow" themeColor="brand">
-          Add someone
-        </ThemedText>
-        <TextField
-          label="Paste a share link"
-          value={link}
-          onChangeText={setLink}
-          autoCapitalize="none"
-          placeholder="https://…/g/token"
-        />
-        <Button label="Open link" variant="secondary" onPress={onPasteLink} />
-        <TextField
-          label="Search handle"
-          value={handle}
-          onChangeText={setHandle}
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholder="@mumhandle"
-          hint="Exact or prefix on their handle. Display names are not searchable."
-        />
-        <Button label={busy ? 'Searching…' : 'Search'} disabled={busy} onPress={() => void onSearch()} />
-        {hits.map((hit) => (
-          <View key={hit.id} style={styles.hit}>
-            <ThemedText type="smallBold">@{hit.handle}</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {hit.display_name}
-            </ThemedText>
-            <StatusChip label={giverAccessChip(hit.access_status).label} tone={giverAccessChip(hit.access_status).tone} />
-            {hit.can_open && hit.share_token ? (
-              <Button label="Open list" onPress={() => router.push(`/g/${hit.share_token}`)} />
-            ) : (
-              <Button
-                label="Request access"
-                variant="secondary"
-                disabled={busy || hit.access_status === 'pending_request'}
-                onPress={() => void onRequest(hit.id)}
-              />
-            )}
-          </View>
-        ))}
-        <TextField
-          label="Invite by email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          placeholder="mum@example.com"
-          hint="Authenticated sender only. Scaffold does not send mail yet."
-        />
-        <Button label="Send invite" variant="ghost" disabled={busy} onPress={() => void onInvite()} />
-        {message ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            {message}
-          </ThemedText>
-        ) : null}
-      </Card>
+      {adding ? addForm : null}
 
       {people.length === 0 ? (
-        <EmptyState
-          kind="invites"
-          title={PrettyCopy.peopleEmptyTitle}
-          body={PrettyCopy.peopleEmptyBody}
-        />
+        adding ? null : (
+          <EmptyState
+            kind="invites"
+            title={PrettyCopy.peopleEmptyTitle}
+            body={PrettyCopy.peopleEmptyBody}
+            actionLabel={PrettyCopy.peopleCta}
+            actionIcon="add"
+            onAction={openAdd}
+            secondaryLabel="Paste a share link"
+            onSecondary={openAdd}
+          />
+        )
       ) : (
         people.map((person) => {
           const chip = giverAccessChip(person.access_status);
@@ -212,5 +264,13 @@ const styles = StyleSheet.create({
   hit: {
     gap: Spacing.one,
     width: '100%',
+  },
+  headerAdd: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.one,
   },
 });

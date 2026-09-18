@@ -1,8 +1,9 @@
-import { useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Platform, Share } from 'react-native';
+import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 
 import { DeadLinkBanner } from '@/components/dead-link-banner';
+import { FlairIcon } from '@/components/flair-icons';
 import { FlowHeader } from '@/components/flow-header';
 import { ItemGrid } from '@/components/item-grid';
 import { LegalLinks } from '@/components/legal-links';
@@ -10,7 +11,10 @@ import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
+import { useAuth } from '@/context/auth-context';
 import { useGiverShare } from '@/context/giver-share-context';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
@@ -19,12 +23,22 @@ import { groupGiftPhase } from '@/lib/pledges';
 import { ownerTasteTagsHint, searchSharedWishlistItems } from '@/services/giver-social';
 
 export default function GiverShareScreen() {
+  const theme = useTheme();
+  const { user } = useAuth();
   const { token, meta, error, loading, refresh } = useGiverShare();
   const items = useGiverCatalog(token);
   const [focusGen, setFocusGen] = useState(0);
   const [query, setQuery] = useState('');
   const [hitIds, setHitIds] = useState<string[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+
+  function goAddSomeone() {
+    router.push(user ? '/people?add=1' : '/sign-in');
+  }
+
+  function goPeople() {
+    router.push(user ? '/people' : '/sign-in');
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -79,6 +93,32 @@ export default function GiverShareScreen() {
 
   return (
     <Screen>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <View style={styles.headerRow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={PrettyCopy.peopleCta}
+                hitSlop={12}
+                onPress={goAddSomeone}
+                style={[styles.headerAdd, { backgroundColor: theme.brand }]}>
+                <FlairIcon name="add" color={theme.brandText} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={PrettyCopy.peopleTitle}
+                hitSlop={12}
+                onPress={goPeople}
+                style={styles.headerBtn}>
+                <ThemedText type="smallBold" themeColor="brand">
+                  People
+                </ThemedText>
+              </Pressable>
+            </View>
+          ),
+        }}
+      />
       <FlowHeader
         role="giver"
         title={meta?.title ?? (loading ? 'Opening link…' : 'Shared wishlist')}
@@ -130,6 +170,8 @@ export default function GiverShareScreen() {
           emptyBody={query.trim() ? 'Try another word — titles and notes, not a tag cloud.' : PrettyCopy.giverEmptyBody}
           emptyActionLabel={query.trim() ? undefined : PrettyCopy.giverEmptyCta}
           onEmptyAction={query.trim() ? undefined : () => void remindThem()}
+          emptySecondaryLabel={query.trim() ? undefined : PrettyCopy.peopleCta}
+          onEmptySecondary={query.trim() ? undefined : goAddSomeone}
           emptyKind="giver"
         />
       ) : (
@@ -140,3 +182,22 @@ export default function GiverShareScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+  },
+  headerBtn: {
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
+  },
+  headerAdd: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
