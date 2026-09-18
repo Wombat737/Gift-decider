@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { EmptyIllustration, type EmptyIllustrationKind } from '@/components/empty-illustration';
+import { type FlairIconName } from '@/components/flair-icons';
 import { HeroWash } from '@/components/hero-wash';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -11,6 +12,7 @@ type EmptyStateProps = {
   body: string;
   actionLabel?: string;
   onAction?: () => void;
+  actionIcon?: FlairIconName;
   secondaryLabel?: string;
   onSecondary?: () => void;
   kind?: EmptyIllustrationKind;
@@ -21,10 +23,13 @@ export function EmptyState({
   body,
   actionLabel,
   onAction,
+  actionIcon,
   secondaryLabel,
   onSecondary,
   kind = 'owner',
 }: EmptyStateProps) {
+  const resolvedIcon =
+    actionIcon ?? (kind === 'giver' ? 'nudge' : kind === 'invites' ? 'share' : 'add');
   return (
     <HeroWash variant="hero" style={styles.wrap} accessibilityLabel="empty-state">
       <EmptyIllustration kind={kind} />
@@ -36,11 +41,7 @@ export function EmptyState({
       </ThemedText>
       {actionLabel && onAction ? (
         <View style={styles.actions}>
-          <Button
-            label={actionLabel}
-            icon={kind === 'giver' ? 'nudge' : kind === 'invites' ? 'share' : 'add'}
-            onPress={onAction}
-          />
+          <Button label={actionLabel} icon={resolvedIcon} onPress={onAction} />
         </View>
       ) : null}
       {secondaryLabel && onSecondary ? (

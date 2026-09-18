@@ -116,6 +116,22 @@ describe('Giver social A — handle search, pins, access gate', () => {
     assert.equal(listDemoGiverAccessRequests().some((row) => row.member_id === inbox[0]!.member_id), false);
   });
 
+  it('People surfaces a + / Add someone control on empty and populated', () => {
+    const people = source('src/app/(app)/people.tsx');
+    const empty = source('src/components/empty-state.tsx');
+    assert.match(people, /PrettyCopy\.peopleCta/);
+    assert.match(people, /headerRight/);
+    assert.match(people, /FlairIcon name="add"/);
+    assert.match(people, /actionLabel=\{PrettyCopy\.peopleCta\}/);
+    assert.match(people, /actionIcon="add"/);
+    assert.match(people, /footer=\{/);
+    assert.match(people, /nativePress icon="add" label=\{PrettyCopy\.peopleCta\}/);
+    assert.match(people, /searchProfilesByHandle/);
+    assert.match(people, /inviteGiverByEmail/);
+    assert.match(people, /shareTokenFromInput/);
+    assert.match(empty, /actionIcon/);
+  });
+
   it('email invite stubs unknown addresses and parses share links', () => {
     const stub = inviteDemoGiverByEmail('new.mum@example.com');
     assert.equal('kind' in stub && stub.kind, 'stub');
@@ -243,6 +259,17 @@ describe('Giver social C — strict tag search', () => {
     assert.match(giverItem, /GiverComments/);
     assert.match(people, /Search handle/);
     assert.equal(/display name/i.test(people.split('Search handle')[1]?.slice(0, 400) ?? ''), true);
+    assert.match(people, /PrettyCopy\.peopleCta/);
+    assert.match(people, /headerRight/);
+    assert.match(people, /accessibilityLabel=\{PrettyCopy\.peopleCta\}/);
+    assert.match(people, /icon="add"/);
+    assert.match(people, /actionLabel=\{PrettyCopy\.peopleCta\}/);
+    assert.match(people, /Invite by email/);
+    assert.match(people, /Paste a share link/);
+    assert.match(people, /nativePress/);
+    assert.match(giverList, /PrettyCopy\.peopleCta/);
+    assert.match(giverList, /\/people\?add=1/);
+    assert.match(giverList, /headerRight/);
     assert.match(settings, /TasteTagEditor/);
     assert.match(settings, /Discoverability/);
     assert.match(card, /!showStatus && item\.tags\.length/);

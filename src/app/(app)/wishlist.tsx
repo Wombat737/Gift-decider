@@ -39,6 +39,8 @@ export default function WishlistGridScreen() {
           headerRight: () => (
             <View style={styles.headerRow}>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={PrettyCopy.peopleTitle}
               onPress={() => {
                 router.push('/people');
               }}
