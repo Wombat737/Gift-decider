@@ -11,12 +11,13 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
+import { useListSwitcher } from '@/hooks/use-list-switcher';
 import { PrettyCopy } from '@/lib/copy';
-import { giverShareRoute } from '@/lib/giver-catalog';
+import { openGiverShare } from '@/lib/giver-catalog';
 import { track } from '@/lib/analytics';
 import { shareLink } from '@/lib/env';
 import { mateInviteMessage } from '@/lib/invite';
-import { inviteByEmail } from '@/services/wishlist';
+import { inviteByEmail, prefetchSharedItems } from '@/services/wishlist';
 
 async function copyOrShare(text: string, url: string, setMessage: (value: string) => void) {
   if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -28,6 +29,7 @@ async function copyOrShare(text: string, url: string, setMessage: (value: string
 }
 
 export default function ShareScreen() {
+  const { goYourList, goGiverView } = useListSwitcher();
   const { wishlist, occasions, items, addOccasion } = useWishlist();
   const [email, setEmail] = useState('');
   const [occasionTitle, setOccasionTitle] = useState('');
@@ -76,6 +78,8 @@ export default function ShareScreen() {
         role="owner"
         title={PrettyCopy.shareTitle}
         subtitle={PrettyCopy.shareSubtitle}
+        onYourList={goYourList}
+        onGiverView={goGiverView}
       />
 
       <Card>
@@ -89,7 +93,7 @@ export default function ShareScreen() {
           <Button
             label="Open giver view"
             variant="secondary"
-            onPress={() => wishlist?.share_token && router.push(giverShareRoute(wishlist.share_token))}
+            onPress={() => openGiverShare(wishlist?.share_token, router.push, prefetchSharedItems)}
           />
         </View>
       </Card>
@@ -129,7 +133,7 @@ export default function ShareScreen() {
                   <Button
                     label="Open giver view"
                     variant="ghost"
-                    onPress={() => router.push(giverShareRoute(occasion.share_token))}
+                    onPress={() => openGiverShare(occasion.share_token, router.push, prefetchSharedItems)}
                   />
                 </View>
               </View>

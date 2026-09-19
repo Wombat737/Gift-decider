@@ -8,10 +8,13 @@ import { getDemoItem, resetDemoStore } from './demo-store';
 import {
   beginGiverCatalogWrite,
   giverListPaint,
+  giverPaintItems,
   giverShareRoute,
   invalidateGiverCatalog,
   isGiverCatalogHydrated,
+  lastGiverShareToken,
   openGiverShare,
+  openLastGiverShare,
   peekGiverCatalog,
   reduceGiverListLoad,
   resetGiverCatalog,
@@ -186,8 +189,9 @@ describe('People → list first open never commits loaded+empty before fetch set
     writeGiverCatalog(token, [mug], beginGiverCatalogWrite(token));
     assert.equal(peekGiverCatalog(token).length, 1);
     invalidateGiverCatalog(token);
-    assert.equal(isGiverCatalogHydrated(token), false);
-    assert.equal(peekGiverCatalog(token).length, 0);
+    // Non-empty rows stay — wiping them on every People tap is the #28 retry stuck-empty.
+    assert.equal(isGiverCatalogHydrated(token), true);
+    assert.equal(peekGiverCatalog(token).length, 1);
   });
 
   it('People prefetch paints items on first list mount before the screen fetch settles', () => {
@@ -220,23 +224,171 @@ describe('People → list first open never commits loaded+empty before fetch set
     );
   });
 
+  it('#28 prefetch writeGen must not drop RPC rows when provider/focus bump gen', () => {
+    const token = 'family-share';
+    const mug = getDemoItem('demo-mug')!;
+    const socks = getDemoItem('demo-socks')!;
+
+    // People tap: invalidate empty, then getSharedItems() used to bump writeGen.
+    openGiverShare(token, () => {}, (next) => {
+      const prefetchGen = beginGiverCatalogWrite(next);
+      const providerGen = beginGiverCatalogWrite(next);
+      const focusGen = beginGiverCatalogWrite(next);
+      // Prefetch RPC returns rows after the list already took a newer gen.
+      writeGiverCatalog(next, [mug], prefetchGen);
+      assert.equal(peekGiverCatalog(next).length, 1);
+      assert.equal(
+        giverListPaint({
+          token: next,
+          loading: false,
+          fetchSettled: true,
+          settledToken: next,
+          itemCount: peekGiverCatalog(next).length,
+        }),
+        'grid',
+      );
+      writeGiverCatalog(next, [mug, socks], focusGen);
+      assert.equal(peekGiverCatalog(next).length, 2);
+      writeGiverCatalog(next, [], providerGen);
+      assert.equal(peekGiverCatalog(next).length, 2);
+    });
+
+    assert.equal(giverPaintItems(peekGiverCatalog(token), []).length, 2);
+    assert.equal(giverPaintItems([], [mug]).length, 1);
+  });
+
+  it('failed RPC does not count as a settled quiet list', () => {
+    assert.equal(
+      wouldCommitLoadedEmpty({
+        token: 'family-share',
+        loading: false,
+        fetchSettled: false,
+        itemCount: 0,
+      }),
+      false,
+    );
+    assert.equal(
+      giverListPaint({
+        token: 'family-share',
+        loading: false,
+        fetchSettled: false,
+        itemCount: 0,
+      }),
+      'skeleton',
+    );
+    assert.equal(
+      giverListPaint({
+        token: 'family-share',
+        loading: false,
+        fetchSettled: true,
+        settledToken: 'family-share',
+        itemCount: 0,
+        error: 'Failed to fetch',
+      }),
+      'skeleton',
+    );
+    assert.equal(
+      wouldCommitLoadedEmpty({
+        token: 'family-share',
+        loading: false,
+        fetchSettled: true,
+        settledToken: 'family-share',
+        itemCount: 0,
+        error: 'Network request failed',
+      }),
+      false,
+    );
+  });
+
+  it('Giver view tab remembers the People pin and reopens that share', () => {
+    const token = 'family-share';
+    const mug = getDemoItem('demo-mug')!;
+    const first: ReturnType<typeof giverShareRoute>[] = [];
+    openGiverShare(token, (href) => first.push(href), (next) => {
+      writeGiverCatalog(next, [mug]);
+    });
+    assert.equal(lastGiverShareToken(), token);
+    assert.deepEqual(first[0], { pathname: '/g/[token]', params: { token } });
+
+    const again: ReturnType<typeof giverShareRoute>[] = [];
+    const fallback: string[] = [];
+    assert.equal(
+      openLastGiverShare((href) => again.push(href), undefined, () => fallback.push('people')),
+      true,
+    );
+    assert.deepEqual(again, [{ pathname: '/g/[token]', params: { token } }]);
+    assert.deepEqual(fallback, []);
+    assert.equal(
+      giverListPaint({
+        token,
+        loading: true,
+        fetchSettled: false,
+        itemCount: peekGiverCatalog(token).length,
+      }),
+      'grid',
+    );
+
+    resetGiverCatalog();
+    const nowhere: ReturnType<typeof giverShareRoute>[] = [];
+    assert.equal(
+      openLastGiverShare((href) => nowhere.push(href), undefined, () => fallback.push('people')),
+      false,
+    );
+    assert.deepEqual(nowhere, []);
+    assert.deepEqual(fallback, ['people']);
+  });
+
   it('People and giver list screens wire the live path, not a string /g/${token} first-open', () => {
     const people = source('app/(app)/people.tsx');
+    const share = source('app/(app)/share.tsx');
+    const owner = source('app/(app)/wishlist.tsx');
     const list = source('app/g/[token]/index.tsx');
+    const header = source('components/flow-header.tsx');
+    const switcher = source('hooks/use-list-switcher.ts');
     const provider = source('context/giver-share-context.tsx');
+    const wishlist = source('services/wishlist.ts');
 
-    assert.match(people, /openGiverShare\(person\.share_token, router\.push, getSharedItems\)/);
-    assert.match(people, /openGiverShare\(hit\.share_token, router\.push, getSharedItems\)/);
+    assert.match(people, /openGiverShare\(person\.share_token, router\.push, prefetchSharedItems\)/);
+    assert.match(people, /openGiverShare\(hit\.share_token, router\.push, prefetchSharedItems\)/);
     assert.match(people, /Open wishlist/);
+    assert.match(people, /onGiverView=\{goGiverView\}/);
     assert.equal(/hrefFor=\{\(item\) => `\/item\//.test(people), false);
     assert.equal(/router\.push\(`\/g\/\$\{/.test(people), false);
 
+    assert.match(share, /openGiverShare\(wishlist\?\.share_token, router\.push, prefetchSharedItems\)/);
+    assert.match(share, /openGiverShare\(occasion\.share_token, router\.push, prefetchSharedItems\)/);
+    assert.match(share, /Open giver view/);
+    assert.match(share, /onGiverView=\{goGiverView\}/);
+    assert.match(owner, /onGiverView=\{goGiverView\}/);
+    assert.match(owner, /onYourList=\{goYourList\}/);
+
+    assert.match(header, /accessibilityLabel="Giver view"/);
+    assert.match(header, /NativePressable/);
+    assert.match(header, /onGiverView/);
+    assert.match(switcher, /openLastGiverShare\(router\.push, prefetchSharedItems/);
+    assert.match(switcher, /router\.push\('\/people'\)/);
+    assert.match(switcher, /router\.push\('\/wishlist'\)/);
+
     assert.match(list, /fetchSettled/);
     assert.match(list, /peekGiverCatalog\(token\)\.length > 0/);
+    assert.match(list, /giverPaintItems/);
+    assert.match(list, /onGiverView=\{\(\) => void refresh\(\)\}/);
+    assert.match(list, /onYourList=/);
+    assert.match(list, /Try again/);
     assert.match(list, /silent/);
     assert.match(provider, /fetchSettled/);
     assert.match(provider, /Stay loading/);
+    assert.match(provider, /getSharedWishlist\(token\)/);
+    assert.match(provider, /getSharedItems\(token, \{ writeGen \}\)/);
+    assert.match(provider, /AppState\.addEventListener/);
+    assert.match(provider, /peekGiverCatalog\(token\)\.length === 0/);
     assert.equal(/setTimeout\(/.test(provider), false);
     assert.equal(/setLoading\(false\);\s*return;/.test(provider.split('if (!token)')[1] ?? ''), false);
+
+    assert.match(wishlist, /prefetch\?: boolean/);
+    assert.match(wishlist, /prefetchSharedItems/);
+    assert.match(wishlist, /listSharedPledges\(token\)\.catch/);
+    assert.match(wishlist, /listSharedNotices\(token\)\.catch/);
+    assert.match(wishlist, /shareRpcRows/);
   });
 });

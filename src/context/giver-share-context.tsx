@@ -1,5 +1,6 @@
 import { useGlobalSearchParams, useLocalSearchParams, usePathname, useSegments } from 'expo-router';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
+import { AppState } from 'react-native';
 
 import {
   beginGiverCatalogWrite,
@@ -61,19 +62,33 @@ export function GiverShareProvider({ children }: PropsWithChildren) {
       if (!opts?.silent || !hasItems) setLoading(true);
       setError(null);
       try {
-        const [nextMeta, nextItems] = await Promise.all([
-          getSharedWishlist(token),
-          getSharedItems(token, { writeGen }),
-        ]);
+        // Split meta vs items so a failed/offline items RPC can keep "For kiri.tynan"
+        // without settling Quiet list. Airplane mode used to look like a true empty.
+        try {
+          const nextMeta = await getSharedWishlist(token);
+          if (requestId !== requestSeq.current) return;
+          if (nextMeta) setMeta(nextMeta);
+        } catch (err) {
+          if (requestId !== requestSeq.current) return;
+          setError(err instanceof Error ? err.message : 'Could not open this list');
+          if (peekGiverCatalog(token).length === 0) return;
+        }
+        const nextItems = await getSharedItems(token, { writeGen });
         if (requestId !== requestSeq.current) return;
-        setMeta(nextMeta);
         setItems(nextItems);
         writeGiverCatalog(token, nextItems, writeGen);
+        // #28: People prefetch + this beginGiverCatalogWrite could mark the write
+        // stale. Never settle Quiet list when the RPC returned rows.
+        if (nextItems.length > 0 && peekGiverCatalog(token).length === 0) {
+          writeGiverCatalog(token, nextItems);
+        }
         setSettledToken(token);
+        setError(null);
       } catch (err) {
         if (requestId !== requestSeq.current) return;
         setError(err instanceof Error ? err.message : 'Could not open this list');
-        setSettledToken(token);
+        // A failed extras/items RPC is not a fetched-empty wishlist.
+        if (peekGiverCatalog(token).length > 0) setSettledToken(token);
       } finally {
         if (requestId === requestSeq.current) setLoading(false);
       }
@@ -84,6 +99,16 @@ export function GiverShareProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     setSettledToken((current) => (current === token ? current : undefined));
     void refresh();
+  }, [refresh, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      const silent = peekGiverCatalog(token).length > 0;
+      void refresh({ silent });
+    });
+    return () => sub.remove();
   }, [refresh, token]);
 
   useEffect(() => {

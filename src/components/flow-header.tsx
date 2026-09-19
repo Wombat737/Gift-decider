@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
+import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { ChipPad, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -8,41 +9,47 @@ type FlowHeaderProps = {
   role: 'owner' | 'giver';
   title: string;
   subtitle?: string;
+  onYourList?: () => void;
+  onGiverView?: () => void;
 };
 
-export function FlowHeader({ role, title, subtitle }: FlowHeaderProps) {
+export function FlowHeader({ role, title, subtitle, onYourList, onGiverView }: FlowHeaderProps) {
   const theme = useTheme();
   const owner = role === 'owner';
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.pills} accessibilityRole="text">
-        <View
+      <View style={styles.pills}>
+        <NativePressable
+          accessibilityRole="button"
+          accessibilityLabel="Your list"
+          accessibilityState={{ selected: owner }}
+          onPress={onYourList}
           style={[
             styles.pill,
             owner
               ? { backgroundColor: theme.brandSoft, borderColor: theme.brandSoft }
               : { backgroundColor: theme.backgroundElement, borderColor: theme.border },
           ]}>
-          <ThemedText
-            type="eyebrow"
-            style={{ color: owner ? theme.brandInk : theme.textSecondary }}>
+          <ThemedText type="eyebrow" style={{ color: owner ? theme.brandInk : theme.textSecondary }}>
             Your list
           </ThemedText>
-        </View>
-        <View
+        </NativePressable>
+        <NativePressable
+          accessibilityRole="button"
+          accessibilityLabel="Giver view"
+          accessibilityState={{ selected: !owner }}
+          onPress={onGiverView}
           style={[
             styles.pill,
             !owner
               ? { backgroundColor: theme.brandSoft, borderColor: theme.brandSoft }
               : { backgroundColor: theme.backgroundElement, borderColor: theme.border },
           ]}>
-          <ThemedText
-            type="eyebrow"
-            style={{ color: !owner ? theme.brandInk : theme.textSecondary }}>
+          <ThemedText type="eyebrow" style={{ color: !owner ? theme.brandInk : theme.textSecondary }}>
             Giver view
           </ThemedText>
-        </View>
+        </NativePressable>
       </View>
       <ThemedText type="heading">{title}</ThemedText>
       {subtitle ? (

@@ -2,6 +2,7 @@ import { router, Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/button';
 import { DeadLinkBanner } from '@/components/dead-link-banner';
 import { FlairIcon } from '@/components/flair-icons';
 import { FlowHeader } from '@/components/flow-header';
@@ -17,19 +18,22 @@ import { useInbox } from '@/context/inbox-context';
 import { useGiverShare } from '@/context/giver-share-context';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useListSwitcher } from '@/hooks/use-list-switcher';
 import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
-import { giverListPaint, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
+import { giverListPaint, giverPaintItems, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
 import { groupGiftPhase } from '@/lib/pledges';
 import { ownerTasteTagsHint, searchSharedWishlistItems } from '@/services/giver-social';
 
 export default function GiverShareScreen() {
   const theme = useTheme();
+  const { goYourList } = useListSwitcher();
   const { user } = useAuth();
   const { newlyReady, refreshInbox } = useInbox();
-  const { token, meta, error, loading, fetchSettled, refresh } = useGiverShare();
-  const { items, hydrated } = useGiverCatalogState(token);
+  const { token, meta, error, loading, fetchSettled, refresh, items: shareItems } = useGiverShare();
+  const { items: catalogItems, hydrated } = useGiverCatalogState(token);
+  const items = giverPaintItems(catalogItems, shareItems);
   const [focusGen, setFocusGen] = useState(0);
   const [query, setQuery] = useState('');
   const [hitIds, setHitIds] = useState<string[] | null>(null);
@@ -77,6 +81,7 @@ export default function GiverShareScreen() {
     hydrated,
     itemCount: visible.length,
     query,
+    error,
   });
 
   async function remindThem() {
@@ -140,6 +145,8 @@ export default function GiverShareScreen() {
               ? 'Opening link…'
               : 'This share token did not match a list.'
         }
+        onYourList={user ? goYourList : () => router.push('/sign-in')}
+        onGiverView={() => void refresh()}
       />
 
       <TextField
@@ -163,9 +170,12 @@ export default function GiverShareScreen() {
       ) : null}
 
       {error ? (
-        <ThemedText type="small" themeColor="accent">
-          {error}
-        </ThemedText>
+        <>
+          <ThemedText type="small" themeColor="accent">
+            {error}
+          </ThemedText>
+          <Button label="Try again" variant="secondary" onPress={() => void refresh()} />
+        </>
       ) : null}
 
       {readyToBuy.length > 0 ? <ReadyToBuyBanner items={readyToBuy} /> : null}

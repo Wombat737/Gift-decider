@@ -17,6 +17,7 @@ type LiveRoot = {
   byToken: Map<string, WishlistItem[]>;
   hydrated: Set<string>;
   writeGen: Map<string, number>;
+  lastToken?: string;
   listeners: Set<() => void>;
 };
 
@@ -28,6 +29,7 @@ function liveRoot(): LiveRoot {
       byToken: new Map(),
       hydrated: new Set(),
       writeGen: new Map(),
+      lastToken: undefined,
       listeners: new Set(),
     };
   }
@@ -91,17 +93,48 @@ export function giverShareRoute(token: string) {
   return { pathname: '/g/[token]' as const, params: { token } };
 }
 
-/** People / search: drop stale empty catalog then open the typed share route. */
+export function rememberGiverShare(token: string | undefined) {
+  const normalized = shareTokenParam(token);
+  if (!normalized) return;
+  liveRoot().lastToken = normalized;
+}
+
+export function lastGiverShareToken(): string | undefined {
+  return shareTokenParam(liveRoot().lastToken);
+}
+
+/** People / search / in-app Giver view tab: remember the person and kick the live RPC. */
 export function openGiverShare(
   token: string | null | undefined,
   push: (href: ReturnType<typeof giverShareRoute>) => void,
   prefetch?: (token: string) => void | Promise<unknown>,
 ) {
   if (!token) return;
+  rememberGiverShare(token);
   invalidateGiverCatalog(token);
-  // Kick the live RPC at the People tap — do not wait for g/[token] layout params.
+  // Kick the live RPC at the tap — do not wait for g/[token] layout params.
   void prefetch?.(token);
   push(giverShareRoute(token));
+}
+
+/** YOUR LIST | GIVER VIEW switcher: reopen the last person, else People. */
+export function openLastGiverShare(
+  push: (href: ReturnType<typeof giverShareRoute>) => void,
+  prefetch?: (token: string) => void | Promise<unknown>,
+  fallback?: () => void,
+) {
+  const token = lastGiverShareToken();
+  if (!token) {
+    fallback?.();
+    return false;
+  }
+  openGiverShare(token, push, prefetch);
+  return true;
+}
+
+/** List paints catalog first so chips stay aligned; fall back to the in-flight provider rows. */
+export function giverPaintItems<T>(catalog: T[], fallback: T[] = []): T[] {
+  return catalog.length > 0 ? catalog : fallback;
 }
 
 export type GiverListLoadState = {
@@ -132,10 +165,13 @@ export function giverListPaint(input: {
   hydrated?: boolean;
   itemCount: number;
   query?: string;
+  error?: string | null;
 }): 'skeleton' | 'grid' | 'empty' {
   if (input.itemCount > 0) return 'grid';
   if (input.query?.trim()) return 'empty';
   const token = shareTokenParam(input.token);
+  // Failed / offline RPC is not a quiet list — airplane mode must not settle empty.
+  if (input.error) return 'skeleton';
   const settled =
     Boolean(input.fetchSettled) &&
     Boolean(token) &&
@@ -204,16 +240,27 @@ export function resetGiverCatalog() {
   root.byToken = new Map();
   root.hydrated = new Set();
   root.writeGen = new Map();
+  root.lastToken = undefined;
   notifyLive();
 }
 
-/** Drop a token before People → list so a stale empty write cannot paint first. */
+/**
+ * Forget a stale **empty** hydration so People → list cannot paint Quiet list
+ * from a previous `[]`. Keep rows that already loaded — wiping them on every
+ * tap is what made #28 retries stick on empty when the follow-up write dropped.
+ * Bump writeGen (do not delete it) so in-flight empty writes still lose, while
+ * in-flight item writes can still fill an empty catalog.
+ */
 export function invalidateGiverCatalog(token: string | undefined) {
   if (!token) return;
   const root = liveRoot();
-  root.byToken.delete(token);
-  root.hydrated.delete(token);
-  root.writeGen.delete(token);
+  const existing = root.byToken.get(token) ?? [];
+  if (existing.length === 0) {
+    root.byToken.delete(token);
+    root.hydrated.delete(token);
+  }
+  const next = (root.writeGen.get(token) ?? 0) + 1;
+  root.writeGen.set(token, next);
   notifyLive();
 }
 
@@ -242,9 +289,15 @@ export function patchGiverCatalog(token: string, item: WishlistItem) {
 }
 
 export function writeGiverCatalog(token: string, items: WishlistItem[], writeGen?: number) {
-  if (!token) return;
+  if (!token) return false;
   const root = liveRoot();
-  if (writeGen != null && root.writeGen.get(token) !== writeGen) return;
+  const currentGen = root.writeGen.get(token);
+  if (writeGen != null && currentGen != null && currentGen !== writeGen) {
+    const existing = root.byToken.get(token) ?? [];
+    // Stale empty must never wipe. Stale rows may still fill an empty catalog
+    // when People prefetch's gen was bumped by the list provider/focus refresh.
+    if (items.length === 0 || existing.length > 0) return false;
+  }
   const previous = root.byToken.get(token) ?? [];
   root.byToken.set(
     token,
@@ -252,6 +305,7 @@ export function writeGiverCatalog(token: string, items: WishlistItem[], writeGen
   );
   root.hydrated.add(token);
   notifyLive();
+  return true;
 }
 
 export function peekGiverCatalog(token: string): WishlistItem[] {

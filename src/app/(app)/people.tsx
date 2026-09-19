@@ -14,6 +14,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useInbox } from '@/context/inbox-context';
 import { Radius, Spacing } from '@/constants/theme';
+import { useListSwitcher } from '@/hooks/use-list-switcher';
 import { useTheme } from '@/hooks/use-theme';
 import { usesDemoData } from '@/lib/app-mode';
 import { PrettyCopy } from '@/lib/copy';
@@ -30,7 +31,7 @@ import {
   searchProfilesByHandle,
   unlistGiverPerson,
 } from '@/services/giver-social';
-import { getSharedItems } from '@/services/wishlist';
+import { prefetchSharedItems } from '@/services/wishlist';
 
 function wantsAddParam(value: string | string[] | undefined) {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -39,6 +40,7 @@ function wantsAddParam(value: string | string[] | undefined) {
 
 export default function PeopleScreen() {
   const theme = useTheme();
+  const { goYourList, goGiverView } = useListSwitcher();
   const params = useLocalSearchParams<{ add?: string | string[] }>();
   const { newlyReady, refreshInbox, ackReady } = useInbox();
   const [people, setPeople] = useState<GiverPerson[]>([]);
@@ -162,7 +164,7 @@ export default function PeopleScreen() {
           </ThemedText>
           <StatusChip label={giverAccessChip(hit.access_status).label} tone={giverAccessChip(hit.access_status).tone} />
           {hit.can_open && hit.share_token ? (
-            <Button label="Open list" onPress={() => openGiverShare(hit.share_token, router.push, getSharedItems)} />
+            <Button label="Open list" onPress={() => openGiverShare(hit.share_token, router.push, prefetchSharedItems)} />
           ) : (
             <Button
               label="Request access"
@@ -214,7 +216,13 @@ export default function PeopleScreen() {
           ),
         }}
       />
-      <FlowHeader role="giver" title={PrettyCopy.peopleTitle} subtitle={PrettyCopy.peopleEmptyBody} />
+      <FlowHeader
+        role="giver"
+        title={PrettyCopy.peopleTitle}
+        subtitle={PrettyCopy.peopleEmptyBody}
+        onYourList={goYourList}
+        onGiverView={goGiverView}
+      />
 
       {adding ? addForm : null}
 
@@ -245,7 +253,7 @@ export default function PeopleScreen() {
               </ThemedText>
               <StatusChip label={justReady ? 'Ready' : chip.label} tone={justReady ? 'brand' : chip.tone} />
               {person.can_open && person.share_token ? (
-                <Button label="Open wishlist" onPress={() => openGiverShare(person.share_token, router.push, getSharedItems)} />
+                <Button label="Open wishlist" onPress={() => openGiverShare(person.share_token, router.push, prefetchSharedItems)} />
               ) : person.access_status === 'active' ? (
                 <ThemedText type="small" themeColor="textSecondary">
                   They’re ready — ask them for a share link if Open isn’t here yet.

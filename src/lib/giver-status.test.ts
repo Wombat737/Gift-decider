@@ -364,6 +364,13 @@ describe('Giver status icon after lock / purchase / release', () => {
     writeGiverCatalog(token, [], third);
     assert.equal(isGiverCatalogHydrated(token), true);
     assert.equal(peekGiverCatalog(token).length, 0);
+
+    const prefetch = beginGiverCatalogWrite(token);
+    const provider = beginGiverCatalogWrite(token);
+    writeGiverCatalog(token, [mug], prefetch);
+    assert.equal(peekGiverCatalog(token).length, 1);
+    writeGiverCatalog(token, [], provider);
+    assert.equal(peekGiverCatalog(token).length, 0);
   });
 
   it('share token resolves from /g/:token even when layout params are still empty', () => {
