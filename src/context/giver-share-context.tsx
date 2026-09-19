@@ -1,7 +1,13 @@
-import { useLocalSearchParams } from 'expo-router';
-import { createContext, use, useCallback, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
+import { useGlobalSearchParams, useLocalSearchParams, usePathname } from 'expo-router';
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 
-import { patchGiverCatalog, shareTokenParam, writeGiverCatalog } from '@/lib/giver-catalog';
+import {
+  beginGiverCatalogWrite,
+  isGiverCatalogHydrated,
+  patchGiverCatalog,
+  shareTokenFromRoute,
+  writeGiverCatalog,
+} from '@/lib/giver-catalog';
 import { replaceSharedItem } from '@/lib/giver-status';
 import type { SharedWishlist, WishlistItem } from '@/lib/types';
 import { useAuth } from '@/context/auth-context';
@@ -21,34 +27,43 @@ type GiverShareContextValue = {
 const GiverShareContext = createContext<GiverShareContextValue | null>(null);
 
 export function GiverShareProvider({ children }: PropsWithChildren) {
-  const params = useLocalSearchParams<{ token: string }>();
-  const token = shareTokenParam(params.token);
+  const local = useLocalSearchParams<{ token?: string }>();
+  const global = useGlobalSearchParams<{ token?: string }>();
+  const pathname = usePathname();
+  const token = shareTokenFromRoute({ local: local.token, global: global.token, pathname });
   const { user } = useAuth();
   const [meta, setMeta] = useState<SharedWishlist | null>(null);
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const requestSeq = useRef(0);
 
   const refresh = useCallback(
     async (opts?: { silent?: boolean }) => {
       if (!token) {
-        setMeta(null);
-        setItems([]);
-        setError('This share link is missing a token.');
-        setLoading(false);
+        // Expo Router can paint g/[token]/_layout before local params hydrate.
+        // Stay loading — a missing token is not a fetched-empty list.
+        if (!opts?.silent) setLoading(true);
         return;
       }
-      if (!opts?.silent) setLoading(true);
+      const requestId = ++requestSeq.current;
+      const writeGen = beginGiverCatalogWrite(token);
+      if (!opts?.silent || !isGiverCatalogHydrated(token)) setLoading(true);
       setError(null);
       try {
-        const [nextMeta, nextItems] = await Promise.all([getSharedWishlist(token), getSharedItems(token)]);
+        const [nextMeta, nextItems] = await Promise.all([
+          getSharedWishlist(token),
+          getSharedItems(token, { writeGen }),
+        ]);
+        if (requestId !== requestSeq.current) return;
         setMeta(nextMeta);
         setItems(nextItems);
-        writeGiverCatalog(token, nextItems);
+        writeGiverCatalog(token, nextItems, writeGen);
       } catch (err) {
+        if (requestId !== requestSeq.current) return;
         setError(err instanceof Error ? err.message : 'Could not open this list');
       } finally {
-        setLoading(false);
+        if (requestId === requestSeq.current) setLoading(false);
       }
     },
     [token],
@@ -57,6 +72,17 @@ export function GiverShareProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (token) return;
+    const timer = setTimeout(() => {
+      setMeta(null);
+      setItems([]);
+      setError('This share link is missing a token.');
+      setLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [token]);
 
   useEffect(() => {
     if (!token || !user || user.demo) return;

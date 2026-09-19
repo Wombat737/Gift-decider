@@ -119,7 +119,9 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     assert.match(itemScreen, /preferLocalGiverItem/);
     assert.match(itemScreen, /giverStatusActions/);
     assert.equal(/const current = shareItem \?\? item/.test(itemScreen), false);
-    assert.match(listScreen, /useGiverCatalog/);
+    assert.match(listScreen, /useGiverCatalogState/);
+    assert.match(listScreen, /giverListPaint/);
+    assert.match(listScreen, /ItemGridSkeleton/);
     assert.match(itemScreen, /updateStatus\('reserved'\)/);
     assert.match(itemScreen, /updateStatus\('purchased'\)/);
     assert.match(itemScreen, /updateStatus\('available'\)/);
@@ -158,6 +160,25 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     assert.match(styleBlock(itemScreen, 'imageFrame'), /overflow: 'hidden'/);
     assert.match(layout, /GestureHandlerRootView/);
     assert.match(layout, /width: '100%'/);
+  });
+
+  it('giver list does not treat a missing layout token as an empty fetch', () => {
+    const provider = source('context/giver-share-context.tsx');
+    const list = source('app/g/[token]/index.tsx');
+    const lock = source('components/no-sub-lock.tsx');
+    const card = source('components/item-card.tsx');
+    const grid = source('components/item-grid.tsx');
+    assert.match(provider, /shareTokenFromRoute/);
+    assert.match(provider, /useGlobalSearchParams/);
+    assert.match(provider, /usePathname/);
+    assert.match(provider, /Stay loading/);
+    assert.match(provider, /beginGiverCatalogWrite/);
+    assert.equal(/setLoading\(false\);\s*return;/.test(provider.split('if (!token)')[1] ?? ''), false);
+    assert.match(list, /paint === 'skeleton'/);
+    assert.match(grid, /ItemGridSkeleton/);
+    assert.match(grid, /accessibilityLabel="Loading gifts"/);
+    assert.equal(lock.includes('🔒'), false);
+    assert.equal(card.includes('🔒'), false);
   });
 
   it('giver status mutations do not early-return past a live share token', () => {
