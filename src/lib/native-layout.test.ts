@@ -175,6 +175,8 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     assert.match(provider, /beginGiverCatalogWrite/);
     assert.equal(/setLoading\(false\);\s*return;/.test(provider.split('if (!token)')[1] ?? ''), false);
     assert.match(list, /paint === 'skeleton'/);
+    assert.match(list, /fetchSettled/);
+    assert.match(list, /peekGiverCatalog\(token\)\.length > 0/);
     assert.match(grid, /ItemGridSkeleton/);
     assert.match(grid, /accessibilityLabel="Loading gifts"/);
     assert.equal(lock.includes('🔒'), false);

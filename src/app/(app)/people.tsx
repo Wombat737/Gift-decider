@@ -19,6 +19,7 @@ import { usesDemoData } from '@/lib/app-mode';
 import { PrettyCopy } from '@/lib/copy';
 import { acceptDemoOutgoingRequest } from '@/lib/demo-social';
 import { classifyPeopleSearchQuery, giverAccessChip } from '@/lib/giver-social';
+import { openGiverShare } from '@/lib/giver-catalog';
 import { acceptBannerText, isNewlyReadyPin } from '@/lib/inbox';
 import type { GiverPerson, HandleSearchHit } from '@/lib/types';
 import {
@@ -160,7 +161,7 @@ export default function PeopleScreen() {
           </ThemedText>
           <StatusChip label={giverAccessChip(hit.access_status).label} tone={giverAccessChip(hit.access_status).tone} />
           {hit.can_open && hit.share_token ? (
-            <Button label="Open list" onPress={() => router.push(`/g/${hit.share_token}`)} />
+            <Button label="Open list" onPress={() => openGiverShare(hit.share_token, router.push)} />
           ) : (
             <Button
               label="Request access"
@@ -243,7 +244,7 @@ export default function PeopleScreen() {
               </ThemedText>
               <StatusChip label={justReady ? 'Ready' : chip.label} tone={justReady ? 'brand' : chip.tone} />
               {person.can_open && person.share_token ? (
-                <Button label="Open wishlist" onPress={() => router.push(`/g/${person.share_token}`)} />
+                <Button label="Open wishlist" onPress={() => openGiverShare(person.share_token, router.push)} />
               ) : person.access_status === 'active' ? (
                 <ThemedText type="small" themeColor="textSecondary">
                   They’re ready — ask them for a share link if Open isn’t here yet.

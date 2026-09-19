@@ -12,6 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
 import { PrettyCopy } from '@/lib/copy';
+import { giverShareRoute } from '@/lib/giver-catalog';
 import { track } from '@/lib/analytics';
 import { shareLink } from '@/lib/env';
 import { mateInviteMessage } from '@/lib/invite';
@@ -88,7 +89,7 @@ export default function ShareScreen() {
           <Button
             label="Open giver view"
             variant="secondary"
-            onPress={() => wishlist?.share_token && router.push(`/g/${wishlist.share_token}`)}
+            onPress={() => wishlist?.share_token && router.push(giverShareRoute(wishlist.share_token))}
           />
         </View>
       </Card>
@@ -128,7 +129,7 @@ export default function ShareScreen() {
                   <Button
                     label="Open giver view"
                     variant="ghost"
-                    onPress={() => router.push(`/g/${occasion.share_token}`)}
+                    onPress={() => router.push(giverShareRoute(occasion.share_token))}
                   />
                 </View>
               </View>

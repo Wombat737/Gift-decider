@@ -20,7 +20,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
-import { giverListPaint, useGiverCatalogState } from '@/lib/giver-catalog';
+import { giverListPaint, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
 import { groupGiftPhase } from '@/lib/pledges';
 import { ownerTasteTagsHint, searchSharedWishlistItems } from '@/services/giver-social';
 
@@ -28,7 +28,7 @@ export default function GiverShareScreen() {
   const theme = useTheme();
   const { user } = useAuth();
   const { newlyReady, refreshInbox } = useInbox();
-  const { token, meta, error, loading, refresh } = useGiverShare();
+  const { token, meta, error, loading, fetchSettled, refresh } = useGiverShare();
   const { items, hydrated } = useGiverCatalogState(token);
   const [focusGen, setFocusGen] = useState(0);
   const [query, setQuery] = useState('');
@@ -47,13 +47,15 @@ export default function GiverShareScreen() {
     useCallback(() => {
       setFocusGen((count) => count + 1);
       // Paint the catalog snapshot (Bought) before a silent refetch that may still
-      // carry the previous Taken row.
+      // carry the previous Taken row. First open / empty catalog is never silent —
+      // that used to skip the loading skeleton and stick on the giver empty hero.
       const frame = requestAnimationFrame(() => {
-        void refresh({ silent: true });
+        const silent = Boolean(token && peekGiverCatalog(token).length > 0);
+        void refresh({ silent });
         void refreshInbox();
       });
       return () => cancelAnimationFrame(frame);
-    }, [refresh, refreshInbox]),
+    }, [refresh, refreshInbox, token]),
   );
 
   const who = meta?.owner_display_name || meta?.owner_handle || 'a friend';
@@ -70,6 +72,8 @@ export default function GiverShareScreen() {
   const paint = giverListPaint({
     token,
     loading,
+    fetchSettled,
+    settledToken: fetchSettled ? token : undefined,
     hydrated,
     itemCount: visible.length,
     query,
@@ -128,11 +132,11 @@ export default function GiverShareScreen() {
       />
       <FlowHeader
         role="giver"
-        title={meta?.title ?? (loading ? 'Opening link…' : 'Shared wishlist')}
+        title={meta?.title ?? (loading || !fetchSettled ? 'Opening link…' : 'Shared wishlist')}
         subtitle={
           meta
             ? `For ${who}${occasion ? ` · ${occasion}` : ''}. Tap a photo to reserve, chip in, or find it in AU stores. Broken buy links show Link may be broken — they won’t. Taken/bought stays between givers — no names.`
-            : loading
+            : loading || !fetchSettled
               ? 'Opening link…'
               : 'This share token did not match a list.'
         }
