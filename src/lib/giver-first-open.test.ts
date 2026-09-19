@@ -300,7 +300,7 @@ describe('People → list first open never commits loaded+empty before fetch set
     );
   });
 
-  it('Giver view tab remembers the People pin and reopens that share', () => {
+  it('last opened People pin can reopen that share', () => {
     const token = 'family-share';
     const mug = getDemoItem('demo-mug')!;
     const first: ReturnType<typeof giverShareRoute>[] = [];
@@ -344,36 +344,33 @@ describe('People → list first open never commits loaded+empty before fetch set
     const owner = source('app/(app)/wishlist.tsx');
     const list = source('app/g/[token]/index.tsx');
     const header = source('components/flow-header.tsx');
-    const switcher = source('hooks/use-list-switcher.ts');
     const provider = source('context/giver-share-context.tsx');
     const wishlist = source('services/wishlist.ts');
 
     assert.match(people, /openGiverShare\(person\.share_token, router\.push, prefetchSharedItems\)/);
     assert.match(people, /openGiverShare\(hit\.share_token, router\.push, prefetchSharedItems\)/);
     assert.match(people, /Open wishlist/);
-    assert.match(people, /onGiverView=\{goGiverView\}/);
+    assert.equal(/onGiverView/.test(people), false);
     assert.equal(/hrefFor=\{\(item\) => `\/item\//.test(people), false);
     assert.equal(/router\.push\(`\/g\/\$\{/.test(people), false);
 
     assert.match(share, /openGiverShare\(wishlist\?\.share_token, router\.push, prefetchSharedItems\)/);
     assert.match(share, /openGiverShare\(occasion\.share_token, router\.push, prefetchSharedItems\)/);
     assert.match(share, /Open giver view/);
-    assert.match(share, /onGiverView=\{goGiverView\}/);
-    assert.match(owner, /onGiverView=\{goGiverView\}/);
-    assert.match(owner, /onYourList=\{goYourList\}/);
+    assert.equal(/onGiverView/.test(share), false);
+    assert.equal(/onGiverView/.test(owner), false);
+    assert.equal(/onYourList/.test(owner), false);
 
-    assert.match(header, /accessibilityLabel="Giver view"/);
-    assert.match(header, /NativePressable/);
-    assert.match(header, /onGiverView/);
-    assert.match(switcher, /openLastGiverShare\(router\.push, prefetchSharedItems/);
-    assert.match(switcher, /router\.push\('\/people'\)/);
-    assert.match(switcher, /router\.push\('\/wishlist'\)/);
+    assert.equal(/accessibilityLabel="Giver view"/.test(header), false);
+    assert.equal(/onGiverView/.test(header), false);
+    assert.equal(/accessibilityLabel="Your list"/.test(header), false);
 
     assert.match(list, /fetchSettled/);
     assert.match(list, /peekGiverCatalog\(token\)\.length > 0/);
     assert.match(list, /giverPaintItems/);
-    assert.match(list, /onGiverView=\{\(\) => void refresh\(\)\}/);
-    assert.match(list, /onYourList=/);
+    assert.equal(/onGiverView/.test(list), false);
+    assert.equal(/onYourList/.test(list), false);
+    assert.match(list, /giverListTitle/);
     assert.match(list, /Try again/);
     assert.match(list, /silent/);
     assert.match(provider, /fetchSettled/);

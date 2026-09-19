@@ -73,10 +73,10 @@ describe('Pretty pass punch-list', () => {
     const giverList = source('app/g/[token]/index.tsx');
     const share = source('app/(app)/share.tsx');
 
-    assert.match(header, /minHeight: 44/);
-    assert.match(header, /theme\.brandSoft/);
-    assert.match(header, /Your list/);
-    assert.match(header, /Giver view/);
+    assert.equal(/accessibilityLabel="Your list"/.test(header), false);
+    assert.equal(/accessibilityLabel="Giver view"/.test(header), false);
+    assert.equal(/NativePressable/.test(header), false);
+    assert.match(header, /type="heading"/);
     assert.match(card, /aspectRatio: 4 \/ 5/);
     assert.match(card, /type="titleSm"/);
     assert.match(card, /themeColor="brand"/);

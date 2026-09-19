@@ -5,7 +5,6 @@ import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 import { Button } from '@/components/button';
 import { DeadLinkBanner } from '@/components/dead-link-banner';
 import { FlairIcon } from '@/components/flair-icons';
-import { FlowHeader } from '@/components/flow-header';
 import { HeaderInboxLink } from '@/components/inbox-badge';
 import { ItemGrid, ItemGridSkeleton } from '@/components/item-grid';
 import { LegalLinks } from '@/components/legal-links';
@@ -18,8 +17,8 @@ import { useInbox } from '@/context/inbox-context';
 import { useGiverShare } from '@/context/giver-share-context';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useListSwitcher } from '@/hooks/use-list-switcher';
 import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
+import { giverListTitle } from '@/lib/list-title';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { giverListPaint, giverPaintItems, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
@@ -28,7 +27,6 @@ import { ownerTasteTagsHint, searchSharedWishlistItems } from '@/services/giver-
 
 export default function GiverShareScreen() {
   const theme = useTheme();
-  const { goYourList } = useListSwitcher();
   const { user } = useAuth();
   const { newlyReady, refreshInbox } = useInbox();
   const { token, meta, error, loading, fetchSettled, refresh, items: shareItems } = useGiverShare();
@@ -62,7 +60,10 @@ export default function GiverShareScreen() {
     }, [refresh, refreshInbox, token]),
   );
 
-  const who = meta?.owner_display_name || meta?.owner_handle || 'a friend';
+  const listTitle = giverListTitle(meta, {
+    loading: loading || !fetchSettled,
+    unmatched: Boolean(error) && !meta && fetchSettled,
+  });
   const occasion = meta?.occasion_title;
   const readyToBuy = items.filter((item) => groupGiftPhase(item) === 'ready_to_buy');
   const visible = useMemo(() => {
@@ -115,6 +116,7 @@ export default function GiverShareScreen() {
     <Screen>
       <Stack.Screen
         options={{
+          title: listTitle,
           headerRight: () => (
             <View style={styles.headerRow}>
               <Pressable
@@ -135,19 +137,11 @@ export default function GiverShareScreen() {
           ),
         }}
       />
-      <FlowHeader
-        role="giver"
-        title={meta?.title ?? (loading || !fetchSettled ? 'Opening link…' : 'Shared wishlist')}
-        subtitle={
-          meta
-            ? `For ${who}${occasion ? ` · ${occasion}` : ''}. Tap a photo to reserve, chip in, or find it in AU stores. Broken buy links show Link may be broken — they won’t. Taken/bought stays between givers — no names.`
-            : loading || !fetchSettled
-              ? 'Opening link…'
-              : 'This share token did not match a list.'
-        }
-        onYourList={user ? goYourList : () => router.push('/sign-in')}
-        onGiverView={() => void refresh()}
-      />
+      {occasion ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {occasion}
+        </ThemedText>
+      ) : null}
 
       <TextField
         label="Search gifts"
@@ -156,7 +150,6 @@ export default function GiverShareScreen() {
         autoCapitalize="none"
         autoCorrect={false}
         placeholder="linen, mug, trail…"
-        hint="Filters this list. No tag shortcuts — type to search."
       />
       {emptyHint && query.trim() && visible.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">

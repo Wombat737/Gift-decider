@@ -289,7 +289,8 @@ describe('Giver social C — strict tag search', () => {
     assert.equal(/taste_tags/.test(giverList), false);
     assert.match(giverItem, /GiverComments/);
     assert.match(people, /Handle or email/);
-    assert.equal(/display name/i.test(people.split('Handle or email')[1]?.slice(0, 400) ?? ''), true);
+    assert.match(people, /FieldHelp\.findSomeone/);
+    assert.match(source('src/lib/help.ts'), /Display names are not searchable/);
     assert.match(people, /PrettyCopy\.peopleCta/);
     assert.match(people, /headerRight/);
     assert.match(people, /accessibilityLabel=\{PrettyCopy\.peopleCta\}/);

@@ -103,7 +103,7 @@ export function lastGiverShareToken(): string | undefined {
   return shareTokenParam(liveRoot().lastToken);
 }
 
-/** People / search / in-app Giver view tab: remember the person and kick the live RPC. */
+/** People / search: remember the person and kick the live RPC. */
 export function openGiverShare(
   token: string | null | undefined,
   push: (href: ReturnType<typeof giverShareRoute>) => void,
@@ -117,7 +117,7 @@ export function openGiverShare(
   push(giverShareRoute(token));
 }
 
-/** YOUR LIST | GIVER VIEW switcher: reopen the last person, else People. */
+/** Reopen the last person from People, else fall back. */
 export function openLastGiverShare(
   push: (href: ReturnType<typeof giverShareRoute>) => void,
   prefetch?: (token: string) => void | Promise<unknown>,

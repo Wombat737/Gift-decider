@@ -19,7 +19,7 @@ export default function SharedListLayout() {
           freezeOnBlur: false,
           animation: 'slide_from_right',
         }}>
-        <Stack.Screen name="index" options={{ title: 'Pick a gift' }} />
+        <Stack.Screen name="index" options={{ title: 'Opening list…' }} />
         <Stack.Screen name="[itemId]" options={{ title: 'Gift' }} />
       </Stack>
     </GiverShareProvider>

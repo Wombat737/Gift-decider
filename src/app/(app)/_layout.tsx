@@ -15,7 +15,7 @@ export default function AppLayout() {
         headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '700' },
         contentStyle: { backgroundColor: theme.background },
       }}>
-      <Stack.Screen name="wishlist" options={{ title: 'My wishlist' }} />
+      <Stack.Screen name="wishlist" options={{ title: 'Your wishlist' }} />
       <Stack.Screen name="add" options={{ title: 'Add item' }} />
       <Stack.Screen name="paste" options={{ title: 'Paste Instagram URL' }} />
       <Stack.Screen name="share" options={{ title: 'Share & occasions' }} />

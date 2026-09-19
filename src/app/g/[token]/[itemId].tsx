@@ -360,7 +360,7 @@ export default function GiverItemScreen() {
       </View>
       <View style={styles.block}>
         <ThemedText type="eyebrow" themeColor="brand">
-          Giver view · they won’t see this
+          They won’t see this
         </ThemedText>
         <ThemedText type="heading">{current.title || 'Untitled gift'}</ThemedText>
         <View style={styles.chipRow}>

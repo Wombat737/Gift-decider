@@ -4,19 +4,15 @@ import { useCallback, useState } from 'react';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
-import { FlowHeader } from '@/components/flow-header';
 import { InboxBanner } from '@/components/inbox-banner';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { useInbox } from '@/context/inbox-context';
-import { PrettyCopy } from '@/lib/copy';
 import { requestBannerText } from '@/lib/inbox';
-import { useListSwitcher } from '@/hooks/use-list-switcher';
 import type { GiverAccessRequest } from '@/lib/types';
 import { listGiverAccessRequests, respondGiverAccess } from '@/services/giver-social';
 
 export default function RequestsScreen() {
-  const { goYourList, goGiverView } = useListSwitcher();
   const { refreshInbox } = useInbox();
   const [requests, setRequests] = useState<GiverAccessRequest[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -54,13 +50,6 @@ export default function RequestsScreen() {
   return (
     <Screen>
       <Stack.Screen options={{ title: 'Requests' }} />
-      <FlowHeader
-        role="owner"
-        title={PrettyCopy.requestsTitle}
-        subtitle="People who asked to buy gifts for you. Accept before they can see items — unless they already have your share link."
-        onYourList={goYourList}
-        onGiverView={goGiverView}
-      />
 
       {message ? (
         <ThemedText type="small" themeColor="accent">

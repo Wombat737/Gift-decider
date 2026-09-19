@@ -6,7 +6,6 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { FlairIcon } from '@/components/flair-icons';
-import { FlowHeader } from '@/components/flow-header';
 import { InboxBanner } from '@/components/inbox-banner';
 import { Screen } from '@/components/screen';
 import { StatusChip } from '@/components/status-chip';
@@ -14,10 +13,10 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useInbox } from '@/context/inbox-context';
 import { Radius, Spacing } from '@/constants/theme';
-import { useListSwitcher } from '@/hooks/use-list-switcher';
 import { useTheme } from '@/hooks/use-theme';
 import { usesDemoData } from '@/lib/app-mode';
 import { PrettyCopy } from '@/lib/copy';
+import { FieldHelp } from '@/lib/help';
 import { acceptDemoOutgoingRequest } from '@/lib/demo-social';
 import { openGiverShare } from '@/lib/giver-catalog';
 import { classifyPeopleSearchQuery, giverAccessChip } from '@/lib/giver-social';
@@ -40,7 +39,6 @@ function wantsAddParam(value: string | string[] | undefined) {
 
 export default function PeopleScreen() {
   const theme = useTheme();
-  const { goYourList, goGiverView } = useListSwitcher();
   const params = useLocalSearchParams<{ add?: string | string[] }>();
   const { newlyReady, refreshInbox, ackReady } = useInbox();
   const [people, setPeople] = useState<GiverPerson[]>([]);
@@ -153,7 +151,7 @@ export default function PeopleScreen() {
         autoFocus
         keyboardType="email-address"
         placeholder="@mumhandle or mum@example.com"
-        hint="Exact or prefix on their handle, or their email. Display names are not searchable."
+        help={FieldHelp.findSomeone}
       />
       <Button label={busy ? 'Searching…' : 'Search'} disabled={busy} onPress={() => void onSearch()} />
       {hits.map((hit) => (
@@ -182,7 +180,6 @@ export default function PeopleScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         placeholder="mum@example.com"
-        hint="For someone who isn’t on Gift Decider yet. Authenticated sender only — scaffold does not send mail yet."
       />
       <Button label="Send invite" variant="ghost" disabled={busy} onPress={() => void onInvite()} />
       {message ? (
@@ -216,14 +213,6 @@ export default function PeopleScreen() {
           ),
         }}
       />
-      <FlowHeader
-        role="giver"
-        title={PrettyCopy.peopleTitle}
-        subtitle={PrettyCopy.peopleEmptyBody}
-        onYourList={goYourList}
-        onGiverView={goGiverView}
-      />
-
       {adding ? addForm : null}
 
       {readyCopy ? (

@@ -4,25 +4,20 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { Button } from '@/components/button';
 import { FilterChips } from '@/components/vibe-chips';
-import { FlowHeader } from '@/components/flow-header';
 import { HeaderInboxLink } from '@/components/inbox-badge';
 import { InboxBanner } from '@/components/inbox-banner';
 import { ItemGrid } from '@/components/item-grid';
 import { LegalLinks } from '@/components/legal-links';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { useAuth } from '@/context/auth-context';
 import { useInbox } from '@/context/inbox-context';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
-import { useListSwitcher } from '@/hooks/use-list-switcher';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
 import { acceptBannerText, requestBannerText } from '@/lib/inbox';
 
 export default function WishlistGridScreen() {
-  const { user } = useAuth();
-  const { goYourList, goGiverView } = useListSwitcher();
   const { items, occasions, loading, error, refresh } = useWishlist();
   const { pendingRequests, newlyReady, requests, refreshInbox } = useInbox();
   const [occasionId, setOccasionId] = useState('all');
@@ -79,14 +74,6 @@ export default function WishlistGridScreen() {
           ),
         }}
       />
-      <FlowHeader
-        role="owner"
-        title="What you actually want"
-        subtitle={`Photo-first list for ${user?.email ?? 'you'}. Friends pick from a share link — you won’t see reserves, pledges, or who bought what. Group gifts stay unspoiled until the reveal date.`}
-        onYourList={goYourList}
-        onGiverView={goGiverView}
-      />
-
       <View style={styles.actions}>
         <Button label="Add a gift" icon="gift" onPress={() => router.push('/add')} />
         <Button label="Paste Instagram URL" variant="secondary" onPress={() => router.push('/paste')} />

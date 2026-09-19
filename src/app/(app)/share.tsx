@@ -11,7 +11,6 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
-import { useListSwitcher } from '@/hooks/use-list-switcher';
 import { PrettyCopy } from '@/lib/copy';
 import { openGiverShare } from '@/lib/giver-catalog';
 import { track } from '@/lib/analytics';
@@ -29,7 +28,6 @@ async function copyOrShare(text: string, url: string, setMessage: (value: string
 }
 
 export default function ShareScreen() {
-  const { goYourList, goGiverView } = useListSwitcher();
   const { wishlist, occasions, items, addOccasion } = useWishlist();
   const [email, setEmail] = useState('');
   const [occasionTitle, setOccasionTitle] = useState('');
@@ -74,13 +72,7 @@ export default function ShareScreen() {
 
   return (
     <Screen>
-      <FlowHeader
-        role="owner"
-        title={PrettyCopy.shareTitle}
-        subtitle={PrettyCopy.shareSubtitle}
-        onYourList={goYourList}
-        onGiverView={goGiverView}
-      />
+      <FlowHeader title={PrettyCopy.shareTitle} />
 
       <Card>
         <ThemedText type="eyebrow" themeColor="brand">
@@ -103,9 +95,6 @@ export default function ShareScreen() {
           Occasion packs
         </ThemedText>
         <ThemedText type="smallBold">Birthday, housewarming, Christmas</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          Each pack gets its own giver link so mates only see the right gifts.
-        </ThemedText>
         {occasions.length === 0 ? (
           <View style={styles.invitesEmpty}>
             <EmptyIllustration kind="invites" size={120} />
@@ -161,7 +150,6 @@ export default function ShareScreen() {
         placeholder="auntie@example.com"
         value={email}
         onChangeText={setEmail}
-        hint="Writes a wishlist_members row when Supabase is configured. No email provider in this scaffold."
       />
       <Button label="Save invite" variant="secondary" onPress={() => void onInvite()} />
 
