@@ -7,14 +7,19 @@ import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { FlairIcon } from '@/components/flair-icons';
 import { FlowHeader } from '@/components/flow-header';
+import { InboxBanner } from '@/components/inbox-banner';
 import { Screen } from '@/components/screen';
 import { StatusChip } from '@/components/status-chip';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
+import { useInbox } from '@/context/inbox-context';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { usesDemoData } from '@/lib/app-mode';
 import { PrettyCopy } from '@/lib/copy';
+import { acceptDemoOutgoingRequest } from '@/lib/demo-social';
 import { classifyPeopleSearchQuery, giverAccessChip } from '@/lib/giver-social';
+import { acceptBannerText, isNewlyReadyPin } from '@/lib/inbox';
 import type { GiverPerson, HandleSearchHit } from '@/lib/types';
 import {
   inviteGiverByEmail,
@@ -33,6 +38,7 @@ function wantsAddParam(value: string | string[] | undefined) {
 export default function PeopleScreen() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ add?: string | string[] }>();
+  const { newlyReady, refreshInbox, ackReady } = useInbox();
   const [people, setPeople] = useState<GiverPerson[]>([]);
   const [addingOverride, setAddingOverride] = useState<boolean | null>(null);
   const [query, setQuery] = useState('');
@@ -41,19 +47,24 @@ export default function PeopleScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const adding = addingOverride ?? wantsAddParam(params.add);
+  const readyCopy = acceptBannerText(newlyReady);
 
   const refresh = useCallback(async () => {
     try {
       setPeople(await listGiverPeople());
+      await refreshInbox();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not load people');
     }
-  }, []);
+  }, [refreshInbox]);
 
   useFocusEffect(
     useCallback(() => {
       void refresh();
-    }, [refresh]),
+      return () => {
+        ackReady();
+      };
+    }, [ackReady, refresh]),
   );
 
   function openAdd() {
@@ -205,6 +216,10 @@ export default function PeopleScreen() {
 
       {adding ? addForm : null}
 
+      {readyCopy ? (
+        <InboxBanner title="They’re ready" body={readyCopy} accessibilityLabel="accepted-giver-pins" />
+      ) : null}
+
       {people.length === 0 ? (
         adding ? null : (
           <EmptyState
@@ -219,20 +234,35 @@ export default function PeopleScreen() {
       ) : (
         people.map((person) => {
           const chip = giverAccessChip(person.access_status);
+          const justReady = isNewlyReadyPin(person.id, newlyReady);
           return (
-            <Card key={person.id}>
+            <Card key={person.id} selected={justReady}>
               <ThemedText type="titleSm">{person.label || person.display_name || `@${person.handle}`}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
                 {person.handle ? `@${person.handle}` : 'No handle yet'}
               </ThemedText>
-              <StatusChip label={chip.label} tone={chip.tone} />
+              <StatusChip label={justReady ? 'Ready' : chip.label} tone={justReady ? 'brand' : chip.tone} />
               {person.can_open && person.share_token ? (
                 <Button label="Open wishlist" onPress={() => router.push(`/g/${person.share_token}`)} />
+              ) : person.access_status === 'active' ? (
+                <ThemedText type="small" themeColor="textSecondary">
+                  They’re ready — ask them for a share link if Open isn’t here yet.
+                </ThemedText>
               ) : (
                 <ThemedText type="small" themeColor="textSecondary">
                   Waiting for them to accept. You can still keep this pin.
                 </ThemedText>
               )}
+              {usesDemoData() && person.access_status === 'pending_request' ? (
+                <Button
+                  label="They accepted (demo)"
+                  variant="ghost"
+                  onPress={() => {
+                    acceptDemoOutgoingRequest(person.recipient_id);
+                    void refresh();
+                  }}
+                />
+              ) : null}
               <Button
                 label="Remove pin"
                 variant="ghost"

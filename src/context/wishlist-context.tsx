@@ -5,6 +5,7 @@ import type { NewWishlistItem, Occasion, UpdateWishlistItem, Wishlist, WishlistI
 import {
   createItem,
   createOccasion,
+  deleteOwnedItem,
   getOwnedWishlist,
   listOwnedItems,
   listOwnedOccasions,
@@ -20,6 +21,7 @@ type WishlistContextValue = {
   refresh: () => Promise<void>;
   addItem: (input: NewWishlistItem) => Promise<WishlistItem>;
   saveItem: (itemId: string, patch: UpdateWishlistItem) => Promise<WishlistItem>;
+  removeItem: (itemId: string) => Promise<void>;
   addOccasion: (title: string) => Promise<Occasion>;
 };
 
@@ -80,6 +82,10 @@ export function WishlistProvider({ children }: PropsWithChildren) {
         const item = await updateOwnedItem(itemId, patch);
         setItems((current) => current.map((existing) => (existing.id === item.id ? item : existing)));
         return item;
+      },
+      async removeItem(itemId) {
+        await deleteOwnedItem(itemId);
+        setItems((current) => current.filter((existing) => existing.id !== itemId));
       },
       async addOccasion(title) {
         const occasion = await createOccasion(title);

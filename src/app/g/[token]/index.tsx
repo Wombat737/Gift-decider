@@ -5,6 +5,7 @@ import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 import { DeadLinkBanner } from '@/components/dead-link-banner';
 import { FlairIcon } from '@/components/flair-icons';
 import { FlowHeader } from '@/components/flow-header';
+import { HeaderInboxLink } from '@/components/inbox-badge';
 import { ItemGrid, ItemGridSkeleton } from '@/components/item-grid';
 import { LegalLinks } from '@/components/legal-links';
 import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
@@ -12,6 +13,7 @@ import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/context/auth-context';
+import { useInbox } from '@/context/inbox-context';
 import { useGiverShare } from '@/context/giver-share-context';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -25,6 +27,7 @@ import { ownerTasteTagsHint, searchSharedWishlistItems } from '@/services/giver-
 export default function GiverShareScreen() {
   const theme = useTheme();
   const { user } = useAuth();
+  const { newlyReady, refreshInbox } = useInbox();
   const { token, meta, error, loading, refresh } = useGiverShare();
   const { items, hydrated } = useGiverCatalogState(token);
   const [focusGen, setFocusGen] = useState(0);
@@ -47,9 +50,10 @@ export default function GiverShareScreen() {
       // carry the previous Taken row.
       const frame = requestAnimationFrame(() => {
         void refresh({ silent: true });
+        void refreshInbox();
       });
       return () => cancelAnimationFrame(frame);
-    }, [refresh]),
+    }, [refresh, refreshInbox]),
   );
 
   const who = meta?.owner_display_name || meta?.owner_handle || 'a friend';
@@ -112,16 +116,12 @@ export default function GiverShareScreen() {
                 style={[styles.headerAdd, { backgroundColor: theme.brand }]}>
                 <FlairIcon name="add" color={theme.brandText} />
               </Pressable>
-              <Pressable
-                accessibilityRole="button"
+              <HeaderInboxLink
+                label="People"
+                count={user ? newlyReady.length : 0}
                 accessibilityLabel={PrettyCopy.peopleTitle}
-                hitSlop={12}
                 onPress={goPeople}
-                style={styles.headerBtn}>
-                <ThemedText type="smallBold" themeColor="brand">
-                  People
-                </ThemedText>
-              </Pressable>
+              />
             </View>
           ),
         }}

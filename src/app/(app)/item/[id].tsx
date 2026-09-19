@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -13,12 +13,14 @@ import { VibeChips } from '@/components/vibe-chips';
 import { useWishlist } from '@/context/wishlist-context';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { confirmDestructive } from '@/lib/confirm';
+import { PrettyCopy } from '@/lib/copy';
 import { parseAud } from '@/lib/format';
 
 export default function ItemDetailScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { items, occasions, saveItem, refresh } = useWishlist();
+  const { items, occasions, saveItem, removeItem, refresh } = useWishlist();
   const item = items.find((entry) => entry.id === id);
   const occasion = occasions.find((row) => row.id === item?.occasion_id);
 
@@ -61,6 +63,20 @@ export default function ItemDetailScreen() {
 
   const current = item;
   const currentForm = form;
+
+  async function onRemove() {
+    const ok = await confirmDestructive(PrettyCopy.removeGiftTitle, PrettyCopy.removeGiftBody, PrettyCopy.removeGift);
+    if (!ok) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await removeItem(current.id);
+      router.back();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not remove item');
+      setBusy(false);
+    }
+  }
 
   async function onSave() {
     setBusy(true);
@@ -156,6 +172,12 @@ export default function ItemDetailScreen() {
           ) : null}
 
           <Button label="Edit item / vibes" variant="secondary" onPress={() => setEditing(true)} />
+          <Button
+            label={busy ? 'Removing…' : PrettyCopy.removeGift}
+            variant="ghost"
+            disabled={busy}
+            onPress={() => void onRemove()}
+          />
         </>
       )}
     </Screen>

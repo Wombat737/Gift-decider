@@ -688,6 +688,16 @@ export function addDemoItem(input: NewWishlistItem): WishlistItem {
   return withPledges(item);
 }
 
+export function deleteDemoItem(itemId: string) {
+  adoptDemoRoot();
+  const current = items.find((item) => item.id === itemId);
+  if (!current) throw new Error('Item not found');
+  items = items.filter((item) => item.id !== itemId);
+  pledges = pledges.filter((pledge) => pledge.item_id !== itemId);
+  notices = notices.filter((row) => row.item_id !== itemId);
+  saveBundle();
+}
+
 export function updateDemoItem(itemId: string, patch: UpdateWishlistItem): WishlistItem {
   adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);

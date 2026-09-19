@@ -21,6 +21,7 @@ import {
   simulateDemoFunded,
   simulateDemoReveal,
   updateDemoItem,
+  deleteDemoItem,
   demoWishlist,
 } from '@/lib/demo-store';
 import { asDeliveryMethod, asRevealDate, readyToBuyEmailPreview, shiftLocalDate } from '@/lib/pledges';
@@ -283,6 +284,16 @@ export async function updateOwnedItem(itemId: string, patch: UpdateWishlistItem)
   if (error) throw error;
   const reveals = await listOwnedRevealedContributors();
   return withOwnedReveal(asOwnedRow(data as Record<string, unknown>), reveals);
+}
+
+export async function deleteOwnedItem(itemId: string): Promise<void> {
+  if (usesDemoData() || !supabase) {
+    deleteDemoItem(itemId);
+    return;
+  }
+
+  const { error } = await supabase.from('wishlist_items').delete().eq('id', itemId);
+  if (error) throw error;
 }
 
 export async function listInvites(): Promise<WishlistMember[]> {
