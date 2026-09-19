@@ -12,13 +12,11 @@ import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useListSwitcher } from '@/hooks/use-list-switcher';
 import type { LinkPreview } from '@/lib/types';
 import { previewFunctionHint, previewUrl } from '@/services/preview';
 
 export default function PasteInstagramScreen() {
   const theme = useTheme();
-  const { goYourList, goGiverView } = useListSwitcher();
   const { addItem } = useWishlist();
   const [url, setUrl] = useState('https://www.instagram.com/p/DEMO_STUB/');
   const [preview, setPreview] = useState<LinkPreview | null>(null);
@@ -59,13 +57,7 @@ export default function PasteInstagramScreen() {
 
   return (
     <Screen>
-      <FlowHeader
-        role="owner"
-        title="Paste a public post"
-        subtitle="Instagram v1: preview a stub, pin it, add vibes after. No Meta OAuth, no Saves API, no scrapers."
-        onYourList={goYourList}
-        onGiverView={goGiverView}
-      />
+      <FlowHeader title="Paste a public post" />
 
       <TextField
         label="Public Instagram URL"

@@ -2,7 +2,7 @@ import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
@@ -16,6 +16,7 @@ import { accountDeletionMailto, privacyPolicyUrl, supportEmail } from '@/lib/leg
 import { getOwnProfile, updateOwnProfile } from '@/services/profile';
 import { TasteTagEditor } from '@/components/taste-tag-editor';
 import { FilterChips } from '@/components/vibe-chips';
+import { HelpFaq } from '@/lib/help';
 import type { Discoverability } from '@/lib/types';
 
 export default function SettingsScreen() {
@@ -136,6 +137,20 @@ export default function SettingsScreen() {
             </ThemedText>
           ) : null}
         </Card>
+
+      <Card>
+        <ThemedText type="eyebrow" themeColor="brand">
+          Instructions
+        </ThemedText>
+        {HelpFaq.map((item) => (
+          <View key={item.q} style={{ gap: 4 }}>
+            <ThemedText type="smallBold">{item.q}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {item.a}
+            </ThemedText>
+          </View>
+        ))}
+      </Card>
 
       <Card>
         <ThemedText type="eyebrow" themeColor="brand">

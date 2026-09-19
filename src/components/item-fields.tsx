@@ -1,8 +1,10 @@
 import { Switch, View } from 'react-native';
 
+import { LabelWithHelp } from '@/components/help-tip';
 import { FilterChips, SUGGESTED_VIBES, VibeChips } from '@/components/vibe-chips';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
+import { FieldHelp } from '@/lib/help';
 import { useTheme } from '@/hooks/use-theme';
 import type { ItemKind, Occasion } from '@/lib/types';
 
@@ -44,7 +46,6 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
           autoCapitalize="none"
           value={value.imageUrl}
           onChangeText={(imageUrl) => onChange({ imageUrl })}
-          hint="Camera + Storage upload is next. Paste a URL for the scaffold."
         />
       ) : null}
       <TextField
@@ -73,11 +74,11 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         placeholder="80"
         value={value.targetAmount}
         onChangeText={(targetAmount) => onChange({ targetAmount })}
-        hint="Used if givers chip in. You see who it’s from on the reveal date they pick — not as soon as it’s funded."
+        help={FieldHelp.chipIn}
       />
 
       <View style={{ gap: 8 }}>
-        <ThemedText type="smallBold">Exact item or taste / vibe</ThemedText>
+        <LabelWithHelp label="Exact item or taste / vibe" help={FieldHelp.exactVsTaste} />
         <FilterChips
           options={[
             { id: 'exact', label: 'Exact item' },
@@ -86,13 +87,10 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
           value={value.itemKind}
           onChange={(id) => onChange({ itemKind: id as ItemKind })}
         />
-        <ThemedText type="small" themeColor="textSecondary">
-          Vibes help givers match the board. If a buy link dies, they get close swaps — unless you lock Exact.
-        </ThemedText>
       </View>
 
       <View style={{ gap: 8 }}>
-        <ThemedText type="smallBold">Vibe board</ThemedText>
+        <LabelWithHelp label="Vibes" help={FieldHelp.vibe} />
         <VibeChips tags={SUGGESTED_VIBES} selected={value.tags} onToggle={toggleTag} />
         <TextField
           label="More vibes"
@@ -106,31 +104,23 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
             const suggested = value.tags.filter((tag) => SUGGESTED_VIBES.includes(tag));
             onChange({ tags: [...suggested, ...extra] });
           }}
-          hint="Tap chips or type extra, comma-separated."
         />
       </View>
 
       {occasions.length > 0 ? (
         <View style={{ gap: 8 }}>
-          <ThemedText type="smallBold">Occasion pack</ThemedText>
+          <ThemedText type="smallBold">Occasion</ThemedText>
           <FilterChips
             options={[{ id: '', label: 'Unassigned' }, ...occasions.map((row) => ({ id: row.id, label: row.title }))]}
             value={value.occasionId ?? ''}
             onChange={(id) => onChange({ occasionId: id || null })}
           />
         </View>
-      ) : (
-        <ThemedText type="small" themeColor="textSecondary">
-          Create an occasion pack on the Share screen to scope a giver link (birthday, housewarming, …).
-        </ThemedText>
-      )}
+      ) : null}
 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: '100%' }}>
         <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
-          <ThemedText>No substitutions</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            Shows a lock to givers. If the buy link is dead, givers only see a warning — no alternatives.
-          </ThemedText>
+          <LabelWithHelp label="No substitutions" help={FieldHelp.noSubs} />
         </View>
         <Switch
           value={value.noSubstitution}

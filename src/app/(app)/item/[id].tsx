@@ -138,7 +138,7 @@ export default function ItemDetailScreen() {
         <>
           <View style={styles.block}>
             <ThemedText type="eyebrow" themeColor="brand">
-              {item.reveal ? 'Your list · from the group' : 'Your list · mates’ picks stay hidden'}
+              {item.reveal ? 'From the group' : 'Mates’ picks stay hidden'}
             </ThemedText>
             <ThemedText type="heading">{item.title || 'Untitled gift'}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">

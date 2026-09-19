@@ -2,13 +2,11 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { Button } from '@/components/button';
-import { FlowHeader } from '@/components/flow-header';
 import { ItemFields, type ItemFieldsValue } from '@/components/item-fields';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { parseAud } from '@/lib/format';
-import { useListSwitcher } from '@/hooks/use-list-switcher';
 
 const emptyFields: ItemFieldsValue = {
   title: '',
@@ -24,7 +22,6 @@ const emptyFields: ItemFieldsValue = {
 };
 
 export default function AddItemScreen() {
-  const { goYourList, goGiverView } = useListSwitcher();
   const { addItem, occasions } = useWishlist();
   const [fields, setFields] = useState<ItemFieldsValue>(emptyFields);
   const [busy, setBusy] = useState(false);
@@ -57,14 +54,6 @@ export default function AddItemScreen() {
 
   return (
     <Screen>
-      <FlowHeader
-        role="owner"
-        title="Pin a gift"
-        subtitle="Exact SKU or a taste/vibe. Givers see the board; they won’t tell you what they reserved."
-        onYourList={goYourList}
-        onGiverView={goGiverView}
-      />
-
       <ItemFields value={fields} occasions={occasions} onChange={(patch) => setFields((current) => ({ ...current, ...patch }))} />
 
       {error ? (

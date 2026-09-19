@@ -1,5 +1,6 @@
 import { Keyboard, StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
 
+import { HelpTip } from '@/components/help-tip';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -7,11 +8,13 @@ import { useTheme } from '@/hooks/use-theme';
 type TextFieldProps = TextInputProps & {
   label: string;
   hint?: string;
+  help?: { title: string; body: string };
 };
 
 export function TextField({
   label,
   hint,
+  help,
   style,
   multiline,
   returnKeyType,
@@ -23,7 +26,12 @@ export function TextField({
 
   return (
     <View style={styles.wrap}>
-      <ThemedText type="smallBold">{label}</ThemedText>
+      <View style={styles.labelRow}>
+        <ThemedText type="smallBold" style={styles.label}>
+          {label}
+        </ThemedText>
+        {help ? <HelpTip title={help.title} body={help.body} /> : null}
+      </View>
       <TextInput
         placeholderTextColor={theme.textSecondary}
         multiline={multiline}
@@ -59,6 +67,18 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
     width: '100%',
     maxWidth: '100%',
+    minWidth: 0,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    maxWidth: '100%',
+    minWidth: 0,
+  },
+  label: {
+    flexGrow: 1,
+    flexShrink: 1,
     minWidth: 0,
   },
   input: {
