@@ -69,11 +69,17 @@ export function GiverShareProvider({ children }: PropsWithChildren) {
         setMeta(nextMeta);
         setItems(nextItems);
         writeGiverCatalog(token, nextItems, writeGen);
+        // #28: People prefetch + this beginGiverCatalogWrite could mark the write
+        // stale. Never settle Quiet list when the RPC returned rows.
+        if (nextItems.length > 0 && peekGiverCatalog(token).length === 0) {
+          writeGiverCatalog(token, nextItems);
+        }
         setSettledToken(token);
       } catch (err) {
         if (requestId !== requestSeq.current) return;
         setError(err instanceof Error ? err.message : 'Could not open this list');
-        setSettledToken(token);
+        // A failed extras/items RPC is not a fetched-empty wishlist.
+        if (peekGiverCatalog(token).length > 0) setSettledToken(token);
       } finally {
         if (requestId === requestSeq.current) setLoading(false);
       }

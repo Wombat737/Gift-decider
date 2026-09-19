@@ -8,6 +8,7 @@ import { getDemoItem, resetDemoStore } from './demo-store';
 import {
   beginGiverCatalogWrite,
   giverListPaint,
+  giverPaintItems,
   giverShareRoute,
   invalidateGiverCatalog,
   isGiverCatalogHydrated,
@@ -186,8 +187,9 @@ describe('People → list first open never commits loaded+empty before fetch set
     writeGiverCatalog(token, [mug], beginGiverCatalogWrite(token));
     assert.equal(peekGiverCatalog(token).length, 1);
     invalidateGiverCatalog(token);
-    assert.equal(isGiverCatalogHydrated(token), false);
-    assert.equal(peekGiverCatalog(token).length, 0);
+    // Non-empty rows stay — wiping them on every People tap is the #28 retry stuck-empty.
+    assert.equal(isGiverCatalogHydrated(token), true);
+    assert.equal(peekGiverCatalog(token).length, 1);
   });
 
   it('People prefetch paints items on first list mount before the screen fetch settles', () => {
@@ -220,23 +222,91 @@ describe('People → list first open never commits loaded+empty before fetch set
     );
   });
 
+  it('#28 prefetch writeGen must not drop RPC rows when provider/focus bump gen', () => {
+    const token = 'family-share';
+    const mug = getDemoItem('demo-mug')!;
+    const socks = getDemoItem('demo-socks')!;
+
+    // People tap: invalidate empty, then getSharedItems() used to bump writeGen.
+    openGiverShare(token, () => {}, (next) => {
+      const prefetchGen = beginGiverCatalogWrite(next);
+      const providerGen = beginGiverCatalogWrite(next);
+      const focusGen = beginGiverCatalogWrite(next);
+      // Prefetch RPC returns rows after the list already took a newer gen.
+      writeGiverCatalog(next, [mug], prefetchGen);
+      assert.equal(peekGiverCatalog(next).length, 1);
+      assert.equal(
+        giverListPaint({
+          token: next,
+          loading: false,
+          fetchSettled: true,
+          settledToken: next,
+          itemCount: peekGiverCatalog(next).length,
+        }),
+        'grid',
+      );
+      writeGiverCatalog(next, [mug, socks], focusGen);
+      assert.equal(peekGiverCatalog(next).length, 2);
+      writeGiverCatalog(next, [], providerGen);
+      assert.equal(peekGiverCatalog(next).length, 2);
+    });
+
+    assert.equal(giverPaintItems(peekGiverCatalog(token), []).length, 2);
+    assert.equal(giverPaintItems([], [mug]).length, 1);
+  });
+
+  it('failed RPC does not count as a settled quiet list', () => {
+    assert.equal(
+      wouldCommitLoadedEmpty({
+        token: 'family-share',
+        loading: false,
+        fetchSettled: false,
+        itemCount: 0,
+      }),
+      false,
+    );
+    assert.equal(
+      giverListPaint({
+        token: 'family-share',
+        loading: false,
+        fetchSettled: false,
+        itemCount: 0,
+      }),
+      'skeleton',
+    );
+  });
+
   it('People and giver list screens wire the live path, not a string /g/${token} first-open', () => {
     const people = source('app/(app)/people.tsx');
+    const share = source('app/(app)/share.tsx');
     const list = source('app/g/[token]/index.tsx');
     const provider = source('context/giver-share-context.tsx');
+    const wishlist = source('services/wishlist.ts');
 
-    assert.match(people, /openGiverShare\(person\.share_token, router\.push, getSharedItems\)/);
-    assert.match(people, /openGiverShare\(hit\.share_token, router\.push, getSharedItems\)/);
+    assert.match(people, /openGiverShare\(person\.share_token, router\.push, prefetchSharedItems\)/);
+    assert.match(people, /openGiverShare\(hit\.share_token, router\.push, prefetchSharedItems\)/);
     assert.match(people, /Open wishlist/);
     assert.equal(/hrefFor=\{\(item\) => `\/item\//.test(people), false);
     assert.equal(/router\.push\(`\/g\/\$\{/.test(people), false);
 
+    assert.match(share, /openGiverShare\(wishlist\?\.share_token, router\.push, prefetchSharedItems\)/);
+    assert.match(share, /openGiverShare\(occasion\.share_token, router\.push, prefetchSharedItems\)/);
+    assert.match(share, /Open giver view/);
+
     assert.match(list, /fetchSettled/);
     assert.match(list, /peekGiverCatalog\(token\)\.length > 0/);
+    assert.match(list, /giverPaintItems/);
     assert.match(list, /silent/);
     assert.match(provider, /fetchSettled/);
     assert.match(provider, /Stay loading/);
+    assert.match(provider, /peekGiverCatalog\(token\)\.length === 0/);
     assert.equal(/setTimeout\(/.test(provider), false);
     assert.equal(/setLoading\(false\);\s*return;/.test(provider.split('if (!token)')[1] ?? ''), false);
+
+    assert.match(wishlist, /prefetch\?: boolean/);
+    assert.match(wishlist, /prefetchSharedItems/);
+    assert.match(wishlist, /listSharedPledges\(token\)\.catch/);
+    assert.match(wishlist, /listSharedNotices\(token\)\.catch/);
+    assert.match(wishlist, /shareRpcRows/);
   });
 });

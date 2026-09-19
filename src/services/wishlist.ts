@@ -351,6 +351,12 @@ function shareRpcRow<T>(data: T | T[] | null): T | null {
   return data ?? null;
 }
 
+/** PostgREST SETOF may return one row as an object instead of a one-element array. */
+function shareRpcRows<T>(data: T | T[] | null | undefined): T[] {
+  if (data == null) return [];
+  return Array.isArray(data) ? data : [data];
+}
+
 export async function getSharedWishlist(token: string): Promise<SharedWishlist | null> {
   if (useDemoShare(token)) {
     return getDemoSharedMeta(token);
@@ -397,31 +403,43 @@ async function loadSharedGiverExtras(token: string) {
   return { pledges, noticeRows };
 }
 
-export async function getSharedItems(token: string, opts?: { writeGen?: number }): Promise<WishlistItem[]> {
-  const writeGen = opts?.writeGen ?? beginGiverCatalogWrite(token);
+export async function getSharedItems(
+  token: string,
+  opts?: { writeGen?: number; prefetch?: boolean },
+): Promise<WishlistItem[]> {
+  const prefetch = Boolean(opts?.prefetch);
+  // Prefetch must not bump writeGen — the list provider/focus refresh also bumps,
+  // and #28 dropped the People-tap rows when those gens raced.
+  const writeGen = prefetch ? undefined : (opts?.writeGen ?? beginGiverCatalogWrite(token));
   if (useDemoShare(token)) {
     const next = listDemoSharedItems(token);
-    writeGiverCatalog(token, next, writeGen);
+    if (!(prefetch && next.length === 0)) writeGiverCatalog(token, next, writeGen);
     return next;
   }
 
   const [{ data, error }, pledges, noticeRows] = await Promise.all([
     supabase!.rpc('get_shared_wishlist_items', { p_token: token }),
-    listSharedPledges(token),
-    listSharedNotices(token),
+    listSharedPledges(token).catch(() => [] as ItemPledge[]),
+    listSharedNotices(token).catch(() => [] as OrganiserNotice[]),
   ]);
   if (error) throw shareRpcError(error);
   const previous = peekGiverCatalog(token);
   const next = mergePledges(
-    ((data ?? []) as WishlistItem[]).map((row) => {
+    shareRpcRows(data as WishlistItem | WishlistItem[] | null).map((row) => {
       const prev = previous.find((item) => item.id === row.id);
       return mergeGiverItem(asGiverItem({ ...row, status: coerceItemStatus(row.status, prev?.status ?? 'available') }), prev);
     }),
     pledges,
     noticeRows,
   );
-  writeGiverCatalog(token, next, writeGen);
+  // Prefetch empty is "not loaded yet", not a settled quiet list.
+  if (!(prefetch && next.length === 0)) writeGiverCatalog(token, next, writeGen);
   return next;
+}
+
+/** People / Share tap: fill the catalog without racing the list provider's writeGen. */
+export function prefetchSharedItems(token: string) {
+  return getSharedItems(token, { prefetch: true });
 }
 
 export async function listSharedNotices(token: string): Promise<OrganiserNotice[]> {

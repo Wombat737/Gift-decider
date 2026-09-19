@@ -20,7 +20,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
-import { giverListPaint, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
+import { giverListPaint, giverPaintItems, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
 import { groupGiftPhase } from '@/lib/pledges';
 import { ownerTasteTagsHint, searchSharedWishlistItems } from '@/services/giver-social';
 
@@ -28,8 +28,9 @@ export default function GiverShareScreen() {
   const theme = useTheme();
   const { user } = useAuth();
   const { newlyReady, refreshInbox } = useInbox();
-  const { token, meta, error, loading, fetchSettled, refresh } = useGiverShare();
-  const { items, hydrated } = useGiverCatalogState(token);
+  const { token, meta, error, loading, fetchSettled, refresh, items: shareItems } = useGiverShare();
+  const { items: catalogItems, hydrated } = useGiverCatalogState(token);
+  const items = giverPaintItems(catalogItems, shareItems);
   const [focusGen, setFocusGen] = useState(0);
   const [query, setQuery] = useState('');
   const [hitIds, setHitIds] = useState<string[] | null>(null);

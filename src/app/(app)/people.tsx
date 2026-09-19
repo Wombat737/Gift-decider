@@ -30,7 +30,7 @@ import {
   searchProfilesByHandle,
   unlistGiverPerson,
 } from '@/services/giver-social';
-import { getSharedItems } from '@/services/wishlist';
+import { prefetchSharedItems } from '@/services/wishlist';
 
 function wantsAddParam(value: string | string[] | undefined) {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -162,7 +162,7 @@ export default function PeopleScreen() {
           </ThemedText>
           <StatusChip label={giverAccessChip(hit.access_status).label} tone={giverAccessChip(hit.access_status).tone} />
           {hit.can_open && hit.share_token ? (
-            <Button label="Open list" onPress={() => openGiverShare(hit.share_token, router.push, getSharedItems)} />
+            <Button label="Open list" onPress={() => openGiverShare(hit.share_token, router.push, prefetchSharedItems)} />
           ) : (
             <Button
               label="Request access"
@@ -245,7 +245,7 @@ export default function PeopleScreen() {
               </ThemedText>
               <StatusChip label={justReady ? 'Ready' : chip.label} tone={justReady ? 'brand' : chip.tone} />
               {person.can_open && person.share_token ? (
-                <Button label="Open wishlist" onPress={() => openGiverShare(person.share_token, router.push, getSharedItems)} />
+                <Button label="Open wishlist" onPress={() => openGiverShare(person.share_token, router.push, prefetchSharedItems)} />
               ) : person.access_status === 'active' ? (
                 <ThemedText type="small" themeColor="textSecondary">
                   They’re ready — ask them for a share link if Open isn’t here yet.
