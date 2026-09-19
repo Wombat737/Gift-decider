@@ -465,6 +465,19 @@ export function listDemoGiverAccessRequests(): GiverAccessRequest[] {
     });
 }
 
+/** Demo helper: recipient accepts the signed-in giver’s outgoing request. */
+export function acceptDemoOutgoingRequest(recipientId: string) {
+  adopt();
+  const member = memberFor(recipientId);
+  if (!member) throw new Error('No request to accept');
+  write({
+    ...bundle,
+    members: bundle.members.map((row) =>
+      row.id === member.id ? { ...row, status: 'active' as const, accepted_at: nowIso() } : row,
+    ),
+  });
+}
+
 export function respondDemoGiverAccess(memberId: string, action: 'accept' | 'decline' | 'block') {
   adopt();
   const request = bundle.requests.find((row) => row.id === memberId);

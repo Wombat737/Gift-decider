@@ -5,24 +5,30 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { FlowHeader } from '@/components/flow-header';
+import { InboxBanner } from '@/components/inbox-banner';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
+import { useInbox } from '@/context/inbox-context';
 import { PrettyCopy } from '@/lib/copy';
+import { requestBannerText } from '@/lib/inbox';
 import type { GiverAccessRequest } from '@/lib/types';
 import { listGiverAccessRequests, respondGiverAccess } from '@/services/giver-social';
 
 export default function RequestsScreen() {
+  const { refreshInbox } = useInbox();
   const [requests, setRequests] = useState<GiverAccessRequest[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const banner = requestBannerText(requests);
 
   const refresh = useCallback(async () => {
     try {
       setRequests(await listGiverAccessRequests());
+      await refreshInbox();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not load requests');
     }
-  }, []);
+  }, [refreshInbox]);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,6 +64,10 @@ export default function RequestsScreen() {
         </ThemedText>
       ) : null}
 
+      {banner ? (
+        <InboxBanner title="Needs a look" body={banner} accessibilityLabel="pending-giver-requests" />
+      ) : null}
+
       {requests.length === 0 ? (
         <EmptyState
           kind="invites"
@@ -66,7 +76,10 @@ export default function RequestsScreen() {
         />
       ) : (
         requests.map((request) => (
-          <Card key={request.member_id}>
+          <Card key={request.member_id} selected>
+            <ThemedText type="eyebrow" themeColor="brand">
+              Pending
+            </ThemedText>
             <ThemedText type="titleSm">{request.display_name || `@${request.handle}`}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {request.handle ? `@${request.handle}` : 'Asked to be a giver on your list'}

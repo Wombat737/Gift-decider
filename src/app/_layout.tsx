@@ -6,6 +6,7 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
+import { InboxProvider } from '@/context/inbox-context';
 import { WishlistProvider } from '@/context/wishlist-context';
 import { WebFonts } from '@/components/web-fonts';
 import { Colors, Fonts } from '@/constants/theme';
@@ -26,9 +27,11 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.root}>
       <AuthProvider>
         <WishlistProvider>
-          <WebFonts />
-          <SplashController />
-          <ThemedRoot />
+          <InboxProvider>
+            <WebFonts />
+            <SplashController />
+            <ThemedRoot />
+          </InboxProvider>
         </WishlistProvider>
       </AuthProvider>
     </GestureHandlerRootView>

@@ -24,6 +24,10 @@ export const PrettyCopy = {
     'Search their Coral Coast handle or email. Pin is private — you only see gifts after they accept.',
   peopleCta: 'Add someone',
   requestsTitle: 'Giver requests',
+  requestsBannerCta: 'Review requests',
+  removeGift: 'Remove from list',
+  removeGiftTitle: 'Remove this gift?',
+  removeGiftBody: 'Mates will no longer see it after they refresh. You can add it again later.',
   commentsHint: 'Only other givers see this — not them.',
 } as const;
 
