@@ -174,10 +174,14 @@ describe('People → list first open never commits loaded+empty before fetch set
     assert.equal(peekGiverCatalog(token).length, 0);
 
     const pushed: ReturnType<typeof giverShareRoute>[] = [];
-    openGiverShare(token, (href) => pushed.push(href));
+    const prefetched: string[] = [];
+    openGiverShare(token, (href) => pushed.push(href), (next) => {
+      prefetched.push(next);
+    });
     assert.equal(isGiverCatalogHydrated(token), false);
     assert.equal(peekGiverCatalog(token).length, 0);
     assert.deepEqual(pushed, [{ pathname: '/g/[token]', params: { token } }]);
+    assert.deepEqual(prefetched, [token]);
 
     writeGiverCatalog(token, [mug], beginGiverCatalogWrite(token));
     assert.equal(peekGiverCatalog(token).length, 1);
@@ -192,6 +196,7 @@ describe('People → list first open never commits loaded+empty before fetch set
     const provider = source('context/giver-share-context.tsx');
 
     assert.match(people, /openGiverShare/);
+    assert.match(people, /getSharedItems/);
     assert.match(people, /Open wishlist/);
     assert.equal(/router\.push\(`\/g\/\$\{/.test(people), false);
 

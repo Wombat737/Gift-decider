@@ -91,13 +91,16 @@ export function giverShareRoute(token: string) {
   return { pathname: '/g/[token]' as const, params: { token } };
 }
 
-/** People / search: drop stale empty catalog then open the live share route. */
+/** People / search: drop stale empty catalog then open the typed share route. */
 export function openGiverShare(
   token: string | null | undefined,
   push: (href: ReturnType<typeof giverShareRoute>) => void,
+  prefetch?: (token: string) => void | Promise<unknown>,
 ) {
   if (!token) return;
   invalidateGiverCatalog(token);
+  // Kick the live RPC at the People tap — do not wait for g/[token] layout params.
+  void prefetch?.(token);
   push(giverShareRoute(token));
 }
 
