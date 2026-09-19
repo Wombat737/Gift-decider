@@ -301,9 +301,9 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.equal(owner.status, 'available');
   });
 
-  it('first giver-list paint stays skeleton until the token is hydrated', () => {
+  it('first giver-list paint stays skeleton until the fetch settles', () => {
     assert.equal(
-      giverListPaint({ token: undefined, loading: false, hydrated: false, itemCount: 0 }),
+      giverListPaint({ token: undefined, loading: true, hydrated: false, itemCount: 0 }),
       'skeleton',
     );
     assert.equal(
@@ -312,20 +312,22 @@ describe('Giver status icon after lock / purchase / release', () => {
     );
     assert.equal(
       giverListPaint({ token: 'live-share', loading: false, hydrated: false, itemCount: 0 }),
-      'skeleton',
+      'empty',
     );
     assert.equal(
       giverListPaint({ token: 'live-share', loading: false, hydrated: true, itemCount: 0 }),
       'empty',
     );
-    const mug = getDemoItem('demo-mug')!;
     assert.equal(
       giverListPaint({ token: 'live-share', loading: true, hydrated: false, itemCount: 1 }),
       'grid',
     );
-    assert.equal(mug.id, 'demo-mug');
     assert.equal(
       giverListPaint({ token: 'live-share', loading: false, hydrated: true, itemCount: 0, query: 'linen' }),
+      'empty',
+    );
+    assert.equal(
+      giverListPaint({ token: undefined, loading: false, hydrated: false, itemCount: 0 }),
       'empty',
     );
   });

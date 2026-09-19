@@ -62,9 +62,10 @@ export function shareTokenFromRoute(input: {
 }
 
 /**
- * First giver-list paint. Empty is only legal after this token has been fetched
- * (or the query filtered to zero). Anything else is a skeleton — never a flash
- * of “no items yet”.
+ * First giver-list paint. Empty is only legal after a fetch has settled
+ * (`loading` false). In-flight first open stays on the skeleton — never a flash
+ * of “no items yet”. A finished fetch with zero rows is a real empty (including
+ * unmatched tokens). `hydrated` is reserved for silent-refresh loading.
  */
 export function giverListPaint(input: {
   token?: string;
@@ -75,7 +76,7 @@ export function giverListPaint(input: {
 }): 'skeleton' | 'grid' | 'empty' {
   if (input.itemCount > 0) return 'grid';
   if (input.query?.trim()) return 'empty';
-  if (!input.token || input.loading || !input.hydrated) return 'skeleton';
+  if (input.loading) return 'skeleton';
   return 'empty';
 }
 
