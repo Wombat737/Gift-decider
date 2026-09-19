@@ -190,14 +190,45 @@ describe('People → list first open never commits loaded+empty before fetch set
     assert.equal(peekGiverCatalog(token).length, 0);
   });
 
+  it('People prefetch paints items on first list mount before the screen fetch settles', () => {
+    const token = 'family-share';
+    const mug = getDemoItem('demo-mug')!;
+    const pushed: ReturnType<typeof giverShareRoute>[] = [];
+    openGiverShare(token, (href) => pushed.push(href), (next) => {
+      writeGiverCatalog(next, [mug], beginGiverCatalogWrite(next));
+    });
+    assert.deepEqual(pushed[0], { pathname: '/g/[token]', params: { token } });
+    assert.equal(peekGiverCatalog(token).length, 1);
+    // List screen can still be loading / not fetchSettled; catalog already has rows.
+    assert.equal(
+      giverListPaint({
+        token,
+        loading: true,
+        fetchSettled: false,
+        itemCount: peekGiverCatalog(token).length,
+      }),
+      'grid',
+    );
+    assert.equal(
+      wouldCommitLoadedEmpty({
+        token,
+        loading: true,
+        fetchSettled: false,
+        itemCount: peekGiverCatalog(token).length,
+      }),
+      false,
+    );
+  });
+
   it('People and giver list screens wire the live path, not a string /g/${token} first-open', () => {
     const people = source('app/(app)/people.tsx');
     const list = source('app/g/[token]/index.tsx');
     const provider = source('context/giver-share-context.tsx');
 
-    assert.match(people, /openGiverShare/);
-    assert.match(people, /getSharedItems/);
+    assert.match(people, /openGiverShare\(person\.share_token, router\.push, getSharedItems\)/);
+    assert.match(people, /openGiverShare\(hit\.share_token, router\.push, getSharedItems\)/);
     assert.match(people, /Open wishlist/);
+    assert.equal(/hrefFor=\{\(item\) => `\/item\//.test(people), false);
     assert.equal(/router\.push\(`\/g\/\$\{/.test(people), false);
 
     assert.match(list, /fetchSettled/);
