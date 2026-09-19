@@ -15,15 +15,26 @@ const LIVE_KEY = '__giftdeciderGiverLiveCatalog';
 type LiveRoot = {
   version: number;
   byToken: Map<string, WishlistItem[]>;
+  hydrated: Set<string>;
+  writeGen: Map<string, number>;
   listeners: Set<() => void>;
 };
 
 function liveRoot(): LiveRoot {
   const global = globalThis as typeof globalThis & { [LIVE_KEY]?: LiveRoot };
   if (!global[LIVE_KEY]) {
-    global[LIVE_KEY] = { version: 0, byToken: new Map(), listeners: new Set() };
+    global[LIVE_KEY] = {
+      version: 0,
+      byToken: new Map(),
+      hydrated: new Set(),
+      writeGen: new Map(),
+      listeners: new Set(),
+    };
   }
-  return global[LIVE_KEY];
+  const root = global[LIVE_KEY];
+  if (!root.hydrated) root.hydrated = new Set();
+  if (!root.writeGen) root.writeGen = new Map();
+  return root;
 }
 
 /** Expo Router can pass a dynamic segment as string[]. */
@@ -32,6 +43,41 @@ export function shareTokenParam(value: unknown): string | undefined {
     return typeof value[0] === 'string' && value[0] !== 'undefined' ? value[0] : undefined;
   }
   return typeof value === 'string' && value !== 'undefined' ? value : undefined;
+}
+
+/** Pathname keeps /g/:token even when layout useLocalSearchParams is still empty. */
+export function shareTokenFromPathname(pathname: string | undefined): string | undefined {
+  if (!pathname) return undefined;
+  const match = pathname.match(/(?:^|\/)g\/([^/?#]+)/);
+  return shareTokenParam(match?.[1]);
+}
+
+/** Prefer local params, then global, then the /g/:token path segment. */
+export function shareTokenFromRoute(input: {
+  local?: unknown;
+  global?: unknown;
+  pathname?: string;
+}): string | undefined {
+  return shareTokenParam(input.local) ?? shareTokenParam(input.global) ?? shareTokenFromPathname(input.pathname);
+}
+
+/**
+ * First giver-list paint. Empty is only legal after a fetch has settled
+ * (`loading` false). In-flight first open stays on the skeleton — never a flash
+ * of “no items yet”. A finished fetch with zero rows is a real empty (including
+ * unmatched tokens). `hydrated` is reserved for silent-refresh loading.
+ */
+export function giverListPaint(input: {
+  token?: string;
+  loading: boolean;
+  hydrated: boolean;
+  itemCount: number;
+  query?: string;
+}): 'skeleton' | 'grid' | 'empty' {
+  if (input.itemCount > 0) return 'grid';
+  if (input.query?.trim()) return 'empty';
+  if (input.loading) return 'skeleton';
+  return 'empty';
 }
 
 /**
@@ -52,8 +98,26 @@ function notifyLive() {
 }
 
 export function resetGiverCatalog() {
-  liveRoot().byToken = new Map();
+  const root = liveRoot();
+  root.byToken = new Map();
+  root.hydrated = new Set();
+  root.writeGen = new Map();
   notifyLive();
+}
+
+/** Bump the per-token write generation so an older in-flight fetch cannot clobber. */
+export function beginGiverCatalogWrite(token: string): number {
+  const root = liveRoot();
+  const next = (root.writeGen.get(token) ?? 0) + 1;
+  root.writeGen.set(token, next);
+  return next;
+}
+
+export function isGiverCatalogHydrated(token: string | undefined): boolean {
+  if (!token) return false;
+  if (liveRoot().hydrated.has(token)) return true;
+  // Demo seed is sync — first open must not wait on a share-token RPC.
+  return isDemoShareToken(token);
 }
 
 export function patchGiverCatalog(token: string, item: WishlistItem) {
@@ -61,17 +125,20 @@ export function patchGiverCatalog(token: string, item: WishlistItem) {
   const root = liveRoot();
   const current = root.byToken.get(token) ?? (isDemoShareToken(token) ? listDemoSharedItems(token) : []);
   root.byToken.set(token, replaceSharedItem(current, item));
+  root.hydrated.add(token);
   notifyLive();
 }
 
-export function writeGiverCatalog(token: string, items: WishlistItem[]) {
+export function writeGiverCatalog(token: string, items: WishlistItem[], writeGen?: number) {
   if (!token) return;
   const root = liveRoot();
+  if (writeGen != null && root.writeGen.get(token) !== writeGen) return;
   const previous = root.byToken.get(token) ?? [];
   root.byToken.set(
     token,
     items.map((row) => mergeGiverItem(row, previous.find((item) => item.id === row.id))),
   );
+  root.hydrated.add(token);
   notifyLive();
 }
 
@@ -112,6 +179,16 @@ export function pickSharedItem(
 
 /** List and item screens subscribe here so badges update even if the nested stack remounts. */
 export function useGiverCatalog(token: string | undefined): WishlistItem[] {
+  return useGiverCatalogState(token).items;
+}
+
+export function useGiverCatalogState(token: string | undefined): { items: WishlistItem[]; hydrated: boolean } {
   const version = useSyncExternalStore(subscribeGiverCatalog, getGiverCatalogVersion, getGiverCatalogVersion);
-  return useMemo(() => (token ? peekGiverCatalog(token) : []), [token, version]);
+  return useMemo(
+    () => ({
+      items: token ? peekGiverCatalog(token) : [],
+      hydrated: isGiverCatalogHydrated(token),
+    }),
+    [token, version],
+  );
 }

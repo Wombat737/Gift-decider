@@ -45,7 +45,6 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
       </View>
       <View style={styles.meta}>
         <ThemedText type="titleSm" numberOfLines={2}>
-          {item.no_substitution ? '🔒 ' : ''}
           {item.title || 'Untitled gift'}
         </ThemedText>
         {item.item_kind === 'vibe' ? (

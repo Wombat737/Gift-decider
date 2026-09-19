@@ -27,7 +27,13 @@ import { asDeliveryMethod, asRevealDate, readyToBuyEmailPreview, shiftLocalDate 
 import { healLink } from '@/lib/heal-link';
 import { OWNER_ITEM_SELECT } from '@/lib/rls-contract';
 import { applyItemStatus, coerceItemStatus, mergeGiverItem } from '@/lib/giver-status';
-import { patchGiverCatalog, peekGiverCatalog, shareTokenParam, shouldUseDemoShare, writeGiverCatalog } from '@/lib/giver-catalog';
+import {
+  beginGiverCatalogWrite,
+  patchGiverCatalog,
+  peekGiverCatalog,
+  shouldUseDemoShare,
+  writeGiverCatalog,
+} from '@/lib/giver-catalog';
 import { hideReservationFromOwner, ownerSafeItem } from '@/lib/surprise-safe';
 import { env } from '@/lib/env';
 import { ensureOwnWorkspace } from '@/services/profile';
@@ -380,9 +386,12 @@ async function loadSharedGiverExtras(token: string) {
   return { pledges, noticeRows };
 }
 
-export async function getSharedItems(token: string): Promise<WishlistItem[]> {
+export async function getSharedItems(token: string, opts?: { writeGen?: number }): Promise<WishlistItem[]> {
+  const writeGen = opts?.writeGen ?? beginGiverCatalogWrite(token);
   if (useDemoShare(token)) {
-    return listDemoSharedItems(token);
+    const next = listDemoSharedItems(token);
+    writeGiverCatalog(token, next, writeGen);
+    return next;
   }
 
   const [{ data, error }, pledges, noticeRows] = await Promise.all([
@@ -400,7 +409,7 @@ export async function getSharedItems(token: string): Promise<WishlistItem[]> {
     pledges,
     noticeRows,
   );
-  writeGiverCatalog(token, next);
+  writeGiverCatalog(token, next, writeGen);
   return next;
 }
 

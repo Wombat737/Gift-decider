@@ -5,7 +5,7 @@ import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 import { DeadLinkBanner } from '@/components/dead-link-banner';
 import { FlairIcon } from '@/components/flair-icons';
 import { FlowHeader } from '@/components/flow-header';
-import { ItemGrid } from '@/components/item-grid';
+import { ItemGrid, ItemGridSkeleton } from '@/components/item-grid';
 import { LegalLinks } from '@/components/legal-links';
 import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { Screen } from '@/components/screen';
@@ -18,7 +18,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
-import { useGiverCatalog } from '@/lib/giver-catalog';
+import { giverListPaint, useGiverCatalogState } from '@/lib/giver-catalog';
 import { groupGiftPhase } from '@/lib/pledges';
 import { ownerTasteTagsHint, searchSharedWishlistItems } from '@/services/giver-social';
 
@@ -26,7 +26,7 @@ export default function GiverShareScreen() {
   const theme = useTheme();
   const { user } = useAuth();
   const { token, meta, error, loading, refresh } = useGiverShare();
-  const items = useGiverCatalog(token);
+  const { items, hydrated } = useGiverCatalogState(token);
   const [focusGen, setFocusGen] = useState(0);
   const [query, setQuery] = useState('');
   const [hitIds, setHitIds] = useState<string[] | null>(null);
@@ -63,6 +63,13 @@ export default function GiverShareScreen() {
 
   const emptyHint =
     query.trim() && token && isDemoShareToken(token) ? ownerTasteTagsHint(demoOwnerHasTasteTags()) : null;
+  const paint = giverListPaint({
+    token,
+    loading,
+    hydrated,
+    itemCount: visible.length,
+    query,
+  });
 
   async function remindThem() {
     const text = mateNudgeMessage();
@@ -160,7 +167,9 @@ export default function GiverShareScreen() {
       {readyToBuy.length > 0 ? <ReadyToBuyBanner items={readyToBuy} /> : null}
       <DeadLinkBanner items={items} />
 
-      {!loading || visible.length > 0 ? (
+      {paint === 'skeleton' ? (
+        <ItemGridSkeleton />
+      ) : (
         <ItemGrid
           key={`${token ?? 'share'}:${focusGen}:${query}`}
           items={visible}
@@ -174,8 +183,6 @@ export default function GiverShareScreen() {
           onEmptySecondary={query.trim() ? undefined : goAddSomeone}
           emptyKind="giver"
         />
-      ) : (
-        <ThemedText themeColor="textSecondary">Loading gifts…</ThemedText>
       )}
 
       <LegalLinks />

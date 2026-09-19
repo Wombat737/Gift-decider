@@ -15,7 +15,7 @@ export function NoSubLock({ compact = false }: { compact?: boolean }) {
         { backgroundColor: theme.brandSoft, borderColor: theme.brandSoft },
       ]}>
       <ThemedText type="smallBold" themeColor="brand">
-        🔒 {compact ? 'Locked' : 'No substitutes'}
+        {compact ? 'Locked' : 'No substitutes'}
       </ThemedText>
       {compact ? null : (
         <ThemedText type="small" themeColor="textSecondary">

@@ -9,7 +9,19 @@ import {
   setDemoItemStatus,
   subscribeDemoStore,
 } from './demo-store';
-import { patchGiverCatalog, peekGiverCatalog, pickSharedItem, resetGiverCatalog, shareTokenParam, writeGiverCatalog } from './giver-catalog';
+import {
+  beginGiverCatalogWrite,
+  giverListPaint,
+  isGiverCatalogHydrated,
+  patchGiverCatalog,
+  peekGiverCatalog,
+  pickSharedItem,
+  resetGiverCatalog,
+  shareTokenFromPathname,
+  shareTokenFromRoute,
+  shareTokenParam,
+  writeGiverCatalog,
+} from './giver-catalog';
 import {
   applyItemStatus,
   coerceItemStatus,
@@ -287,5 +299,77 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Bought');
     const owner = ownerSafeItem(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!);
     assert.equal(owner.status, 'available');
+  });
+
+  it('first giver-list paint stays skeleton until the fetch settles', () => {
+    assert.equal(
+      giverListPaint({ token: undefined, loading: true, hydrated: false, itemCount: 0 }),
+      'skeleton',
+    );
+    assert.equal(
+      giverListPaint({ token: 'live-share', loading: true, hydrated: false, itemCount: 0 }),
+      'skeleton',
+    );
+    assert.equal(
+      giverListPaint({ token: 'live-share', loading: false, hydrated: false, itemCount: 0 }),
+      'empty',
+    );
+    assert.equal(
+      giverListPaint({ token: 'live-share', loading: false, hydrated: true, itemCount: 0 }),
+      'empty',
+    );
+    assert.equal(
+      giverListPaint({ token: 'live-share', loading: true, hydrated: false, itemCount: 1 }),
+      'grid',
+    );
+    assert.equal(
+      giverListPaint({ token: 'live-share', loading: false, hydrated: true, itemCount: 0, query: 'linen' }),
+      'empty',
+    );
+    assert.equal(
+      giverListPaint({ token: undefined, loading: false, hydrated: false, itemCount: 0 }),
+      'empty',
+    );
+  });
+
+  it('live catalog is not hydrated until a write; stale writes cannot empty it', () => {
+    const token = 'live-first-open';
+    assert.equal(isGiverCatalogHydrated(token), false);
+    assert.equal(peekGiverCatalog(token).length, 0);
+    assert.equal(isGiverCatalogHydrated('demo'), true);
+
+    const mug = getDemoItem('demo-mug')!;
+    const first = beginGiverCatalogWrite(token);
+    const second = beginGiverCatalogWrite(token);
+    writeGiverCatalog(token, [], first);
+    assert.equal(isGiverCatalogHydrated(token), false);
+    assert.equal(peekGiverCatalog(token).length, 0);
+
+    writeGiverCatalog(token, [mug], second);
+    assert.equal(isGiverCatalogHydrated(token), true);
+    assert.equal(peekGiverCatalog(token).length, 1);
+
+    const lateEmpty = first;
+    writeGiverCatalog(token, [], lateEmpty);
+    assert.equal(peekGiverCatalog(token).length, 1);
+
+    const third = beginGiverCatalogWrite(token);
+    writeGiverCatalog(token, [], third);
+    assert.equal(isGiverCatalogHydrated(token), true);
+    assert.equal(peekGiverCatalog(token).length, 0);
+  });
+
+  it('share token resolves from /g/:token even when layout params are still empty', () => {
+    assert.equal(shareTokenFromPathname('/g/abc-token'), 'abc-token');
+    assert.equal(shareTokenFromPathname('/Gift-decider/g/abc-token/item-1'), 'abc-token');
+    assert.equal(shareTokenFromPathname('/people'), undefined);
+    assert.equal(
+      shareTokenFromRoute({ local: undefined, global: undefined, pathname: '/g/family-share' }),
+      'family-share',
+    );
+    assert.equal(
+      shareTokenFromRoute({ local: ['live-local'], global: 'ignored', pathname: '/g/path' }),
+      'live-local',
+    );
   });
 });
