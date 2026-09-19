@@ -15,12 +15,14 @@ import { useAuth } from '@/context/auth-context';
 import { useInbox } from '@/context/inbox-context';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
+import { useListSwitcher } from '@/hooks/use-list-switcher';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
 import { acceptBannerText, requestBannerText } from '@/lib/inbox';
 
 export default function WishlistGridScreen() {
   const { user } = useAuth();
+  const { goYourList, goGiverView } = useListSwitcher();
   const { items, occasions, loading, error, refresh } = useWishlist();
   const { pendingRequests, newlyReady, requests, refreshInbox } = useInbox();
   const [occasionId, setOccasionId] = useState('all');
@@ -81,6 +83,8 @@ export default function WishlistGridScreen() {
         role="owner"
         title="What you actually want"
         subtitle={`Photo-first list for ${user?.email ?? 'you'}. Friends pick from a share link — you won’t see reserves, pledges, or who bought what. Group gifts stay unspoiled until the reveal date.`}
+        onYourList={goYourList}
+        onGiverView={goGiverView}
       />
 
       <View style={styles.actions}>

@@ -17,6 +17,7 @@ type LiveRoot = {
   byToken: Map<string, WishlistItem[]>;
   hydrated: Set<string>;
   writeGen: Map<string, number>;
+  lastToken?: string;
   listeners: Set<() => void>;
 };
 
@@ -28,6 +29,7 @@ function liveRoot(): LiveRoot {
       byToken: new Map(),
       hydrated: new Set(),
       writeGen: new Map(),
+      lastToken: undefined,
       listeners: new Set(),
     };
   }
@@ -91,17 +93,43 @@ export function giverShareRoute(token: string) {
   return { pathname: '/g/[token]' as const, params: { token } };
 }
 
-/** People / search / in-app giver view: open the typed share route and kick the live RPC. */
+export function rememberGiverShare(token: string | undefined) {
+  const normalized = shareTokenParam(token);
+  if (!normalized) return;
+  liveRoot().lastToken = normalized;
+}
+
+export function lastGiverShareToken(): string | undefined {
+  return shareTokenParam(liveRoot().lastToken);
+}
+
+/** People / search / in-app Giver view tab: remember the person and kick the live RPC. */
 export function openGiverShare(
   token: string | null | undefined,
   push: (href: ReturnType<typeof giverShareRoute>) => void,
   prefetch?: (token: string) => void | Promise<unknown>,
 ) {
   if (!token) return;
+  rememberGiverShare(token);
   invalidateGiverCatalog(token);
   // Kick the live RPC at the tap — do not wait for g/[token] layout params.
   void prefetch?.(token);
   push(giverShareRoute(token));
+}
+
+/** YOUR LIST | GIVER VIEW switcher: reopen the last person, else People. */
+export function openLastGiverShare(
+  push: (href: ReturnType<typeof giverShareRoute>) => void,
+  prefetch?: (token: string) => void | Promise<unknown>,
+  fallback?: () => void,
+) {
+  const token = lastGiverShareToken();
+  if (!token) {
+    fallback?.();
+    return false;
+  }
+  openGiverShare(token, push, prefetch);
+  return true;
 }
 
 /** List paints catalog first so chips stay aligned; fall back to the in-flight provider rows. */
@@ -137,10 +165,13 @@ export function giverListPaint(input: {
   hydrated?: boolean;
   itemCount: number;
   query?: string;
+  error?: string | null;
 }): 'skeleton' | 'grid' | 'empty' {
   if (input.itemCount > 0) return 'grid';
   if (input.query?.trim()) return 'empty';
   const token = shareTokenParam(input.token);
+  // Failed / offline RPC is not a quiet list — airplane mode must not settle empty.
+  if (input.error) return 'skeleton';
   const settled =
     Boolean(input.fetchSettled) &&
     Boolean(token) &&
@@ -209,6 +240,7 @@ export function resetGiverCatalog() {
   root.byToken = new Map();
   root.hydrated = new Set();
   root.writeGen = new Map();
+  root.lastToken = undefined;
   notifyLive();
 }
 

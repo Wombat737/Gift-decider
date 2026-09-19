@@ -11,6 +11,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
+import { useListSwitcher } from '@/hooks/use-list-switcher';
 import { PrettyCopy } from '@/lib/copy';
 import { openGiverShare } from '@/lib/giver-catalog';
 import { track } from '@/lib/analytics';
@@ -28,6 +29,7 @@ async function copyOrShare(text: string, url: string, setMessage: (value: string
 }
 
 export default function ShareScreen() {
+  const { goYourList, goGiverView } = useListSwitcher();
   const { wishlist, occasions, items, addOccasion } = useWishlist();
   const [email, setEmail] = useState('');
   const [occasionTitle, setOccasionTitle] = useState('');
@@ -76,6 +78,8 @@ export default function ShareScreen() {
         role="owner"
         title={PrettyCopy.shareTitle}
         subtitle={PrettyCopy.shareSubtitle}
+        onYourList={goYourList}
+        onGiverView={goGiverView}
       />
 
       <Card>
