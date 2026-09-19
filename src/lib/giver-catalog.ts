@@ -37,12 +37,24 @@ function liveRoot(): LiveRoot {
   return root;
 }
 
-/** Expo Router can pass a dynamic segment as string[]. */
+/**
+ * Expo Router can pass a dynamic segment as string[], the literal "undefined",
+ * or the unnormalized file placeholder `[token]` before the real param hydrates.
+ * Those must not be treated as a share token — fetching them settles empty.
+ */
 export function shareTokenParam(value: unknown): string | undefined {
-  if (Array.isArray(value)) {
-    return typeof value[0] === 'string' && value[0] !== 'undefined' ? value[0] : undefined;
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw !== 'string') return undefined;
+  let trimmed = raw.trim();
+  if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return undefined;
+  try {
+    trimmed = decodeURIComponent(trimmed);
+  } catch {
+    // keep the raw segment
   }
-  return typeof value === 'string' && value !== 'undefined' ? value : undefined;
+  // `/g/[token]` path / param before Expo hydrates the dynamic segment.
+  if (/^\[[\w.-]+\]$/.test(trimmed)) return undefined;
+  return trimmed;
 }
 
 /** Pathname keeps /g/:token even when layout useLocalSearchParams is still empty. */
@@ -52,32 +64,122 @@ export function shareTokenFromPathname(pathname: string | undefined): string | u
   return shareTokenParam(match?.[1]);
 }
 
+export function shareTokenFromSegments(segments: readonly string[] | undefined): string | undefined {
+  if (!segments?.length) return undefined;
+  const g = segments.lastIndexOf('g');
+  if (g < 0) return undefined;
+  return shareTokenParam(segments[g + 1]);
+}
+
 /** Prefer local params, then global, then the /g/:token path segment. */
 export function shareTokenFromRoute(input: {
   local?: unknown;
   global?: unknown;
   pathname?: string;
+  segments?: readonly string[];
 }): string | undefined {
-  return shareTokenParam(input.local) ?? shareTokenParam(input.global) ?? shareTokenFromPathname(input.pathname);
+  return (
+    shareTokenParam(input.local) ??
+    shareTokenParam(input.global) ??
+    shareTokenFromPathname(input.pathname) ??
+    shareTokenFromSegments(input.segments)
+  );
 }
 
+/** Typed href so People → list does not push a param-less `/g/[token]` anchor. */
+export function giverShareRoute(token: string) {
+  return { pathname: '/g/[token]' as const, params: { token } };
+}
+
+/** People / search: drop stale empty catalog then open the typed share route. */
+export function openGiverShare(
+  token: string | null | undefined,
+  push: (href: ReturnType<typeof giverShareRoute>) => void,
+  prefetch?: (token: string) => void | Promise<unknown>,
+) {
+  if (!token) return;
+  invalidateGiverCatalog(token);
+  // Kick the live RPC at the People tap — do not wait for g/[token] layout params.
+  void prefetch?.(token);
+  push(giverShareRoute(token));
+}
+
+export type GiverListLoadState = {
+  token?: string;
+  loading: boolean;
+  fetchSettled: boolean;
+  settledToken?: string;
+  itemCount: number;
+  query?: string;
+};
+
+export type GiverListLoadEvent =
+  | { type: 'route'; token?: unknown }
+  | { type: 'fetch-start'; token: string }
+  | { type: 'fetch-settle'; token: string; itemCount: number }
+  | { type: 'loading-false-without-fetch' };
+
 /**
- * First giver-list paint. Empty is only legal after a fetch has settled
- * (`loading` false). In-flight first open stays on the skeleton — never a flash
- * of “no items yet”. A finished fetch with zero rows is a real empty (including
- * unmatched tokens). `hydrated` is reserved for silent-refresh loading.
+ * First giver-list paint. Empty is only legal after a fetch for **this** token
+ * has settled. `loading === false` alone is not settled — People first-open used
+ * to commit the giver empty hero from a placeholder token / 800ms timeout.
  */
 export function giverListPaint(input: {
   token?: string;
   loading: boolean;
-  hydrated: boolean;
+  fetchSettled?: boolean;
+  settledToken?: string;
+  hydrated?: boolean;
   itemCount: number;
   query?: string;
 }): 'skeleton' | 'grid' | 'empty' {
   if (input.itemCount > 0) return 'grid';
   if (input.query?.trim()) return 'empty';
-  if (input.loading) return 'skeleton';
+  const token = shareTokenParam(input.token);
+  const settled =
+    Boolean(input.fetchSettled) &&
+    Boolean(token) &&
+    (input.settledToken == null || input.settledToken === token);
+  if (!token || input.loading || !settled) return 'skeleton';
   return 'empty';
+}
+
+/** True when we would paint the giver empty hero. Illegal before fetch settles. */
+export function wouldCommitLoadedEmpty(input: Parameters<typeof giverListPaint>[0]) {
+  return giverListPaint(input) === 'empty' && input.itemCount === 0 && !input.query?.trim();
+}
+
+export function reduceGiverListLoad(
+  state: GiverListLoadState,
+  event: GiverListLoadEvent,
+): GiverListLoadState {
+  switch (event.type) {
+    case 'route': {
+      const token = shareTokenFromRoute({ local: event.token }) ?? shareTokenParam(event.token);
+      if (token === state.token) return { ...state, token };
+      return {
+        token,
+        loading: true,
+        fetchSettled: false,
+        settledToken: undefined,
+        itemCount: 0,
+        query: state.query,
+      };
+    }
+    case 'fetch-start':
+      return { ...state, token: event.token, loading: true };
+    case 'fetch-settle':
+      if (event.token !== state.token) return state;
+      return {
+        ...state,
+        loading: false,
+        fetchSettled: true,
+        settledToken: event.token,
+        itemCount: event.itemCount,
+      };
+    case 'loading-false-without-fetch':
+      return { ...state, loading: false };
+  }
 }
 
 /**
@@ -102,6 +204,16 @@ export function resetGiverCatalog() {
   root.byToken = new Map();
   root.hydrated = new Set();
   root.writeGen = new Map();
+  notifyLive();
+}
+
+/** Drop a token before People → list so a stale empty write cannot paint first. */
+export function invalidateGiverCatalog(token: string | undefined) {
+  if (!token) return;
+  const root = liveRoot();
+  root.byToken.delete(token);
+  root.hydrated.delete(token);
+  root.writeGen.delete(token);
   notifyLive();
 }
 

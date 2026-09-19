@@ -161,6 +161,7 @@ describe('Pretty pass punch-list', () => {
     assert.match(giverItem, /nativePress/);
     assert.match(giverItem, /updateStatus\('purchased'\)/);
     assert.match(giverList, /useFocusEffect/);
-    assert.match(giverList, /refresh\(\{ silent: true \}\)/);
+    assert.match(giverList, /refresh\(\{ silent \}\)/);
+    assert.match(giverList, /peekGiverCatalog\(token\)\.length > 0/);
   });
 });

@@ -183,7 +183,8 @@ describe('Flair pass (pretty v2) punch-list', () => {
     assert.match(giverItem, /footer=\{/);
     assert.match(giverItem, /nativePress/);
     assert.match(giverList, /useFocusEffect/);
-    assert.match(giverList, /refresh\(\{ silent: true \}\)/);
+    assert.match(giverList, /refresh\(\{ silent \}\)/);
+    assert.match(giverList, /peekGiverCatalog\(token\)\.length > 0/);
     assert.match(date, /formatRevealDate/);
     assert.match(text, /fontFamily: Fonts\.sans/);
     assert.equal(css.includes('Fraunces'), false);

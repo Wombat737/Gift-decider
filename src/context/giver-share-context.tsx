@@ -1,10 +1,10 @@
-import { useGlobalSearchParams, useLocalSearchParams, usePathname } from 'expo-router';
+import { useGlobalSearchParams, useLocalSearchParams, usePathname, useSegments } from 'expo-router';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 
 import {
   beginGiverCatalogWrite,
-  isGiverCatalogHydrated,
   patchGiverCatalog,
+  peekGiverCatalog,
   shareTokenFromRoute,
   writeGiverCatalog,
 } from '@/lib/giver-catalog';
@@ -19,6 +19,7 @@ type GiverShareContextValue = {
   meta: SharedWishlist | null;
   items: WishlistItem[];
   loading: boolean;
+  fetchSettled: boolean;
   error: string | null;
   refresh: (opts?: { silent?: boolean }) => Promise<void>;
   patchItem: (item: WishlistItem) => void;
@@ -30,25 +31,34 @@ export function GiverShareProvider({ children }: PropsWithChildren) {
   const local = useLocalSearchParams<{ token?: string }>();
   const global = useGlobalSearchParams<{ token?: string }>();
   const pathname = usePathname();
-  const token = shareTokenFromRoute({ local: local.token, global: global.token, pathname });
+  const segments = useSegments();
+  const token = shareTokenFromRoute({
+    local: local.token,
+    global: global.token,
+    pathname,
+    segments,
+  });
   const { user } = useAuth();
   const [meta, setMeta] = useState<SharedWishlist | null>(null);
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [settledToken, setSettledToken] = useState<string | undefined>(undefined);
   const requestSeq = useRef(0);
 
   const refresh = useCallback(
     async (opts?: { silent?: boolean }) => {
       if (!token) {
-        // Expo Router can paint g/[token]/_layout before local params hydrate.
-        // Stay loading — a missing token is not a fetched-empty list.
+        // Layout can paint before the dynamic segment hydrates (`[token]`).
+        // Stay loading — a missing / placeholder token is not a fetched-empty list.
         if (!opts?.silent) setLoading(true);
         return;
       }
       const requestId = ++requestSeq.current;
       const writeGen = beginGiverCatalogWrite(token);
-      if (!opts?.silent || !isGiverCatalogHydrated(token)) setLoading(true);
+      const hasItems = peekGiverCatalog(token).length > 0;
+      // Empty catalog must not stay on the giver empty hero during refetch.
+      if (!opts?.silent || !hasItems) setLoading(true);
       setError(null);
       try {
         const [nextMeta, nextItems] = await Promise.all([
@@ -59,9 +69,11 @@ export function GiverShareProvider({ children }: PropsWithChildren) {
         setMeta(nextMeta);
         setItems(nextItems);
         writeGiverCatalog(token, nextItems, writeGen);
+        setSettledToken(token);
       } catch (err) {
         if (requestId !== requestSeq.current) return;
         setError(err instanceof Error ? err.message : 'Could not open this list');
+        setSettledToken(token);
       } finally {
         if (requestId === requestSeq.current) setLoading(false);
       }
@@ -70,19 +82,9 @@ export function GiverShareProvider({ children }: PropsWithChildren) {
   );
 
   useEffect(() => {
+    setSettledToken((current) => (current === token ? current : undefined));
     void refresh();
-  }, [refresh]);
-
-  useEffect(() => {
-    if (token) return;
-    const timer = setTimeout(() => {
-      setMeta(null);
-      setItems([]);
-      setError('This share link is missing a token.');
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [token]);
+  }, [refresh, token]);
 
   useEffect(() => {
     if (!token || !user || user.demo) return;
@@ -97,9 +99,11 @@ export function GiverShareProvider({ children }: PropsWithChildren) {
     [token],
   );
 
+  const fetchSettled = Boolean(token) && settledToken === token;
+
   const value = useMemo<GiverShareContextValue>(
-    () => ({ token, meta, items, loading, error, refresh, patchItem }),
-    [error, items, loading, meta, patchItem, refresh, token],
+    () => ({ token, meta, items, loading, fetchSettled, error, refresh, patchItem }),
+    [error, fetchSettled, items, loading, meta, patchItem, refresh, token],
   );
 
   return <GiverShareContext.Provider value={value}>{children}</GiverShareContext.Provider>;

@@ -303,32 +303,39 @@ describe('Giver status icon after lock / purchase / release', () => {
 
   it('first giver-list paint stays skeleton until the fetch settles', () => {
     assert.equal(
-      giverListPaint({ token: undefined, loading: true, hydrated: false, itemCount: 0 }),
+      giverListPaint({ token: undefined, loading: true, fetchSettled: false, itemCount: 0 }),
       'skeleton',
     );
     assert.equal(
-      giverListPaint({ token: 'live-share', loading: true, hydrated: false, itemCount: 0 }),
+      giverListPaint({ token: 'live-share', loading: true, fetchSettled: false, itemCount: 0 }),
       'skeleton',
     );
     assert.equal(
-      giverListPaint({ token: 'live-share', loading: false, hydrated: false, itemCount: 0 }),
+      giverListPaint({ token: 'live-share', loading: false, fetchSettled: false, itemCount: 0 }),
+      'skeleton',
+    );
+    assert.equal(
+      giverListPaint({ token: 'live-share', loading: false, fetchSettled: true, settledToken: 'live-share', itemCount: 0 }),
       'empty',
     );
     assert.equal(
-      giverListPaint({ token: 'live-share', loading: false, hydrated: true, itemCount: 0 }),
-      'empty',
-    );
-    assert.equal(
-      giverListPaint({ token: 'live-share', loading: true, hydrated: false, itemCount: 1 }),
+      giverListPaint({ token: 'live-share', loading: true, fetchSettled: false, itemCount: 1 }),
       'grid',
     );
     assert.equal(
-      giverListPaint({ token: 'live-share', loading: false, hydrated: true, itemCount: 0, query: 'linen' }),
+      giverListPaint({
+        token: 'live-share',
+        loading: false,
+        fetchSettled: true,
+        settledToken: 'live-share',
+        itemCount: 0,
+        query: 'linen',
+      }),
       'empty',
     );
     assert.equal(
-      giverListPaint({ token: undefined, loading: false, hydrated: false, itemCount: 0 }),
-      'empty',
+      giverListPaint({ token: undefined, loading: false, fetchSettled: false, itemCount: 0 }),
+      'skeleton',
     );
   });
 
@@ -370,6 +377,10 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.equal(
       shareTokenFromRoute({ local: ['live-local'], global: 'ignored', pathname: '/g/path' }),
       'live-local',
+    );
+    assert.equal(
+      shareTokenFromRoute({ local: undefined, global: undefined, pathname: '/g/[token]' }),
+      undefined,
     );
   });
 });
