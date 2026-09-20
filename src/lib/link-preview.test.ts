@@ -163,11 +163,21 @@ describe('Buy-link autofill', () => {
     assert.equal(/await autofillFromBuyUrl/.test(add), false);
     assert.match(preview, /preview-url/);
     assert.match(preview, /draftFromPreview/);
+    assert.equal(/Sample Instagram gift/.test(preview), false);
+    assert.equal(/picsum\.photos/.test(preview), false);
     assert.match(edge, /og:title/);
     assert.match(edge, /AbortController/);
     assert.match(edge, /instagram/);
-    assert.equal(/graph\.facebook|saves api|instagram\.com\/api/i.test(edge), false);
+    assert.equal(/graph\.facebook|saves api|instagram\.com\/api|Sample Instagram/i.test(edge), false);
     assert.match(edge, /169\.254|isBlockedPreviewHost|private/);
     assert.match(help, /shop URL|buy URL|buy link/i);
+
+    const paste = source('app/(app)/paste.tsx');
+    assert.equal(/DEMO_STUB/.test(paste), false);
+    assert.equal(/Preview stub/.test(paste), false);
+    assert.equal(/Sample Instagram/.test(paste), false);
+    assert.match(paste, /Pin as wishlist item/);
+    assert.match(paste, /draftFromPreview/);
+    assert.match(paste, /FieldHelp\.instagram/);
   });
 });

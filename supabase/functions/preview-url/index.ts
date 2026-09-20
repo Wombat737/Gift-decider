@@ -1,6 +1,7 @@
-// Public-page preview for Add item buy links.
-// Fetches Open Graph / meta / JSON-LD Product. Does not scrape Instagram,
-// follow logins, or hit private hosts. Timeout is short on purpose.
+// Public-page preview for buy links and Instagram paste.
+// Fetches Open Graph / meta / JSON-LD Product. No unofficial Instagram APIs,
+// no login walls, no private hosts. Timeout is short on purpose. Empty fields
+// if the page hides metadata — never a fake sample gift.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -209,26 +210,12 @@ function parseHtml(html: string, pageUrl: string) {
   return { title, description, image_url };
 }
 
-function stubPreview(url: string): Preview {
-  const host = (() => {
-    try {
-      return new URL(url).hostname;
-    } catch {
-      return '';
-    }
-  })();
-  return {
-    url,
-    title: 'Sample Instagram gift',
-    description: 'Stub caption — no Meta login and no Instagram scrape. Pin this as a wishlist item.',
-    image_url: `https://picsum.photos/seed/${encodeURIComponent(bareHost(host) || 'gift')}/800/800`,
-    provider: 'instagram',
-    stub: true,
-  };
-}
-
 function emptyPreview(url: string, provider: string): Preview {
   return { url, title: null, description: null, image_url: null, provider, stub: false };
+}
+
+function providerFor(host: string) {
+  return isInstagramHost(host) ? 'instagram' : previewProviderForHost(host);
 }
 
 async function fetchPublicHtml(url: string) {
@@ -254,7 +241,7 @@ async function fetchPublicHtml(url: string) {
     } catch {
       finalHost = '';
     }
-    if (isBlockedPreviewHost(finalHost) || isInstagramHost(finalHost)) return null;
+    if (isBlockedPreviewHost(finalHost)) return null;
     const contentType = response.headers.get('content-type') ?? '';
     if (contentType && !/text\/html|application\/xhtml\+xml|text\/plain/i.test(contentType)) return null;
     const buffer = new Uint8Array(await response.arrayBuffer());
@@ -289,13 +276,9 @@ Deno.serve(async (req) => {
   }
 
   const host = new URL(url).hostname;
-  if (isInstagramHost(host)) {
-    return json(stubPreview(url));
-  }
-
   const fetched = await fetchPublicHtml(url);
   if (!fetched) {
-    return json(emptyPreview(url, previewProviderForHost(host)));
+    return json(emptyPreview(url, providerFor(host)));
   }
 
   const parsed = parseHtml(fetched.html, fetched.finalUrl);
@@ -304,7 +287,7 @@ Deno.serve(async (req) => {
     title: parsed.title,
     description: parsed.description,
     image_url: parsed.image_url,
-    provider: previewProviderForHost(fetched.host || host),
+    provider: providerFor(fetched.host || host),
     stub: false,
   });
 });

@@ -10,12 +10,12 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 - **Surprise gifts:** reserved / purchased / pledge progress is **giver-only** while a gift is in flight
 - Group gifts have an **organiser** (who marked it a group gift, else the first named pledge, else “the organiser”). They buy; givers pay them via **PayID / BSB** (honour system — Gift Decider holds no money)
 - When a **group gift’s reveal date** arrives, the recipient sees **who it’s from** (names / Anonymous) — not the dollar amounts, and **not** as soon as it’s funded
-- Instagram v1: paste a public post URL → **preview stub** → pin as an item
+- Instagram v1: paste a public post URL → public OG/meta if Instagram exposes it → edit → pin. Honest empty if it hides the photo — never a fake sample gift
 - Soft-launch ready: polished UI, EAS build profiles, privacy + account-deletion stubs
 - Real Stripe, Meta Instagram OAuth, push notifications, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
 - Push notifications are next; Ready to buy uses an in-app banner plus an email stub (`notify-organiser-ready-to-buy`)
 
-This repo is an **Expo + Supabase** app: screens navigate, schema + RLS ship in `supabase/migrations`, and GitHub Pages stays in **Explore demo** (no secrets). Live magic-link on the phone is the **Vercel** root-path deploy with the two public keys. Instagram paste is still a stub (no Meta OAuth).
+This repo is an **Expo + Supabase** app: screens navigate, schema + RLS ship in `supabase/migrations`, and GitHub Pages stays in **Explore demo** (no secrets). Live magic-link on the phone is the **Vercel** root-path deploy with the two public keys. Instagram paste uses the same public OG fetch as buy links (no Meta OAuth, no unofficial scrape).
 
 ## Open the web demo
 
@@ -193,7 +193,7 @@ Then:
 - **Android:** Expo Go, or an emulator
 - **Web:** press `w` — useful for clicking through screens on a laptop
 
-If `.env.local` still has placeholders (or you skip the copy), the app stays in **Explore demo**. Tap **Explore demo** on the sign-in screen. Sample gifts persist in the browser; paste-URL uses an in-app stub; share tokens are `demo`, `demo-birthday`, `demo-housewarming`. No LLM key and no Supabase project required.
+If `.env.local` still has placeholders (or you skip the copy), the app stays in **Explore demo**. Tap **Explore demo** on the sign-in screen. Sample gifts persist in the browser; Instagram paste stays honestly empty without a live function; share tokens are `demo`, `demo-birthday`, `demo-housewarming`. No LLM key and no Supabase project required.
 
 Fill in a real URL + anon key and restart Expo: the sign-in screen leads with **Email me a magic link**, and lists persist in your project. **Explore demo still works** beside that — it never writes to the live database.
 
@@ -420,7 +420,7 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 | `/sign-in` | Anyone | Live: magic-link primary. No env: **Explore demo** primary. Apple/Google placeholders |
 | `/wishlist` | Recipient | Photo grid + occasion filter (no reserve/purchased/pledges). **From the group** only on/after the reveal date |
 | `/add` | Recipient | Paste a buy URL to draft photo + title + notes, then edit and pin. Vibe board, occasion, lock, optional target $ |
-| `/paste` | Recipient | Paste Instagram URL → stub preview → pin |
+| `/paste` | Recipient | Paste a public Instagram URL → OG/meta draft → edit title/photo → pin. Honest miss if Instagram hides it |
 | `/item/[id]` | Recipient | Item detail + edit vibes. Group reveal (names) on/after the reveal date |
 | `/share` | Recipient | Whole-list + occasion **Copy invite** (mate-ready text) |
 | `/settings` | Recipient | Live profile (name / handle / discoverability / taste tags), privacy link, account-deletion mailto stub, sign out |
@@ -433,8 +433,8 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 
 ## What’s stubbed (on purpose)
 
-- **Instagram** — paste URL only. No Meta OAuth, no Saves API, no scrapers
-- **`preview-url`** — live Open Graph / meta fetch for shop buy links (no Instagram scrape). Instagram paste and Explore demo still use the in-app stub / path-title fallback
+- **Instagram** — paste a public URL. Same public OG/meta fetch as buy links. No Meta OAuth, no Saves API, no unofficial scrapers. If the page hides metadata, fields stay empty — never a demo stub photo
+- **`preview-url`** — live Open Graph / meta fetch for shop buy links and public Instagram pages. No unofficial Instagram APIs. Explore demo cannot fetch remote shops (CORS) — path-title fallback for buy links; Instagram paste stays honestly empty
 - **`heal-link` / `improv-substitutes`** — stubs. The app uses in-app fallbacks when env vars or the function are missing
 - **Apple / Google Sign-In** — buttons that explain they are placeholders. **Email magic link is live** once URL + anon key are set
 - **Email invites** — inserts `wishlist_members` / `giver_email_invites` when Supabase is configured; does not send mail

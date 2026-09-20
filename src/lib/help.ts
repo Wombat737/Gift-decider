@@ -36,6 +36,10 @@ export const HelpFaq = [
     q: 'Can I paste a shop link?',
     a: 'Yes — paste a buy URL on Add item. We try to fill photo, title, and a short note. Edit anything before you pin. If we miss the photo, add one yourself — Pin still works.',
   },
+  {
+    q: 'What about Instagram?',
+    a: 'Paste a public post URL. We’ll try the page’s photo and caption. If Instagram hides them, add a title and photo yourself — never a fake sample gift. You can still pin.',
+  },
 ] as const;
 
 export const FieldHelp = {
@@ -58,6 +62,10 @@ export const FieldHelp = {
   buyLink: {
     title: 'Buy link',
     body: HelpFaq[8].a,
+  },
+  instagram: {
+    title: 'Instagram post',
+    body: HelpFaq[9].a,
   },
   findSomeone: {
     title: 'Finding someone',

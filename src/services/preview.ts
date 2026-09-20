@@ -16,25 +16,21 @@ import type { LinkPreview } from '@/lib/types';
 
 const PREVIEW_MS = 8000;
 
-function localStub(url: string): LinkPreview {
+function honestEmpty(url: string): LinkPreview {
   let host = '';
   try {
-    host = new URL(url).hostname.replace(/^www\./, '');
+    host = new URL(url).hostname;
   } catch {
     host = '';
   }
 
-  const isInstagram = host.includes('instagram.com') || host.includes('instagr.am');
-
   return {
     url,
-    title: isInstagram ? 'Sample Instagram gift' : `Preview of ${host || 'this link'}`,
-    description: isInstagram
-      ? 'Stub caption — no Meta OAuth, no Saves API, no scraper. Pin this as a wishlist item.'
-      : 'Stub preview. Deploy preview-url for real Open Graph fills.',
-    image_url: `https://picsum.photos/seed/${encodeURIComponent(host || 'gift')}/800/800`,
-    provider: isInstagram ? 'instagram' : 'generic',
-    stub: true,
+    title: null,
+    description: null,
+    image_url: null,
+    provider: isInstagramHost(host) ? 'instagram' : previewProviderForHost(host),
+    stub: false,
   };
 }
 
@@ -61,20 +57,24 @@ export async function previewUrl(url: string): Promise<LinkPreview> {
   }
 
   if (!usesDemoData() && supabase) {
-    const { data, error } = await supabase.functions.invoke('preview-url', {
-      body: { url: trimmed },
-    });
-
-    if (!error && data && typeof data === 'object' && 'url' in data) {
-      const preview = data as LinkPreview;
-      await cachePreview(preview);
-      return preview;
+    try {
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke('preview-url', { body: { url: trimmed } }),
+        PREVIEW_MS,
+      );
+      if (!error && data && typeof data === 'object' && 'url' in data) {
+        const preview = data as LinkPreview;
+        if (!previewLooksLikeStub(preview)) {
+          await cachePreview(preview);
+          return preview;
+        }
+      }
+    } catch {
+      // Honest empty below — never a demo mug / linen stand-in.
     }
   }
 
-  const preview = localStub(trimmed);
-  await cachePreview(preview);
-  return preview;
+  return honestEmpty(trimmed);
 }
 
 export type BuyLinkAutofill = {
@@ -159,7 +159,7 @@ function safeHost(url: string) {
 
 export function previewFunctionHint() {
   if (!env.isSupabaseConfigured) {
-    return 'Using the in-app stub. Deploy supabase/functions/preview-url to use the Edge Function.';
+    return 'Public posts only. If we miss the photo, add one yourself.';
   }
-  return 'Calls the preview-url Edge Function (Open Graph / meta — no Instagram scrape).';
+  return 'Tries Open Graph on the public page. No Instagram scrape.';
 }
