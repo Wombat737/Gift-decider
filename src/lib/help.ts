@@ -30,7 +30,11 @@ export const HelpFaq = [
   },
   {
     q: 'How do I add a photo?',
-    a: 'Paste a photo URL. Camera upload is next.',
+    a: 'Paste a buy link and we’ll try to grab one, or paste a photo URL. Camera upload is next.',
+  },
+  {
+    q: 'Can I paste a shop link?',
+    a: 'Yes — paste a buy URL on Add item. We try to fill photo, title, and a short note. Edit anything before you pin. If we miss the photo, add one yourself — Pin still works.',
   },
 ] as const;
 
@@ -50,6 +54,10 @@ export const FieldHelp = {
   vibe: {
     title: 'Vibe board',
     body: HelpFaq[3].a,
+  },
+  buyLink: {
+    title: 'Buy link',
+    body: HelpFaq[8].a,
   },
   findSomeone: {
     title: 'Finding someone',

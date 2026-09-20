@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Switch, View } from 'react-native';
 
 import { LabelWithHelp } from '@/components/help-tip';
@@ -5,8 +6,10 @@ import { FilterChips, SUGGESTED_VIBES, VibeChips } from '@/components/vibe-chips
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { FieldHelp } from '@/lib/help';
+import { applyBuyLinkDraft, BUY_LINK_AUTOFILL_FAIL, looksLikeCompleteBuyUrl, type BuyLinkFields } from '@/lib/link-preview';
 import { useTheme } from '@/hooks/use-theme';
 import type { ItemKind, Occasion } from '@/lib/types';
+import { autofillFromBuyUrl } from '@/services/preview';
 
 export type ItemFieldsValue = {
   title: string;
@@ -30,6 +33,52 @@ type ItemFieldsProps = {
 
 export function ItemFields({ value, occasions, onChange, showImageUrl = true }: ItemFieldsProps) {
   const theme = useTheme();
+  const valueRef = useRef(value);
+  const buyUrlRef = useRef(value.buyUrl);
+  const lastFetched = useRef('');
+  const lastDraft = useRef<BuyLinkFields>({ title: '', notes: '', imageUrl: '' });
+  const requestId = useRef(0);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewHint, setPreviewHint] = useState<string | null>(null);
+
+  valueRef.current = value;
+  buyUrlRef.current = value.buyUrl;
+
+  useEffect(() => {
+    return () => {
+      requestId.current += 1;
+    };
+  }, []);
+
+  async function maybeAutofill(raw: string) {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      lastFetched.current = '';
+      setPreviewHint(null);
+      return;
+    }
+    if (!looksLikeCompleteBuyUrl(trimmed) || trimmed === lastFetched.current) return;
+
+    lastFetched.current = trimmed;
+    const id = ++requestId.current;
+    setPreviewing(true);
+    setPreviewHint(null);
+    try {
+      const result = await autofillFromBuyUrl(trimmed);
+      if (id !== requestId.current) return;
+      const patch = applyBuyLinkDraft(valueRef.current, result.draft, lastDraft.current);
+      if (patch.title) lastDraft.current.title = patch.title;
+      if (patch.notes) lastDraft.current.notes = patch.notes;
+      if (patch.imageUrl) lastDraft.current.imageUrl = patch.imageUrl;
+      if (Object.keys(patch).length > 0) onChange(patch);
+      setPreviewHint(result.message);
+    } catch {
+      if (id !== requestId.current) return;
+      setPreviewHint(BUY_LINK_AUTOFILL_FAIL);
+    } finally {
+      if (id === requestId.current) setPreviewing(false);
+    }
+  }
 
   function toggleTag(tag: string) {
     const next = value.tags.includes(tag) ? value.tags.filter((entry) => entry !== tag) : [...value.tags, tag];
@@ -38,13 +87,37 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
 
   return (
     <>
-      <TextField label="Title" placeholder="The exact thing, or the vibe" value={value.title} onChangeText={(title) => onChange({ title })} />
+      <TextField
+        label="Buy link (optional)"
+        placeholder="https://www.amazon.com.au/…"
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="url"
+        value={value.buyUrl}
+        loading={previewing}
+        hint={previewHint ?? undefined}
+        help={FieldHelp.buyLink}
+        onChangeText={(buyUrl) => {
+          buyUrlRef.current = buyUrl;
+          onChange({ buyUrl });
+          if (looksLikeCompleteBuyUrl(buyUrl)) void maybeAutofill(buyUrl);
+        }}
+        onBlur={() => void maybeAutofill(buyUrlRef.current)}
+      />
+      <TextField
+        label="Title"
+        placeholder="The exact thing, or the vibe"
+        value={value.title}
+        loading={previewing}
+        onChangeText={(title) => onChange({ title })}
+      />
       {showImageUrl ? (
         <TextField
           label="Photo URL"
           placeholder="https://…"
           autoCapitalize="none"
           value={value.imageUrl}
+          loading={previewing}
           onChangeText={(imageUrl) => onChange({ imageUrl })}
         />
       ) : null}
@@ -53,6 +126,7 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         placeholder="Size, colour, where you saw it"
         multiline
         value={value.notes}
+        loading={previewing}
         onChangeText={(notes) => onChange({ notes })}
       />
       <TextField
@@ -60,13 +134,6 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         placeholder="EU 42, crew, 12oz"
         value={value.sizeHint}
         onChangeText={(sizeHint) => onChange({ sizeHint })}
-      />
-      <TextField
-        label="Buy URL (optional)"
-        placeholder="https://…"
-        autoCapitalize="none"
-        value={value.buyUrl}
-        onChangeText={(buyUrl) => onChange({ buyUrl })}
       />
       <TextField
         label="Target amount AUD (optional)"

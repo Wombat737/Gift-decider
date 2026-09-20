@@ -42,6 +42,7 @@ describe('Declutter / noise-reduction', () => {
     assert.match(fields, /FieldHelp\.noSubs/);
     assert.match(fields, /FieldHelp\.chipIn/);
     assert.match(fields, /FieldHelp\.vibe/);
+    assert.match(fields, /FieldHelp\.buyLink/);
     assert.match(source('app/(app)/people.tsx'), /FieldHelp\.findSomeone/);
     assert.match(tip, /accessibilityLabel/);
     assert.match(tip, /showHelp/);

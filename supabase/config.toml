@@ -30,7 +30,7 @@ additional_redirect_urls = [
 ]
 
 [functions.preview-url]
-# Stub returns fake previews only — no private data. JWT optional so you can curl it.
+# Public OG/meta fetch for buy-link autofill. Instagram stays a stub. JWT optional so you can curl it.
 verify_jwt = false
 
 [functions.heal-link]
