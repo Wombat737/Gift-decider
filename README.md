@@ -4,18 +4,18 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 
 **Coral Coast** is the locked visual direction: pure white (`#FFFFFF` / `#FAFAFA`), coral brand (`#E85D4C`), sunshine only for chip-in and pledges (`#F5B942`). Plus Jakarta Sans for UI and titles (no serif headings). Success / purchased / reserved styling never appears on owner views.
 
-- Recipients curate photos + notes + taste/vibes + an optional buy URL
+- Recipients curate photos + notes + taste/vibes + an optional buy URL (paste the shop link on Add item to draft a photo + title)
 - Occasion packs (birthday, housewarming, …) each get their own giver link
 - Givers open a shared read-only link: soft-lock, chip in, AU store search, dead-link heal
 - **Surprise gifts:** reserved / purchased / pledge progress is **giver-only** while a gift is in flight
 - Group gifts have an **organiser** (who marked it a group gift, else the first named pledge, else “the organiser”). They buy; givers pay them via **PayID / BSB** (honour system — Gift Decider holds no money)
 - When a **group gift’s reveal date** arrives, the recipient sees **who it’s from** (names / Anonymous) — not the dollar amounts, and **not** as soon as it’s funded
-- Instagram v1: paste a public post URL → **preview stub** → pin as an item
+- Instagram v1: paste a public post URL → public OG/meta if Instagram exposes it → edit → pin. Honest empty if it hides the photo — never a fake sample gift
 - Soft-launch ready: polished UI, EAS build profiles, privacy + account-deletion stubs
 - Real Stripe, Meta Instagram OAuth, push notifications, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
 - Push notifications are next; Ready to buy uses an in-app banner plus an email stub (`notify-organiser-ready-to-buy`)
 
-This repo is an **Expo + Supabase** app: screens navigate, schema + RLS ship in `supabase/migrations`, and GitHub Pages stays in **Explore demo** (no secrets). Live magic-link on the phone is the **Vercel** root-path deploy with the two public keys. Instagram paste is still a stub (no Meta OAuth).
+This repo is an **Expo + Supabase** app: screens navigate, schema + RLS ship in `supabase/migrations`, and GitHub Pages stays in **Explore demo** (no secrets). Live magic-link on the phone is the **Vercel** root-path deploy with the two public keys. Instagram paste uses the same public OG fetch as buy links (no Meta OAuth, no unofficial scrape).
 
 ## Open the web demo
 
@@ -193,7 +193,7 @@ Then:
 - **Android:** Expo Go, or an emulator
 - **Web:** press `w` — useful for clicking through screens on a laptop
 
-If `.env.local` still has placeholders (or you skip the copy), the app stays in **Explore demo**. Tap **Explore demo** on the sign-in screen. Sample gifts persist in the browser; paste-URL uses an in-app stub; share tokens are `demo`, `demo-birthday`, `demo-housewarming`. No LLM key and no Supabase project required.
+If `.env.local` still has placeholders (or you skip the copy), the app stays in **Explore demo**. Tap **Explore demo** on the sign-in screen. Sample gifts persist in the browser; Instagram paste stays honestly empty without a live function; share tokens are `demo`, `demo-birthday`, `demo-housewarming`. No LLM key and no Supabase project required.
 
 Fill in a real URL + anon key and restart Expo: the sign-in screen leads with **Email me a magic link**, and lists persist in your project. **Explore demo still works** beside that — it never writes to the live database.
 
@@ -330,15 +330,35 @@ Supabase → Authentication → URL Configuration:
 
 The app calls `signInWithOtp` and `Linking.createURL('auth/callback')`, so Expo Go uses `exp://…/--/auth/callback` and a dev/production build uses `giftdecider://auth/callback`. Add whichever you actually open.
 
-### 5. Preview Edge Function (stub)
+### 5. Preview Edge Function (buy-link autofill)
+
+Wombat: Add item pastes a shop URL → the app calls this function → Open Graph / meta / JSON-LD Product fills photo, title, and a short note. The user always edits before Pin. Fetch failure never blocks Pin.
 
 ```bash
 npx supabase functions serve preview-url --no-verify-jwt
-# or
+# or, on the hosted project:
 npx supabase functions deploy preview-url
 ```
 
-`POST { "url": "https://www.instagram.com/p/..." }` returns a **fake** image + caption. It does not scrape Instagram.
+Redeploy after this change — the old function returned a fake picsum stub for every URL.
+
+`POST { "url": "https://www.kmart.com.au/..." }` fetches the public page (4s timeout), parses `og:title` / `og:image` / description, prefers AU hosts (Amazon AU, Kmart, Target AU, Big W, …), and returns `{ url, title, description, image_url, provider, stub: false }`.
+
+Rules:
+
+- **http(s) only.** Rejects credentials, localhost, and private / metadata hosts.
+- **No Instagram scrape.** `instagram.com` / `instagr.am` still return the existing paste-flow stub. No Meta OAuth, no Saves API.
+- **No login walls.** 401/403 → empty fields, not an error.
+- **No new migration.** Successful fills can cache in existing `link_previews`.
+- Explore demo (no secrets) cannot fetch remote shops (CORS). It may guess a title from the URL path and shows “Couldn’t grab a photo — add one”. Pin still works.
+
+Curl (JWT verify is off):
+
+```bash
+curl -s -X POST "$EXPO_PUBLIC_SUPABASE_URL/functions/v1/preview-url" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://www.kmart.com.au/"}'
+```
 
 ### 6. Optional substitute improv function
 
@@ -399,8 +419,8 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 | `/` | Anyone | Redirects to sign-in or `/wishlist` |
 | `/sign-in` | Anyone | Live: magic-link primary. No env: **Explore demo** primary. Apple/Google placeholders |
 | `/wishlist` | Recipient | Photo grid + occasion filter (no reserve/purchased/pledges). **From the group** only on/after the reveal date |
-| `/add` | Recipient | Manual item, vibe board, occasion, lock, optional target $ |
-| `/paste` | Recipient | Paste Instagram URL → stub preview → pin |
+| `/add` | Recipient | Paste a buy URL to draft photo + title + notes, then edit and pin. Vibe board, occasion, lock, optional target $ |
+| `/paste` | Recipient | Paste a public Instagram URL → OG/meta draft → edit title/photo → pin. Honest miss if Instagram hides it |
 | `/item/[id]` | Recipient | Item detail + edit vibes. Group reveal (names) on/after the reveal date |
 | `/share` | Recipient | Whole-list + occasion **Copy invite** (mate-ready text) |
 | `/settings` | Recipient | Live profile (name / handle / discoverability / taste tags), privacy link, account-deletion mailto stub, sign out |
@@ -413,8 +433,9 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 
 ## What’s stubbed (on purpose)
 
-- **Instagram** — paste URL only. No Meta OAuth, no Saves API, no scrapers
-- **`preview-url` / `heal-link` / `improv-substitutes`** — stubs. The app uses in-app fallbacks when env vars or the function are missing
+- **Instagram** — paste a public URL. Same public OG/meta fetch as buy links. No Meta OAuth, no Saves API, no unofficial scrapers. If the page hides metadata, fields stay empty — never a demo stub photo
+- **`preview-url`** — live Open Graph / meta fetch for shop buy links and public Instagram pages. No unofficial Instagram APIs. Explore demo cannot fetch remote shops (CORS) — path-title fallback for buy links; Instagram paste stays honestly empty
+- **`heal-link` / `improv-substitutes`** — stubs. The app uses in-app fallbacks when env vars or the function are missing
 - **Apple / Google Sign-In** — buttons that explain they are placeholders. **Email magic link is live** once URL + anon key are set
 - **Email invites** — inserts `wishlist_members` / `giver_email_invites` when Supabase is configured; does not send mail
 - **Giver comments notify** — none in MVP (Slice D)
@@ -490,7 +511,7 @@ src/context/             Auth + wishlist
 src/services/            Preview + wishlist API (Supabase or demo store)
 src/lib/                 Env, types, confidence, AU buy URLs, heal-link contract, substitutes, analytics stub, demo store
 supabase/migrations/     Schema + RLS (init through live_rls, giver status, giver social A/B/C)
-supabase/functions/      preview-url stub, heal-link stub, optional improv-substitutes, notify-organiser-ready-to-buy stub
+supabase/functions/      preview-url (OG buy-link fill), heal-link stub, optional improv-substitutes, notify-organiser-ready-to-buy stub
 ```
 
 ## Scripts

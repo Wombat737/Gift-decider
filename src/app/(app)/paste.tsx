@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
@@ -12,40 +12,61 @@ import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import type { LinkPreview } from '@/lib/types';
-import { previewFunctionHint, previewUrl } from '@/services/preview';
+import { FieldHelp } from '@/lib/help';
+import { applyBuyLinkDraft, draftFromPreview, type BuyLinkFields } from '@/lib/link-preview';
+import { previewUrl } from '@/services/preview';
+
+const PASTE_MISS = 'Couldn’t grab that post — add a title and photo';
 
 export default function PasteInstagramScreen() {
   const theme = useTheme();
   const { addItem } = useWishlist();
-  const [url, setUrl] = useState('https://www.instagram.com/p/DEMO_STUB/');
-  const [preview, setPreview] = useState<LinkPreview | null>(null);
+  const [url, setUrl] = useState('');
+  const [title, setTitle] = useState('');
+  const [notes, setNotes] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [lastDraft, setLastDraft] = useState<BuyLinkFields>({ title: '', notes: '', imageUrl: '' });
   const [busy, setBusy] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function onPreview() {
     setBusy(true);
     setError(null);
+    setHint(null);
     try {
-      setPreview(await previewUrl(url));
+      const preview = await previewUrl(url);
+      const draft = draftFromPreview(preview);
+      const patch = applyBuyLinkDraft({ title, notes, imageUrl }, draft, lastDraft);
+      if (patch.title) setTitle(patch.title);
+      if (patch.notes) setNotes(patch.notes);
+      if (patch.imageUrl) setImageUrl(patch.imageUrl);
+      setLastDraft({
+        title: patch.title ?? lastDraft.title,
+        notes: patch.notes ?? lastDraft.notes,
+        imageUrl: patch.imageUrl ?? lastDraft.imageUrl,
+      });
+      if (!draft.imageUrl) setHint(PASTE_MISS);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Preview failed');
+      setHint(PASTE_MISS);
+      if (err instanceof Error && err.message === 'Paste a URL first') {
+        setError(err.message);
+      }
     } finally {
       setBusy(false);
     }
   }
 
   async function onPin() {
-    if (!preview) return;
     setBusy(true);
     setError(null);
     try {
       const item = await addItem({
-        title: preview.title ?? 'Instagram find',
-        notes: preview.description ?? undefined,
-        image_url: preview.image_url ?? undefined,
-        source_type: preview.provider === 'instagram' ? 'instagram' : 'url',
-        source_url: preview.url,
+        title: title.trim() || 'Instagram find',
+        notes: notes.trim() || undefined,
+        image_url: imageUrl.trim() || undefined,
+        source_type: 'instagram',
+        source_url: url.trim() || undefined,
       });
       router.replace(`/item/${item.id}`);
     } catch (err) {
@@ -65,28 +86,41 @@ export default function PasteInstagramScreen() {
         autoCorrect={false}
         placeholder="https://www.instagram.com/p/…"
         value={url}
+        loading={busy}
+        hint={hint ?? undefined}
+        help={FieldHelp.instagram}
         onChangeText={setUrl}
-        hint={previewFunctionHint()}
       />
 
-      <Button label={busy ? 'Working…' : 'Preview stub'} disabled={busy} onPress={() => void onPreview()} />
+      <Button label={busy ? 'Working…' : 'Preview'} disabled={busy} onPress={() => void onPreview()} />
 
-      {preview ? (
+      <TextField
+        label="Title"
+        placeholder="The exact thing, or the vibe"
+        value={title}
+        loading={busy}
+        onChangeText={setTitle}
+      />
+      <TextField
+        label="Photo URL"
+        placeholder="https://…"
+        autoCapitalize="none"
+        value={imageUrl}
+        loading={busy}
+        onChangeText={setImageUrl}
+      />
+      <TextField
+        label="Notes"
+        placeholder="Size, colour, where you saw it"
+        multiline
+        value={notes}
+        loading={busy}
+        onChangeText={setNotes}
+      />
+
+      {imageUrl ? (
         <Card padded={false} style={styles.preview}>
-          {preview.image_url ? (
-            <Image source={{ uri: preview.image_url }} style={[styles.image, { backgroundColor: theme.paper }]} contentFit="cover" />
-          ) : null}
-          <View style={styles.meta}>
-            <ThemedText type="smallBold">{preview.stub ? 'Stub preview' : 'Preview'}</ThemedText>
-            <ThemedText type="subtitle">{preview.title}</ThemedText>
-            {preview.description ? (
-              <ThemedText themeColor="textSecondary">{preview.description}</ThemedText>
-            ) : null}
-            <ThemedText type="small" themeColor="textSecondary">
-              {preview.url}
-            </ThemedText>
-            <Button label="Pin as wishlist item" onPress={() => void onPin()} disabled={busy} />
-          </View>
+          <Image source={{ uri: imageUrl }} style={[styles.image, { backgroundColor: theme.paper }]} contentFit="cover" />
         </Card>
       ) : null}
 
@@ -95,6 +129,8 @@ export default function PasteInstagramScreen() {
           {error}
         </ThemedText>
       ) : null}
+
+      <Button label="Pin as wishlist item" onPress={() => void onPin()} disabled={busy} />
     </Screen>
   );
 }
@@ -103,16 +139,9 @@ const styles = StyleSheet.create({
   preview: {
     borderRadius: Radius.card,
     overflow: 'hidden',
-    gap: Spacing.three,
-    paddingBottom: Spacing.three,
   },
   image: {
     width: '100%',
     aspectRatio: 1,
-  },
-  meta: {
-    paddingHorizontal: Spacing.three,
-    paddingBottom: Spacing.three,
-    gap: Spacing.two,
   },
 });
