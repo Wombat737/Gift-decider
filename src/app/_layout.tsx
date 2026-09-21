@@ -3,13 +3,13 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect } from 'react';
-import { AppState, StyleSheet } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { sanitizeBuyUrl } from '@/lib/link-preview';
 import { stashNativeShare } from '@/lib/read-share-payload';
-import { queryValue, rememberPendingShareUrl } from '@/lib/share-intent';
+import { isIncomingSharePath, queryValue, rememberPendingShareUrl } from '@/lib/share-intent';
 import { InboxProvider } from '@/context/inbox-context';
 import { WishlistProvider } from '@/context/wishlist-context';
 import { WebFonts } from '@/components/web-fonts';
@@ -113,13 +113,33 @@ function ShareOpenAdd() {
 
   useEffect(() => {
     if (isLoading || !user) return;
-    open();
-    const retry = setTimeout(open, 0);
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') open();
+    let cancelled = false;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+
+    const openIfShare = (url: string | null) => {
+      if (cancelled || !isIncomingSharePath(url ?? '')) return;
+      open();
+      // The extension writes the app-group payload, then opens the app.
+      // Read once more on the next turn if that write had not landed yet.
+      retry = setTimeout(() => {
+        if (!cancelled) open();
+      }, 0);
+    };
+
+    Linking.getInitialURL()
+      .then((url) => {
+        openIfShare(url);
+      })
+      .catch(() => {});
+
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      if (retry) clearTimeout(retry);
+      openIfShare(url);
     });
+
     return () => {
-      clearTimeout(retry);
+      cancelled = true;
+      if (retry) clearTimeout(retry);
       sub.remove();
     };
   }, [isLoading, open, user]);
