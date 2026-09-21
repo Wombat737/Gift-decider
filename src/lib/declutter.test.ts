@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { FieldHelp, HelpFaq } from './help';
 import { giverListTitle, personListTitle, possessiveName } from './list-title';
+import { shouldShowOccasionFilter } from './occasions';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -23,6 +24,9 @@ describe('Declutter / noise-reduction', () => {
     assert.equal(giverListTitle({ owner_display_name: 'Kiri Walsh', owner_handle: 'kiri' }), "Kiri's list");
     assert.equal(giverListTitle(null, { loading: true }), 'Opening list…');
     assert.equal(giverListTitle(null, { unmatched: true }), 'Shared wishlist');
+    assert.equal(shouldShowOccasionFilter(0), false);
+    assert.equal(shouldShowOccasionFilter(1), false);
+    assert.equal(shouldShowOccasionFilter(2), true);
   });
 
   it('moves how-to copy into Settings FAQ and field ? tips', () => {
@@ -74,6 +78,15 @@ describe('Declutter / noise-reduction', () => {
     assert.equal(/Create an occasion pack on the Share screen/.test(screens), false);
     assert.equal(/Shows a lock to givers\. If the buy link is dead/.test(screens), false);
     assert.equal(/Used if givers chip in/.test(screens), false);
+
+    const wishlist = source('app/(app)/wishlist.tsx');
+    assert.equal(/FilterChips/.test(wishlist), false);
+    assert.equal(/label: 'All'/.test(wishlist), false);
+    assert.match(wishlist, /QuietSelect/);
+    assert.match(wishlist, /shouldShowOccasionFilter/);
+    assert.equal(/YOUR LIST/.test(wishlist), false);
+    assert.equal(/accessibilityLabel="Your list"/.test(wishlist), false);
+    assert.equal(/accessibilityLabel="Giver view"/.test(wishlist), false);
 
     const layout = source('app/(app)/_layout.tsx');
     assert.match(layout, /Your wishlist/);

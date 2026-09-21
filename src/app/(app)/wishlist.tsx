@@ -1,13 +1,13 @@
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/button';
-import { FilterChips } from '@/components/vibe-chips';
 import { HeaderInboxLink } from '@/components/inbox-badge';
 import { InboxBanner } from '@/components/inbox-banner';
 import { ItemGrid } from '@/components/item-grid';
 import { LegalLinks } from '@/components/legal-links';
+import { QuietSelect } from '@/components/quiet-select';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { useInbox } from '@/context/inbox-context';
@@ -16,6 +16,7 @@ import { Spacing } from '@/constants/theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
 import { acceptBannerText, requestBannerText } from '@/lib/inbox';
+import { shouldShowOccasionFilter } from '@/lib/occasions';
 
 export default function WishlistGridScreen() {
   const { items, occasions, loading, error, refresh } = useWishlist();
@@ -36,6 +37,16 @@ export default function WishlistGridScreen() {
     if (occasionId === 'none') return items.filter((item) => !item.occasion_id);
     return items.filter((item) => item.occasion_id === occasionId);
   }, [items, occasionId]);
+
+  useEffect(() => {
+    if (!shouldShowOccasionFilter(occasions.length)) {
+      if (occasionId !== 'all') setOccasionId('all');
+      return;
+    }
+    if (occasionId !== 'all' && occasionId !== 'none' && !occasions.some((row) => row.id === occasionId)) {
+      setOccasionId('all');
+    }
+  }, [occasionId, occasions]);
 
   return (
     <Screen>
@@ -88,15 +99,16 @@ export default function WishlistGridScreen() {
         />
       </View>
 
-      {occasions.length > 0 ? (
-        <FilterChips
+      {shouldShowOccasionFilter(occasions.length) ? (
+        <QuietSelect
+          label="Occasion"
+          value={occasionId}
+          onChange={setOccasionId}
           options={[
-            { id: 'all', label: 'All' },
+            { id: 'all', label: 'All gifts' },
             ...occasions.map((row) => ({ id: row.id, label: row.title })),
             { id: 'none', label: 'Unassigned' },
           ]}
-          value={occasionId}
-          onChange={setOccasionId}
         />
       ) : null}
 

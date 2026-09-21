@@ -80,7 +80,7 @@ Never commit `.env.local` or paste keys into GitHub Actions. Pages CI must stay 
 
 Send them the Pages demo on their phone, or sit together and tap:
 
-1. **Explore demo** — recipient grid. No Taken/Bought. Filter **Housewarming**.
+1. **Explore demo** — recipient grid. No Taken/Bought. Occasion dropdown only when there are two packs.
 2. Open **Home espresso machine** — still unspoiled (future reveal date, even if givers fund it). **Burr coffee grinder** already shows **From the group** (reveal date in the past). Settings → Privacy / deletion stub if a mate asks “is this a real app?”
 3. **Share / occasions** → **Copy invite** (Birthday or Housewarming) or **Open giver view**.
 4. As a giver: mark group gift (reveal date + organiser + PayID note), chip in, **Simulate funded (demo)** → **Funded — time to buy** banner + email stub. Organiser marks purchased + delivery. Owner still unspoiled. Then **Simulate reveal date = yesterday**.
@@ -156,7 +156,7 @@ npx expo start --web
 ```
 
 1. **Explore demo** → recipient wishlist (no Taken/Bought badges, no pledge bar). Espresso is not yet “from the group”; **Burr coffee grinder** already is (past reveal date).
-2. Filter **Housewarming**. Open **Home espresso machine** — still a normal unspoiled item.
+2. Occasion → **Housewarming** (demo has two packs) or just open **Home espresso machine** — still a normal unspoiled item.
 3. **Share / occasions** → **Open giver view** for Housewarming (or `/g/demo-housewarming`).
 4. Open espresso as a giver: Alex is organiser, PayID note, chip-in progress, future reveal date. Tap **Simulate funded (demo)** — giver list/item show **Funded — time to buy** plus an email stub (no API key). Flip to the owner tab — espresso is **still unspoiled**.
 5. As the organiser, mark purchased and pick delivery. Owner is still blind.
@@ -435,7 +435,7 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 | --- | --- | --- |
 | `/` | Anyone | Redirects to sign-in or `/wishlist` |
 | `/sign-in` | Anyone | Live: magic-link primary. No env: **Explore demo** primary. Apple/Google placeholders |
-| `/wishlist` | Recipient | Photo grid + occasion filter (no reserve/purchased/pledges). **From the group** only on/after the reveal date |
+| `/wishlist` | Recipient | Photo grid (no reserve/purchased/pledges). Occasion packs live on Share; a compact dropdown appears only with two or more packs. **From the group** only on/after the reveal date |
 | `/add` | Recipient | Paste a buy URL to draft photo + title + notes, **Add photo** from library/camera, then edit and pin. Vibe board, occasion, lock, optional target $ |
 | `/paste` | Recipient | Paste a public Instagram URL → OG/meta draft → edit title/photo → pin. Honest miss if Instagram hides it |
 | `/item/[id]` | Recipient | Item detail + edit vibes. Group reveal (names) on/after the reveal date |
