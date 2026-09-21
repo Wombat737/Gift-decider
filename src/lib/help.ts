@@ -30,7 +30,7 @@ export const HelpFaq = [
   },
   {
     q: 'How do I add a photo?',
-    a: 'Add photo from your library or camera. A buy link can grab one too. Paste a URL if that’s easier.',
+    a: 'Add photo from your library or camera, or share a picture into Gift Decider. A buy link can grab one too. Paste a URL if that’s easier.',
   },
   {
     q: 'Can I paste a shop link?',
@@ -38,7 +38,7 @@ export const HelpFaq = [
   },
   {
     q: 'What about Instagram?',
-    a: 'Paste a public post URL. We’ll try the page’s photo and caption. If Instagram hides them, add a title and photo yourself — never a fake sample gift. You can still pin.',
+    a: 'Paste a public post URL, or share it like any other link (Share → Gift Decider). We’ll try the page’s photo and caption. If Instagram hides them, add a title and photo yourself — never a fake sample gift. You can still pin.',
   },
 ] as const;
 

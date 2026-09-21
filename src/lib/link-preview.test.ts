@@ -8,6 +8,7 @@ import {
   BUY_LINK_AUTOFILL_FAIL,
   applyBuyLinkDraft,
   autofillHint,
+  choosePreviewImage,
   draftFromPreview,
   isBlockedPreviewHost,
   isInstagramHost,
@@ -15,11 +16,14 @@ import {
   looksLikeCompleteBuyUrl,
   parseHtmlPreview,
   previewLooksLikeStub,
+  previewMissMessage,
   previewProviderForHost,
   sanitizeBuyUrl,
   sanitizeImageUrl,
   tidyPreviewTitle,
   titleFromBuyUrl,
+  usableProductImage,
+  INSTAGRAM_PASTE_MISS,
 } from './link-preview';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -143,6 +147,8 @@ describe('Buy-link autofill', () => {
     assert.equal(titleFromBuyUrl('https://www.kmart.com.au/product/washed-linen-throw/12345'), 'Washed Linen Throw');
     assert.equal(titleFromBuyUrl('https://www.amazon.com.au/dp/B00ASINONLY'), null);
     assert.equal(tidyPreviewTitle('Amazon.com.au : Linen apron'), 'Linen apron');
+    assert.equal(tidyPreviewTitle('Login • Instagram'), null);
+    assert.equal(tidyPreviewTitle('Robot Check'), null);
     assert.equal(isInstagramHost('www.instagram.com'), true);
     assert.equal(isInstagramHost('kmart.com.au'), false);
     assert.match(lightNotes('A'.repeat(220)) ?? '', /…$/);
@@ -163,9 +169,20 @@ describe('Buy-link autofill', () => {
     assert.equal(/await autofillFromBuyUrl/.test(add), false);
     assert.match(preview, /preview-url/);
     assert.match(preview, /draftFromPreview/);
+    assert.match(preview, /mirrorPreviewImage/);
+    assert.match(preview, /stored_image_url/);
+    assert.match(preview, /previewMissMessage/);
+    assert.equal(/isInstagramHost\(host\)\) \{\s*return \{ url/.test(preview), false);
     assert.equal(/Sample Instagram gift/.test(preview), false);
     assert.equal(/picsum\.photos/.test(preview), false);
     assert.match(edge, /og:title/);
+    assert.match(edge, /og:image:url/);
+    assert.match(edge, /image_src/);
+    assert.match(edge, /hiRes/);
+    assert.match(edge, /api\.instagram\.com\/oembed/);
+    assert.match(edge, /stored_image_url/);
+    assert.match(edge, /wishlist-images/);
+    assert.match(edge, /facebookexternalhit/);
     assert.match(edge, /AbortController/);
     assert.match(edge, /instagram/);
     assert.equal(/graph\.facebook|saves api|instagram\.com\/api|Sample Instagram/i.test(edge), false);
@@ -180,5 +197,56 @@ describe('Buy-link autofill', () => {
     assert.match(paste, /draftFromPreview/);
     assert.match(paste, /FieldHelp\.instagram/);
     assert.match(paste, /PhotoField/);
+    assert.match(paste, /fallbackUrl/);
+  });
+
+  it('resolves more product images and prefers a stored copy when the CDN blocks hotlinks', () => {
+    const relative = parseHtmlPreview(
+      `<meta property="og:image" content="//cdn.shop.example/throw.jpg?w=1&amp;h=2" />`,
+      'https://www.kmart.com.au/product/throw',
+    );
+    assert.equal(relative.imageUrl, 'https://cdn.shop.example/throw.jpg?w=1&h=2');
+
+    const hires = parseHtmlPreview(
+      `<html><title>Linen throw</title><script>"hiRes":"https://m.media-amazon.com/images/I/throw.jpg"</script></html>`,
+      'https://www.amazon.com.au/dp/B00TEST1234',
+    );
+    assert.equal(hires.title, 'Linen throw');
+    assert.equal(hires.imageUrl, 'https://m.media-amazon.com/images/I/throw.jpg');
+
+    const contentUrl = parseHtmlPreview(
+      `<script type="application/ld+json">{"@type":"Product","name":"Mug","image":{"contentUrl":"https://cdn.example/mug.png"}}</script>`,
+      'https://www.target.com.au/p/mug',
+    );
+    assert.equal(contentUrl.imageUrl, 'https://cdn.example/mug.png');
+
+    const skippedIcon = parseHtmlPreview(
+      `<meta property="og:image" content="https://www.kmart.com.au/favicon.ico" />
+       <link rel="image_src" href="https://www.kmart.com.au/images/throw.jpg" />`,
+      'https://www.kmart.com.au/product/throw',
+    );
+    assert.equal(skippedIcon.imageUrl, 'https://www.kmart.com.au/images/throw.jpg');
+    assert.equal(usableProductImage('https://www.kmart.com.au/favicon.ico'), null);
+
+    const remote = 'https://www.kmart.com.au/images/throw.jpg';
+    const stored =
+      'https://xxxx.supabase.co/storage/v1/object/public/wishlist-images/uid/photo.jpg';
+    const hotlink = 'https://scontent.cdninstagram.com/v/photo.jpg';
+    assert.deepEqual(choosePreviewImage(remote, stored), { imageUrl: remote, fallbackImageUrl: stored });
+    assert.deepEqual(choosePreviewImage(hotlink, stored), { imageUrl: stored, fallbackImageUrl: hotlink });
+    assert.equal(choosePreviewImage('http://shop.example/a.jpg', stored).imageUrl, stored);
+    assert.equal(sanitizeImageUrl('//cdn.shop.example/a.jpg', 'https://shop.example/p'), 'https://cdn.shop.example/a.jpg');
+
+    const withStored = draftFromPreview({
+      url: 'https://www.instagram.com/p/abc/',
+      title: 'Linen on the chair',
+      image_url: hotlink,
+      stored_image_url: stored,
+      stub: false,
+    });
+    assert.equal(withStored.imageUrl, stored);
+    assert.equal(withStored.fallbackImageUrl, hotlink);
+    assert.equal(previewMissMessage({ title: null, notes: null, imageUrl: null }, true), INSTAGRAM_PASTE_MISS);
+    assert.equal(previewMissMessage({ title: 'Throw', notes: null, imageUrl: null }, false), BUY_LINK_AUTOFILL_FAIL);
   });
 });

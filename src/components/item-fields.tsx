@@ -7,10 +7,11 @@ import { FilterChips, SUGGESTED_VIBES, VibeChips } from '@/components/vibe-chips
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { FieldHelp } from '@/lib/help';
-import { applyBuyLinkDraft, BUY_LINK_AUTOFILL_FAIL, looksLikeCompleteBuyUrl, type BuyLinkFields } from '@/lib/link-preview';
+import { applyBuyLinkDraft, BUY_LINK_AUTOFILL_FAIL, isWishlistImagesUrl, looksLikeCompleteBuyUrl, sanitizeBuyUrl, type BuyLinkFields } from '@/lib/link-preview';
 import { useTheme } from '@/hooks/use-theme';
 import type { ItemKind, Occasion } from '@/lib/types';
-import { autofillFromBuyUrl } from '@/services/preview';
+import { autofillFromBuyUrl, mirrorPreviewImage } from '@/services/preview';
+import type { SharedPhoto } from '@/lib/share-intent';
 
 export type ItemFieldsValue = {
   title: string;
@@ -31,6 +32,10 @@ type ItemFieldsProps = {
   onChange: (patch: Partial<ItemFieldsValue>) => void;
   showImageUrl?: boolean;
   onPhotoBusy?: (busy: boolean) => void;
+  /** Fetch a draft as soon as the screen opens (share extension / deep link). */
+  autofillBuyUrl?: boolean;
+  /** Photo from the share sheet when the share had no URL. */
+  sharedPhoto?: SharedPhoto | null;
 };
 
 export function ItemFields({
@@ -39,6 +44,8 @@ export function ItemFields({
   onChange,
   showImageUrl = true,
   onPhotoBusy,
+  autofillBuyUrl = false,
+  sharedPhoto = null,
 }: ItemFieldsProps) {
   const theme = useTheme();
   const valueRef = useRef(value);
@@ -48,14 +55,20 @@ export function ItemFields({
   const requestId = useRef(0);
   const [previewing, setPreviewing] = useState(false);
   const [previewHint, setPreviewHint] = useState<string | null>(null);
+  const [imageFallback, setImageFallback] = useState<string | null>(null);
+  const fallbackRef = useRef<string | null>(null);
+  const mirroring = useRef(false);
 
   valueRef.current = value;
   buyUrlRef.current = value.buyUrl;
 
   useEffect(() => {
+    if (autofillBuyUrl) void maybeAutofill(valueRef.current.buyUrl);
     return () => {
       requestId.current += 1;
     };
+    // Mount-only: share/deep link fills the buy field before the first paint.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function maybeAutofill(raw: string) {
@@ -71,6 +84,8 @@ export function ItemFields({
     const id = ++requestId.current;
     setPreviewing(true);
     setPreviewHint(null);
+    fallbackRef.current = null;
+    setImageFallback(null);
     try {
       const result = await autofillFromBuyUrl(trimmed);
       if (id !== requestId.current) return;
@@ -78,6 +93,10 @@ export function ItemFields({
       if (patch.title) lastDraft.current.title = patch.title;
       if (patch.notes) lastDraft.current.notes = patch.notes;
       if (patch.imageUrl) lastDraft.current.imageUrl = patch.imageUrl;
+      if (patch.imageUrl || !valueRef.current.imageUrl.trim()) {
+        fallbackRef.current = result.draft.fallbackImageUrl ?? null;
+        setImageFallback(result.draft.fallbackImageUrl ?? null);
+      }
       if (Object.keys(patch).length > 0) onChange(patch);
       setPreviewHint(result.message);
     } catch {
@@ -85,6 +104,33 @@ export function ItemFields({
       setPreviewHint(BUY_LINK_AUTOFILL_FAIL);
     } finally {
       if (id === requestId.current) setPreviewing(false);
+    }
+  }
+
+  async function mirrorCurrent() {
+    if (mirroring.current) return;
+    const page = sanitizeBuyUrl(valueRef.current.buyUrl);
+    const image = valueRef.current.imageUrl.trim();
+    const fromDraft = image === lastDraft.current.imageUrl || image === fallbackRef.current;
+    if (!page || !image || !fromDraft) return;
+    if (isWishlistImagesUrl(image)) {
+      setPreviewHint(BUY_LINK_AUTOFILL_FAIL);
+      return;
+    }
+    mirroring.current = true;
+    try {
+      const stored = await mirrorPreviewImage(page, image);
+      if (!stored || stored === image) {
+        setPreviewHint(BUY_LINK_AUTOFILL_FAIL);
+        return;
+      }
+      if (valueRef.current.imageUrl.trim() === image) {
+        lastDraft.current.imageUrl = stored;
+        onChange({ imageUrl: stored });
+        setPreviewHint(null);
+      }
+    } finally {
+      mirroring.current = false;
     }
   }
 
@@ -115,8 +161,17 @@ export function ItemFields({
       {showImageUrl ? (
         <PhotoField
           value={value.imageUrl}
-          onChange={(imageUrl) => onChange({ imageUrl })}
+          fallbackUrl={imageFallback}
+          referrer={looksLikeCompleteBuyUrl(value.buyUrl) ? value.buyUrl : undefined}
+          onChange={(imageUrl) => {
+            if (imageUrl.trim()) setPreviewHint(null);
+            onChange({ imageUrl });
+          }}
+          onRemoteError={() => {
+            void mirrorCurrent();
+          }}
           onBusyChange={onPhotoBusy}
+          sharedPhoto={sharedPhoto}
         />
       ) : null}
       <TextField

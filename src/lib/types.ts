@@ -168,6 +168,8 @@ export type LinkPreview = {
   title: string | null;
   description: string | null;
   image_url: string | null;
+  /** Public wishlist-images URL when the edge function rehosted a hotlinked photo. */
+  stored_image_url?: string | null;
   provider: string | null;
   stub?: boolean;
 };

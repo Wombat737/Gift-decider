@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -11,19 +11,72 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { FieldHelp } from '@/lib/help';
 import { pickGiftPhoto, uploadGiftPhoto } from '@/services/item-image';
+import type { SharedPhoto } from '@/lib/share-intent';
 
 type PhotoFieldProps = {
   value: string;
   onChange: (imageUrl: string) => void;
   onBusyChange?: (busy: boolean) => void;
+  /** Second URL when the first preview is hotlink-blocked. */
+  fallbackUrl?: string | null;
+  /** Page the photo came from, sent as Referer while loading the remote image. */
+  referrer?: string | null;
+  onRemoteError?: () => void;
+  /** Picture shared from Photos or another app. Shown immediately, then stored. */
+  sharedPhoto?: SharedPhoto | null;
 };
 
-export function PhotoField({ value, onChange, onBusyChange }: PhotoFieldProps) {
+export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referrer, onRemoteError, sharedPhoto }: PhotoFieldProps) {
   const theme = useTheme();
   const [busy, setBusy] = useState(false);
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const triedFallback = useRef(false);
+
+  useEffect(() => {
+    triedFallback.current = false;
+  }, [value, fallbackUrl]);
+
+  useEffect(() => {
+    const uri = sharedPhoto?.uri;
+    if (!uri) return;
+    const mimeType = sharedPhoto?.mimeType ?? undefined;
+    const fileName = sharedPhoto?.fileName ?? undefined;
+    let cancelled = false;
+    setLocalUri(uri);
+    setError(null);
+    setBusy(true);
+    onBusyChange?.(true);
+    void (async () => {
+      try {
+        const url = await uploadGiftPhoto({
+          uri,
+          width: 0,
+          height: 0,
+          type: 'image',
+          mimeType,
+          fileName,
+        });
+        if (cancelled) return;
+        onChange(url);
+        setLocalUri(null);
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : 'Couldn’t add that photo');
+      } finally {
+        if (!cancelled) {
+          setBusy(false);
+          onBusyChange?.(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Upload once per shared file. Parent onChange identity is not a reason to retry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedPhoto?.uri]);
 
   const shown = localUri || value;
   const hasPhoto = Boolean(shown.trim());
@@ -53,7 +106,20 @@ export function PhotoField({ value, onChange, onBusyChange }: PhotoFieldProps) {
       <LabelWithHelp label="Photo" help={FieldHelp.photo} />
 
       <View style={[styles.preview, { borderColor: theme.border }]}>
-        <GiftPhoto uri={shown} />
+        <GiftPhoto
+          uri={shown}
+          referrer={referrer}
+          onLoadError={() => {
+            if (busy) return false;
+            if (fallbackUrl && fallbackUrl !== value && !triedFallback.current) {
+              triedFallback.current = true;
+              onChange(fallbackUrl);
+              return true;
+            }
+            onRemoteError?.();
+            return false;
+          }}
+        />
         {busy ? (
           <View style={[styles.busy, { backgroundColor: theme.overlay }]} pointerEvents="none">
             <ActivityIndicator accessibilityLabel="Uploading photo" color={theme.brand} />

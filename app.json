@@ -57,6 +57,28 @@
           "microphonePermission": false
         }
       ],
+      "./plugins/with-share-display-name.js",
+      [
+        "expo-sharing",
+        {
+          "ios": {
+            "enabled": true,
+            "extensionBundleIdentifier": "com.giftdecider.app.ShareExtension",
+            "appGroupId": "group.com.giftdecider.app",
+            "activationRule": {
+              "supportsText": true,
+              "supportsWebUrlWithMaxCount": 1,
+              "supportsWebPageWithMaxCount": 1,
+              "supportsImageWithMaxCount": 1
+            }
+          },
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": ["text/plain", "text/html", "image/*"],
+            "multipleShareMimeTypes": ["text/plain", "image/*"]
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {

@@ -10,7 +10,7 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 - **Surprise gifts:** reserved / purchased / pledge progress is **giver-only** while a gift is in flight
 - Group gifts have an **organiser** (who marked it a group gift, else the first named pledge, else “the organiser”). They buy; givers pay them via **PayID / BSB** (honour system — Gift Decider holds no money)
 - When a **group gift’s reveal date** arrives, the recipient sees **who it’s from** (names / Anonymous) — not the dollar amounts, and **not** as soon as it’s funded
-- Instagram v1: paste a public post URL → public OG/meta if Instagram exposes it → edit → pin. Honest empty if it hides the photo — never a fake sample gift
+- Instagram v1: paste a public post URL, or share any link or photo into Gift Decider (iOS share extension — Safari, shops, Messages, Instagram, Photos). Public OG/meta and oEmbed if a page exposes them → edit → pin. Honest empty if a page hides the photo — never a fake sample gift. A shared picture with no link becomes the photo.
 - Soft-launch ready: polished UI, EAS build profiles, privacy + account-deletion stubs
 - Real Stripe, Meta Instagram OAuth, push notifications, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
 - Push notifications are next; Ready to buy uses an in-app banner plus an email stub (`notify-organiser-ready-to-buy`)
@@ -343,15 +343,23 @@ npx supabase functions deploy preview-url
 
 Redeploy after this change — the old function returned a fake picsum stub for every URL.
 
-`POST { "url": "https://www.kmart.com.au/..." }` fetches the public page (4s timeout), parses `og:title` / `og:image` / description, prefers AU hosts (Amazon AU, Kmart, Target AU, Big W, …), and returns `{ url, title, description, image_url, provider, stub: false }`.
+`POST { "url": "https://www.kmart.com.au/..." }` fetches the public page, parses `og:title` / `og:image` / JSON-LD / `link rel="image_src"`, and returns `{ url, title, description, image_url, stored_image_url, provider, stub: false }`.
+
+The Add screen shows the remote photo immediately (with the shop page as Referer). If that image is on a CDN that blocks the app (Instagram, http-only, or the preview errors), the function downloads the bytes and stores them in `wishlist-images` under your user id. The live preview then swaps to that public URL before you pin. A second call `{ "url", "image_url" }` only does that rehost.
 
 Rules:
 
-- **http(s) only.** Rejects credentials, localhost, and private / metadata hosts.
-- **No Instagram scrape.** `instagram.com` / `instagr.am` still return the existing paste-flow stub. No Meta OAuth, no Saves API.
+- **http(s) only.** Rejects credentials, localhost, and private / metadata hosts. Image bytes are checked (jpeg/png/gif/webp, 8MB) before upload.
+- **Instagram is best-effort, not a scrape.** Public HTML (crawler user-agent, then a browser user-agent) plus `https://api.instagram.com/oembed/` when it answers **without** a token. No Meta OAuth, no Graph API, no unofficial endpoints. If Meta hides the photo and caption, the draft stays empty — never a sample gift.
 - **No login walls.** 401/403 → empty fields, not an error.
-- **No new migration.** Successful fills can cache in existing `link_previews`.
+- **No new migration.** Uploads use the existing `wishlist-images` bucket. Successful fills can cache in existing `link_previews`.
 - Explore demo (no secrets) cannot fetch remote shops (CORS). It may guess a title from the URL path and shows “Couldn’t grab a photo — add one”. Pin still works.
+
+Redeploy after this change:
+
+```bash
+npx supabase functions deploy preview-url
+```
 
 Curl (JWT verify is off):
 
@@ -436,8 +444,8 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 | `/` | Anyone | Redirects to sign-in or `/wishlist` |
 | `/sign-in` | Anyone | Live: magic-link primary. No env: **Explore demo** primary. Apple/Google placeholders |
 | `/wishlist` | Recipient | Photo grid (no reserve/purchased/pledges). Occasion packs live on Share; a compact dropdown appears only with two or more packs. **From the group** only on/after the reveal date |
-| `/add` | Recipient | Paste a buy URL to draft photo + title + notes, **Add photo** from library/camera, then edit and pin. Vibe board, occasion, lock, optional target $ |
-| `/paste` | Recipient | Paste a public Instagram URL → OG/meta draft → edit title/photo → pin. Honest miss if Instagram hides it |
+| `/add` | Recipient | Paste a buy URL (or arrive from the iOS share sheet) to draft photo + title + notes, **Add photo** from library/camera, then edit and pin. Vibe board, occasion, lock, optional target $ |
+| `/paste` | Recipient | Paste a public Instagram URL → OG/oEmbed draft → live photo preview → pin. Honest miss if Instagram hides it |
 | `/item/[id]` | Recipient | Item detail + edit vibes. Group reveal (names) on/after the reveal date |
 | `/share` | Recipient | Whole-list + occasion **Copy invite** (mate-ready text) |
 | `/settings` | Recipient | Live profile (name / handle / discoverability / taste tags), privacy link, account-deletion mailto stub, sign out |
@@ -450,8 +458,8 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 
 ## What’s stubbed (on purpose)
 
-- **Instagram** — paste a public URL. Same public OG/meta fetch as buy links. No Meta OAuth, no Saves API, no unofficial scrapers. If the page hides metadata, fields stay empty — never a demo stub photo
-- **`preview-url`** — live Open Graph / meta fetch for shop buy links and public Instagram pages. No unofficial Instagram APIs. Explore demo cannot fetch remote shops (CORS) — path-title fallback for buy links; Instagram paste stays honestly empty
+- **Instagram** — paste a public URL, or share the post to Gift Decider (iOS). Public OG/meta and token-free oEmbed only. No Meta OAuth, no Saves API, no unofficial scrapers. If the page hides metadata, fields stay empty — never a demo stub photo
+- **`preview-url`** — live Open Graph / meta / oEmbed for shop buy links and public Instagram pages. Rehosts a blocked photo into `wishlist-images` when you are signed in. Explore demo cannot fetch remote shops (CORS) — path-title fallback for buy links; Instagram paste stays honestly empty
 - **`heal-link` / `improv-substitutes`** — stubs. The app uses in-app fallbacks when env vars or the function are missing
 - **Apple / Google Sign-In** — buttons that explain they are placeholders. **Email magic link is live** once URL + anon key are set
 - **Email invites** — inserts `wishlist_members` / `giver_email_invites` when Supabase is configured; does not send mail
@@ -503,6 +511,45 @@ Preview is what you hand to mates before TestFlight. Production is what you subm
 2. `eas submit --platform ios --profile production` (or upload the preview IPA if you only want internal).
 3. TestFlight → Internal Testing → add testers by Apple ID email. They install TestFlight, then your build.
 
+### Share Extension (iOS) — Share any link or photo into Add
+
+Gift Decider shows up in the system share sheet (**Share → Share to… → Gift Decider**) from Safari, Chrome, shopping apps, Messages, Instagram, Photos, and anywhere else that shares a link or a picture. The extension does not pin by itself. It opens the app on **Add item**:
+
+- **A URL** (the usual case) goes in the buy-link field. The same autofill as paste fills title, notes, and photo via `preview-url`. Edit, then **Pin to wishlist**.
+- **A picture with no URL** (Photos, a screenshot) becomes the photo. It uploads to `wishlist-images` when you are signed in. You type the title and pin.
+
+This is native code (`expo-sharing` share extension). **Expo Go and an OTA update cannot add it.** You need a new EAS iOS build after this lands. `eas.json` uses `appVersionSource: remote`, so confirm the version in EAS (`eas build:version:get`) — production builds already auto-increment the build number.
+
+What the project configures (`app.json`):
+
+| Piece | Value |
+| --- | --- |
+| Extension bundle id | `com.giftdecider.app.ShareExtension` |
+| App Group | `group.com.giftdecider.app` |
+| URL scheme | `giftdecider://expo-sharing` → `/add?url=…` or `/add?photo=1` |
+| Accepts | Standard share types: web URLs, web pages, text that contains a URL, and a single image (`public.url`, `public.plain-text`, `public.image`). Not limited to Instagram. |
+| Share sheet name | **Gift Decider** (the extension’s display name; icon is the app icon) |
+| Android | Best-effort: `text/plain`, `text/html`, and `image/*` use the same Add draft. |
+
+**Apple Developer (one time)** — EAS managed credentials often create these when the build runs. If the build stops and asks, or if you sign locally:
+
+1. [Identifiers](https://developer.apple.com/account/resources/identifiers/list) → **+** → **App Groups** → register `group.com.giftdecider.app`.
+2. App ID `com.giftdecider.app` → enable **App Groups** → tick that group.
+3. Register App ID `com.giftdecider.app.ShareExtension` (explicit, not a wildcard) → enable **App Groups** → tick the same group. No extra entitlement beyond App Groups. Push, Sign in with Apple, and Associated Domains stay off the extension.
+4. EAS → project credentials → iOS. Let it provision **both** bundle ids (the first build after this change usually prompts). Do not reuse the old profile that has no App Group.
+
+Then:
+
+```bash
+npx supabase functions deploy preview-url
+eas build --profile production --platform ios
+eas submit --platform ios --profile production
+```
+
+On a phone with that build: any app → **Share** → **Share to…** → **Gift Decider**. A link opens Add with the URL filled in and autofill running. A photo with no link opens Add with that picture. Signed-out shares wait until you sign in, then open the same draft. If a page hides its photo, the hint is honest and **Add photo** / **Take photo** still work.
+
+Redeploy `preview-url` even if you skip the iOS rebuild — photo rehost and Instagram oEmbed only exist in the new function.
+
 **Play internal testing**
 
 1. Play Console → create the app → Internal testing track.
@@ -528,7 +575,8 @@ src/context/             Auth + wishlist
 src/services/            Preview + wishlist API + item photo upload (Supabase or demo store)
 src/lib/                 Env, types, confidence, AU buy URLs, heal-link contract, substitutes, analytics stub, demo store
 supabase/migrations/     Schema + RLS (init through live_rls, giver status, giver social A/B/C)
-supabase/functions/      preview-url (OG buy-link fill), heal-link stub, optional improv-substitutes, notify-organiser-ready-to-buy stub
+supabase/functions/      preview-url (OG / oEmbed + wishlist-images rehost), heal-link stub, optional improv-substitutes, notify-organiser-ready-to-buy stub
+plugins/                 iOS share-sheet display name (Gift Decider)
 ```
 
 ## Scripts

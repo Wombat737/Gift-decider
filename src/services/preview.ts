@@ -2,19 +2,21 @@ import { usesDemoData } from '@/lib/app-mode';
 import { env } from '@/lib/env';
 import {
   BUY_LINK_AUTOFILL_FAIL,
-  autofillHint,
   draftFromPreview,
   isInstagramHost,
+  isWishlistImagesUrl,
   previewLooksLikeStub,
+  previewMissMessage,
   previewProviderForHost,
   sanitizeBuyUrl,
+  sanitizeImageUrl,
   titleFromBuyUrl,
   type BuyLinkDraft,
 } from '@/lib/link-preview';
 import { supabase } from '@/lib/supabase';
 import type { LinkPreview } from '@/lib/types';
 
-const PREVIEW_MS = 8000;
+const PREVIEW_MS = 16000;
 
 function honestEmpty(url: string): LinkPreview {
   let host = '';
@@ -96,9 +98,7 @@ export async function autofillFromBuyUrl(raw: string): Promise<BuyLinkAutofill> 
     host = '';
   }
 
-  if (isInstagramHost(host)) {
-    return { url, draft: { title: null, notes: null, imageUrl: null }, message: BUY_LINK_AUTOFILL_FAIL };
-  }
+  const instagram = isInstagramHost(host);
 
   if (!usesDemoData() && supabase) {
     try {
@@ -113,12 +113,20 @@ export async function autofillFromBuyUrl(raw: string): Promise<BuyLinkAutofill> 
           if (!previewLooksLikeStub(preview)) {
             await cachePreview(preview);
           }
-          return { url, draft, message: autofillHint(draft) };
+          return { url, draft, message: previewMissMessage(draft, instagram) };
         }
       }
     } catch {
       // Keep typed values. Path title below is a quiet extra, not a block.
     }
+  }
+
+  if (instagram) {
+    return {
+      url,
+      draft: { title: null, notes: null, imageUrl: null },
+      message: previewMissMessage({ title: null, notes: null, imageUrl: null }, true),
+    };
   }
 
   const pathTitle = titleFromBuyUrl(url);
@@ -127,20 +135,40 @@ export async function autofillFromBuyUrl(raw: string): Promise<BuyLinkAutofill> 
     notes: null,
     imageUrl: null,
   };
-  return { url, draft, message: autofillHint(draft) };
+  return { url, draft, message: previewMissMessage(draft, false) };
+}
+
+/** Download a hotlinked preview image into wishlist-images and return the public URL. */
+export async function mirrorPreviewImage(pageUrl: string, imageUrl: string): Promise<string | null> {
+  const page = sanitizeBuyUrl(pageUrl);
+  const image = sanitizeImageUrl(imageUrl, page);
+  if (!page || !image) return null;
+  if (isWishlistImagesUrl(image)) return image;
+  if (usesDemoData() || !supabase) return null;
+
+  try {
+    const { data, error } = await withTimeout(
+      supabase.functions.invoke('preview-url', { body: { url: page, image_url: image } }),
+      PREVIEW_MS,
+    );
+    if (error || !data || typeof data !== 'object') return null;
+    return sanitizeImageUrl((data as LinkPreview).stored_image_url);
+  } catch {
+    return null;
+  }
 }
 
 async function cachePreview(preview: LinkPreview) {
   if (usesDemoData() || !supabase) return;
   if (previewLooksLikeStub(preview)) return;
-  if (!preview.title && !preview.image_url) return;
+  if (!preview.title && !preview.image_url && !preview.stored_image_url) return;
 
   await supabase.from('link_previews').upsert(
     {
       url: preview.url,
       title: preview.title,
       description: preview.description,
-      image_url: preview.image_url,
+      image_url: preview.stored_image_url || preview.image_url,
       provider: preview.provider ?? previewProviderForHost(safeHost(preview.url)),
       fetched_at: new Date().toISOString(),
       raw: preview,
