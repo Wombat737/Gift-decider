@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -16,14 +16,24 @@ type PhotoFieldProps = {
   value: string;
   onChange: (imageUrl: string) => void;
   onBusyChange?: (busy: boolean) => void;
+  /** Second URL when the first preview is hotlink-blocked. */
+  fallbackUrl?: string | null;
+  /** Page the photo came from, sent as Referer while loading the remote image. */
+  referrer?: string | null;
+  onRemoteError?: () => void;
 };
 
-export function PhotoField({ value, onChange, onBusyChange }: PhotoFieldProps) {
+export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referrer, onRemoteError }: PhotoFieldProps) {
   const theme = useTheme();
   const [busy, setBusy] = useState(false);
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const triedFallback = useRef(false);
+
+  useEffect(() => {
+    triedFallback.current = false;
+  }, [value, fallbackUrl]);
 
   const shown = localUri || value;
   const hasPhoto = Boolean(shown.trim());
@@ -53,7 +63,20 @@ export function PhotoField({ value, onChange, onBusyChange }: PhotoFieldProps) {
       <LabelWithHelp label="Photo" help={FieldHelp.photo} />
 
       <View style={[styles.preview, { borderColor: theme.border }]}>
-        <GiftPhoto uri={shown} />
+        <GiftPhoto
+          uri={shown}
+          referrer={referrer}
+          onLoadError={() => {
+            if (busy) return false;
+            if (fallbackUrl && fallbackUrl !== value && !triedFallback.current) {
+              triedFallback.current = true;
+              onChange(fallbackUrl);
+              return true;
+            }
+            onRemoteError?.();
+            return false;
+          }}
+        />
         {busy ? (
           <View style={[styles.busy, { backgroundColor: theme.overlay }]} pointerEvents="none">
             <ActivityIndicator accessibilityLabel="Uploading photo" color={theme.brand} />

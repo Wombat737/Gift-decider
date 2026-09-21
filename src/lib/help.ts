@@ -38,7 +38,7 @@ export const HelpFaq = [
   },
   {
     q: 'What about Instagram?',
-    a: 'Paste a public post URL. We’ll try the page’s photo and caption. If Instagram hides them, add a title and photo yourself — never a fake sample gift. You can still pin.',
+    a: 'Paste a public post URL, or use Share → Gift Decider. We’ll try the page’s photo and caption. If Instagram hides them, add a title and photo yourself — never a fake sample gift. You can still pin.',
   },
 ] as const;
 

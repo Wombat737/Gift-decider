@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { Button } from '@/components/button';
 import { FlowHeader } from '@/components/flow-header';
@@ -9,8 +9,8 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { FieldHelp } from '@/lib/help';
-import { applyBuyLinkDraft, draftFromPreview, type BuyLinkFields } from '@/lib/link-preview';
-import { previewUrl } from '@/services/preview';
+import { applyBuyLinkDraft, draftFromPreview, looksLikeCompleteBuyUrl, previewMissMessage, type BuyLinkFields } from '@/lib/link-preview';
+import { mirrorPreviewImage, previewUrl } from '@/services/preview';
 
 const PASTE_MISS = 'Couldn’t grab that post — add a title and photo';
 
@@ -21,35 +21,41 @@ export default function PasteInstagramScreen() {
   const [notes, setNotes] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [lastDraft, setLastDraft] = useState<BuyLinkFields>({ title: '', notes: '', imageUrl: '' });
+  const [imageFallback, setImageFallback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const request = useRef(0);
 
-  async function onPreview() {
+  async function onPreview(raw = url) {
+    const id = ++request.current;
     setBusy(true);
     setError(null);
     setHint(null);
     try {
-      const preview = await previewUrl(url);
+      const preview = await previewUrl(raw);
+      if (id !== request.current) return;
       const draft = draftFromPreview(preview);
       const patch = applyBuyLinkDraft({ title, notes, imageUrl }, draft, lastDraft);
       if (patch.title) setTitle(patch.title);
       if (patch.notes) setNotes(patch.notes);
       if (patch.imageUrl) setImageUrl(patch.imageUrl);
+      setImageFallback(draft.fallbackImageUrl ?? null);
       setLastDraft({
         title: patch.title ?? lastDraft.title,
         notes: patch.notes ?? lastDraft.notes,
         imageUrl: patch.imageUrl ?? lastDraft.imageUrl,
       });
-      if (!draft.imageUrl) setHint(PASTE_MISS);
+      setHint(previewMissMessage(draft, true) ?? (draft.imageUrl ? null : PASTE_MISS));
     } catch (err) {
+      if (id !== request.current) return;
       setHint(PASTE_MISS);
       if (err instanceof Error && err.message === 'Paste a URL first') {
         setError(err.message);
       }
     } finally {
-      setBusy(false);
+      if (id === request.current) setBusy(false);
     }
   }
 
@@ -85,7 +91,13 @@ export default function PasteInstagramScreen() {
         loading={busy}
         hint={hint ?? undefined}
         help={FieldHelp.instagram}
-        onChangeText={setUrl}
+        onChangeText={(next) => {
+          setUrl(next);
+          if (looksLikeCompleteBuyUrl(next)) void onPreview(next);
+        }}
+        onBlur={() => {
+          if (looksLikeCompleteBuyUrl(url)) void onPreview(url);
+        }}
       />
 
       <Button label={busy ? 'Working…' : 'Preview'} disabled={busy || photoBusy} onPress={() => void onPreview()} />
@@ -97,7 +109,19 @@ export default function PasteInstagramScreen() {
         loading={busy}
         onChangeText={setTitle}
       />
-      <PhotoField value={imageUrl} onChange={setImageUrl} onBusyChange={setPhotoBusy} />
+      <PhotoField
+        value={imageUrl}
+        fallbackUrl={imageFallback}
+        referrer={looksLikeCompleteBuyUrl(url) ? url : undefined}
+        onChange={setImageUrl}
+        onBusyChange={setPhotoBusy}
+        onRemoteError={() => {
+          if (!looksLikeCompleteBuyUrl(url) || !imageUrl.trim()) return;
+          void mirrorPreviewImage(url, imageUrl).then((stored) => {
+            if (stored && stored !== imageUrl) setImageUrl(stored);
+          });
+        }}
+      />
       <TextField
         label="Notes"
         placeholder="Size, colour, where you saw it"

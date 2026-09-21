@@ -30,7 +30,7 @@ additional_redirect_urls = [
 ]
 
 [functions.preview-url]
-# Public OG/meta fetch for buy-link autofill. Instagram stays a stub. JWT optional so you can curl it.
+# Public OG/meta + oEmbed for buy links and Instagram. Rehosts a blocked photo into wishlist-images. JWT optional so you can curl it.
 verify_jwt = false
 
 [functions.heal-link]

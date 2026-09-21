@@ -1,18 +1,23 @@
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { FlairIcon } from '@/components/flair-icons';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isUnsafeImageUri, looksLikeImageUri } from '@/lib/item-image';
+import { isWishlistImagesUrl } from '@/lib/link-preview';
 
 type GiftPhotoProps = {
   uri?: string | null;
   /** Shown only when `uri` is empty (item detail empty art). Broken URLs stay quiet. */
   missingUri?: string | null;
+  /** Shop page, sent as Referer so some CDNs allow the product photo. */
+  referrer?: string | null;
   aspectRatio?: number;
   style?: StyleProp<ViewStyle>;
+  /** Return true when a fallback URL was applied and the error should not stick. */
+  onLoadError?: () => boolean;
 };
 
 function displayUri(uri?: string | null, missingUri?: string | null) {
@@ -26,10 +31,18 @@ function displayUri(uri?: string | null, missingUri?: string | null) {
 }
 
 /** Live preview. Broken URL → paper + icon, never a crash. */
-export function GiftPhoto({ uri, missingUri, aspectRatio = 1, style }: GiftPhotoProps) {
+export function GiftPhoto({ uri, missingUri, referrer, aspectRatio = 1, style, onLoadError }: GiftPhotoProps) {
   const theme = useTheme();
   const shown = displayUri(uri, missingUri);
   const [failed, setFailed] = useState(false);
+  // Web expo-image fetches when `headers` is set, and that CORS-fails most shop CDNs.
+  // A plain <img> still paints the remote photo. Native can send Referer.
+  const sendReferrer =
+    Platform.OS !== 'web' &&
+    Boolean(referrer) &&
+    Boolean(shown) &&
+    /^https?:/i.test(shown ?? '') &&
+    !isWishlistImagesUrl(shown ?? '');
 
   useEffect(() => {
     setFailed(false);
@@ -58,12 +71,15 @@ export function GiftPhoto({ uri, missingUri, aspectRatio = 1, style }: GiftPhoto
       pointerEvents="none"
       style={[styles.frame, { backgroundColor: theme.paper, aspectRatio }, style]}>
       <Image
-        source={{ uri: shown }}
+        source={sendReferrer ? { uri: shown, headers: { Referer: referrer ?? '' } } : { uri: shown }}
         style={styles.image}
         contentFit="cover"
         pointerEvents="none"
         recyclingKey={shown}
-        onError={() => setFailed(true)}
+        onError={() => {
+          const recovered = onLoadError?.() ?? false;
+          if (!recovered) setFailed(true);
+        }}
       />
     </View>
   );

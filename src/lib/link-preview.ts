@@ -1,11 +1,14 @@
-/** Buy-link draft autofill. Public OG/meta only — no Instagram scrape, no login walls. */
+/** Buy-link draft autofill. Public OG/meta / oEmbed only — no Instagram scrape, no login walls. */
 
 export const BUY_LINK_AUTOFILL_FAIL = 'Couldn’t grab a photo — add one';
+export const INSTAGRAM_PASTE_MISS = 'Couldn’t grab that post — add a title and photo';
 
 export type BuyLinkDraft = {
   title: string | null;
   notes: string | null;
   imageUrl: string | null;
+  /** Other preview URL to try when the first image is blocked (hotlink / ATS). */
+  fallbackImageUrl?: string | null;
 };
 
 export type BuyLinkFields = {
@@ -138,6 +141,45 @@ export function sanitizeImageUrl(raw: string | null | undefined, pageUrl?: strin
   return parsed.toString();
 }
 
+export function isDecorativeImageUrl(url: string) {
+  return /favicon|apple-touch-icon|sprite(?:[./_-]|$)|pixel(?:[./_-]|$)|spacer|1x1|blank\.gif|\/badge(?:[./_-]|$)|\/tracking(?:[./_-]|$)|analytics|\/logo(?:[._-]|$)/i.test(
+    url,
+  );
+}
+
+/** CDNs that usually 403 when an app loads them without the page as Referer. */
+export function isHotlinkProneImageUrl(url: string) {
+  return /cdninstagram|fbcdn\.net|pinimg\.com|tiktokcdn|googleusercontent\.com/i.test(url);
+}
+
+export function isWishlistImagesUrl(url: string) {
+  return /\/storage\/v1\/object\/public\/wishlist-images\//i.test(url);
+}
+
+export function usableProductImage(raw: string | null | undefined, pageUrl?: string | null) {
+  const url = sanitizeImageUrl(raw, pageUrl);
+  if (!url || isDecorativeImageUrl(url)) return null;
+  return url;
+}
+
+export function choosePreviewImage(remote: string | null, stored: string | null) {
+  const storedOk = stored && stored !== remote ? stored : null;
+  const remoteHttps = remote?.startsWith('https://') ? remote : null;
+  if (remote && isWishlistImagesUrl(remote)) {
+    return { imageUrl: remote, fallbackImageUrl: storedOk };
+  }
+  if (remote && isHotlinkProneImageUrl(remote) && storedOk) {
+    return { imageUrl: storedOk, fallbackImageUrl: remoteHttps };
+  }
+  if (remoteHttps && !isHotlinkProneImageUrl(remoteHttps)) {
+    return { imageUrl: remoteHttps, fallbackImageUrl: storedOk };
+  }
+  if (storedOk) {
+    return { imageUrl: storedOk, fallbackImageUrl: remote && remote !== storedOk ? remote : null };
+  }
+  return { imageUrl: remote, fallbackImageUrl: null as string | null };
+}
+
 function titleCaseWords(value: string) {
   return value
     .split(/\s+/)
@@ -187,6 +229,12 @@ export function tidyPreviewTitle(raw: string | null | undefined): string | null 
   title = title.replace(/^Amazon\.com\.au\s*[:|\-–—]\s*/i, '');
   title = title.trim();
   if (!title || /^preview of /i.test(title)) return null;
+  if (
+    /^(instagram|login\s*[•·|:-]\s*instagram|www\.instagram\.com)$/i.test(title) ||
+    /robot check|access denied|just a moment|attention required|captcha/i.test(title)
+  ) {
+    return null;
+  }
   return title.slice(0, 120);
 }
 
@@ -231,8 +279,76 @@ function readTitleTag(html: string) {
 
 function imageFromJsonLd(value: unknown): string | null {
   if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return imageFromJsonLd(value[0]);
-  if (value && typeof value === 'object' && 'url' in value && typeof value.url === 'string') return value.url;
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const found = imageFromJsonLd(entry);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (typeof record.url === 'string') return record.url;
+    if (typeof record.contentUrl === 'string') return record.contentUrl;
+    if (typeof record.secure_url === 'string') return record.secure_url;
+  }
+  return null;
+}
+
+function unescapeJsonUrl(value: string) {
+  return value.replace(/\\\//g, '/').replace(/\\u0026/gi, '&').replace(/\\u002f/gi, '/').replace(/&amp;/gi, '&');
+}
+
+function readLinkImage(html: string) {
+  for (const tag of html.match(/<link\b[^>]*>/gi) ?? []) {
+    const rel = (readAttr(tag, 'rel') ?? '').toLowerCase();
+    if (!rel.split(/\s+/).includes('image_src')) continue;
+    const href = readAttr(tag, 'href');
+    if (href) return href;
+  }
+  return null;
+}
+
+function readLooseProductImage(html: string): string | null {
+  const hiRes = html.match(/"hiRes"\s*:\s*"((?:https?:)?[^"\\]+|https?:\\\/\\\/[^"]+)"/);
+  if (hiRes?.[1]) return unescapeJsonUrl(hiRes[1]);
+
+  const oldHires = html.match(/data-old-hires\s*=\s*["']([^"']+)["']/i);
+  if (oldHires?.[1]) return decodeHtmlEntities(oldHires[1]);
+
+  const dynamic = html.match(/data-a-dynamic-image\s*=\s*["']([^"']+)["']/i);
+  if (dynamic?.[1]) {
+    const decoded = decodeHtmlEntities(dynamic[1]);
+    try {
+      const map = JSON.parse(decoded) as Record<string, unknown>;
+      const urls = Object.keys(map).filter((key) => /^https?:/i.test(key));
+      if (urls.length) {
+        urls.sort((a, b) => {
+          const area = (key: string) => {
+            const dims = map[key];
+            if (Array.isArray(dims) && dims.length >= 2) return Number(dims[0]) * Number(dims[1]);
+            return key.length;
+          };
+          return area(b) - area(a);
+        });
+        return urls[0] ?? null;
+      }
+    } catch {
+      const url = decoded.match(/https?:[^"'\s]+/);
+      if (url?.[0]) return url[0];
+    }
+  }
+
+  const embedded = html.match(/["']og:image["']\s*:\s*["']((?:https?:\\?\/\\?\/)[^"']+)["']/);
+  if (embedded?.[1]) return unescapeJsonUrl(embedded[1]);
+  return null;
+}
+
+function pickProductImage(candidates: (string | null | undefined)[], pageUrl: string) {
+  for (const candidate of candidates) {
+    const url = usableProductImage(candidate, pageUrl);
+    if (url) return url;
+  }
   return null;
 }
 
@@ -278,8 +394,13 @@ export function parseHtmlPreview(html: string, pageUrl: string): BuyLinkDraft {
     readMeta(html, ['og:description', 'twitter:description', 'description']) ?? jsonLd.notes,
     title,
   );
-  const imageUrl = sanitizeImageUrl(
-    readMeta(html, ['og:image', 'og:image:secure_url', 'twitter:image', 'twitter:image:src']) ?? jsonLd.imageUrl,
+  const imageUrl = pickProductImage(
+    [
+      readMeta(html, ['og:image:secure_url', 'og:image', 'og:image:url', 'twitter:image', 'twitter:image:src']),
+      readLinkImage(html),
+      jsonLd.imageUrl,
+      readLooseProductImage(html),
+    ],
     pageUrl,
   );
   return { title, notes, imageUrl };
@@ -303,10 +424,12 @@ export function previewLooksLikeStub(preview: {
   stub?: boolean;
   title?: string | null;
   image_url?: string | null;
+  stored_image_url?: string | null;
 } | null | undefined) {
   if (!preview) return true;
   if (preview.stub) return true;
   if (preview.image_url && /picsum\.photos/i.test(preview.image_url)) return true;
+  if (preview.stored_image_url && /picsum\.photos/i.test(preview.stored_image_url)) return true;
   if (preview.title && /^preview of /i.test(preview.title)) return true;
   return false;
 }
@@ -317,6 +440,7 @@ export function draftFromPreview(
     title?: string | null;
     description?: string | null;
     image_url?: string | null;
+    stored_image_url?: string | null;
     stub?: boolean;
   } | null | undefined,
 ): BuyLinkDraft {
@@ -324,13 +448,23 @@ export function draftFromPreview(
     return { title: null, notes: null, imageUrl: null };
   }
   const title = tidyPreviewTitle(preview?.title);
+  const remote = sanitizeImageUrl(preview?.image_url, preview?.url);
+  const stored = sanitizeImageUrl(preview?.stored_image_url, preview?.url);
+  const chosen = choosePreviewImage(remote && isDecorativeImageUrl(remote) ? null : remote, stored);
   return {
     title,
     notes: lightNotes(preview?.description, title),
-    imageUrl: sanitizeImageUrl(preview?.image_url, preview?.url),
+    imageUrl: chosen.imageUrl,
+    ...(chosen.fallbackImageUrl ? { fallbackImageUrl: chosen.fallbackImageUrl } : {}),
   };
 }
 
 export function autofillHint(draft: BuyLinkDraft) {
   return draft.imageUrl ? null : BUY_LINK_AUTOFILL_FAIL;
+}
+
+export function previewMissMessage(draft: BuyLinkDraft, instagram = false) {
+  if (draft.imageUrl) return null;
+  if (instagram && !draft.title && !draft.notes) return INSTAGRAM_PASTE_MISS;
+  return BUY_LINK_AUTOFILL_FAIL;
 }
