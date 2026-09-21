@@ -4,7 +4,7 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 
 **Coral Coast** is the locked visual direction: pure white (`#FFFFFF` / `#FAFAFA`), coral brand (`#E85D4C`), sunshine only for chip-in and pledges (`#F5B942`). Plus Jakarta Sans for UI and titles (no serif headings). Success / purchased / reserved styling never appears on owner views.
 
-- Recipients curate photos + notes + taste/vibes + an optional buy URL (paste the shop link on Add item to draft a photo + title)
+- Recipients curate photos + notes + taste/vibes + an optional buy URL (paste the shop link on Add item to draft a photo + title, or Add photo from the camera / library)
 - Occasion packs (birthday, housewarming, …) each get their own giver link
 - Givers open a shared read-only link: soft-lock, chip in, AU store search, dead-link heal
 - **Surprise gifts:** reserved / purchased / pledge progress is **giver-only** while a gift is in flight
@@ -271,6 +271,7 @@ SQL lives in `supabase/migrations/`. Apply **in order**:
 9. `20260918090000_giver_social_foundations.sql` — handle search, `giver_people` pins, member `status`, requests
 10. `20260918100000_item_giver_comments.sql` — giver-only item comments (owner deny)
 11. `20260918110000_taste_tags_search.sql` — `taste_tags` + strict `search_wishlist_items`
+12. `20260921110000_wishlist_images_storage.sql` — re-asserts `wishlist-images` bucket + RLS (public read, owner write in `{user_id}/`)
 
 **Dashboard:** SQL Editor → paste each file → Run. Wait for success before the next file.
 
@@ -304,7 +305,7 @@ npx supabase db push
 - `giver_blocks` / `giver_email_invites` / `giver_social_rate_events` — block + outbound email stub + rate limits
 - `item_giver_comments` — giver-only item notes. **Owners have no SELECT** (no count, no teaser)
 - `link_previews` — URL cache for the paste flow
-- Storage bucket `wishlist-images` (`{user_id}/...`)
+- Storage bucket `wishlist-images` (`{user_id}/...`, public read, 8MB images)
 - Trigger: new `auth.users` row → profile + empty wishlist; `ensure_own_workspace()` recovers that if the trigger missed
 - RLS: owner catalog CRUD (no SELECT on reserve / purchased / funded / heal / organiser / `reveal_at` columns); accepted **active** members may UPDATE reserve fields only; pledges, organiser notices, and giver comments hidden from owners; givers use share-token RPCs
 - Owner view: `owner_wishlist_items` (catalog columns only)
@@ -360,6 +361,21 @@ curl -s -X POST "$EXPO_PUBLIC_SUPABASE_URL/functions/v1/preview-url" \
   -d '{"url":"https://www.kmart.com.au/"}'
 ```
 
+### Wishlist photos (Add photo → Storage)
+
+Wombat: Add item **Add photo** / **Take photo** uploads to Supabase Storage and writes the public URL onto the item (`image_url`). Autofill from a buy link still fills the preview first; the user can replace that photo with an upload. URL paste is behind **or paste a URL**.
+
+Bucket + RLS ship in `20260914120000_init.sql` and are re-asserted in `20260921110000_wishlist_images_storage.sql` (public read; authenticated write only under `{auth.uid()}/`; 8MB; jpeg/png/webp/gif/heic).
+
+**Already on the hosted project?** SQL Editor → run `supabase/migrations/20260921110000_wishlist_images_storage.sql`. Or:
+
+1. Dashboard → **Storage → New bucket**
+2. Name: `wishlist-images`
+3. **Public bucket**: on
+4. Then run that SQL file so the policies exist (the insert is `on conflict do update`)
+
+If Add photo fails with a Storage / RLS error, the bucket is missing or not public — run that file. Explore demo never uploads (keeps a local data URL). iOS library + camera work in Expo Go / a dev client. Web: library picker (file input) works; **Take photo** needs a camera and a user gesture — desktop browsers often have none.
+
 ### 6. Optional substitute improv function
 
 ```bash
@@ -399,6 +415,7 @@ Share links stay primary. This adds handle search + email invite (no global brow
 9. `supabase/migrations/20260918090000_giver_social_foundations.sql`
 10. `supabase/migrations/20260918100000_item_giver_comments.sql`
 11. `supabase/migrations/20260918110000_taste_tags_search.sql`
+12. `supabase/migrations/20260921110000_wishlist_images_storage.sql` — photo uploads (`wishlist-images`)
 
 Locks in this ship:
 
@@ -419,7 +436,7 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 | `/` | Anyone | Redirects to sign-in or `/wishlist` |
 | `/sign-in` | Anyone | Live: magic-link primary. No env: **Explore demo** primary. Apple/Google placeholders |
 | `/wishlist` | Recipient | Photo grid + occasion filter (no reserve/purchased/pledges). **From the group** only on/after the reveal date |
-| `/add` | Recipient | Paste a buy URL to draft photo + title + notes, then edit and pin. Vibe board, occasion, lock, optional target $ |
+| `/add` | Recipient | Paste a buy URL to draft photo + title + notes, **Add photo** from library/camera, then edit and pin. Vibe board, occasion, lock, optional target $ |
 | `/paste` | Recipient | Paste a public Instagram URL → OG/meta draft → edit title/photo → pin. Honest miss if Instagram hides it |
 | `/item/[id]` | Recipient | Item detail + edit vibes. Group reveal (names) on/after the reveal date |
 | `/share` | Recipient | Whole-list + occasion **Copy invite** (mate-ready text) |
@@ -439,7 +456,7 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 - **Apple / Google Sign-In** — buttons that explain they are placeholders. **Email magic link is live** once URL + anon key are set
 - **Email invites** — inserts `wishlist_members` / `giver_email_invites` when Supabase is configured; does not send mail
 - **Giver comments notify** — none in MVP (Slice D)
-- **Camera / Storage upload** — add-item takes an image URL; bucket + RLS are ready
+- **Camera / Storage upload** — Add item **Add photo** / **Take photo** (Expo ImagePicker) uploads to `wishlist-images` and sets `image_url`. URL paste stays behind “or paste a URL”. Explore demo keeps a local data URL (no Storage). Desktop web has no camera more often than not; library picker still works
 - **AI matches / dead-link heal** — `healLink` heuristic catalog + optional `heal-link` HEAD stub. No OpenAI/Anthropic key. `HealLinkLlm` is the future plug-in; demo is offline-safe
 - **Group-gift reveal to recipient** — names / Anonymous on/after the reveal date, not when funded. No Stripe
 - **Organiser notify** — in-app banner + `notify-organiser-ready-to-buy` email stub (Resend/Postmark optional). **Push notifications are next**
@@ -508,7 +525,7 @@ Expo Go is fine for the web/demo loop. Native Sign in with Apple / Google needs 
 ```
 src/app/                 Expo Router screens
 src/context/             Auth + wishlist
-src/services/            Preview + wishlist API (Supabase or demo store)
+src/services/            Preview + wishlist API + item photo upload (Supabase or demo store)
 src/lib/                 Env, types, confidence, AU buy URLs, heal-link contract, substitutes, analytics stub, demo store
 supabase/migrations/     Schema + RLS (init through live_rls, giver status, giver social A/B/C)
 supabase/functions/      preview-url (OG buy-link fill), heal-link stub, optional improv-substitutes, notify-organiser-ready-to-buy stub

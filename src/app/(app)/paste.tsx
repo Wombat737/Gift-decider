@@ -1,17 +1,13 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
-import { Card } from '@/components/card';
 import { FlowHeader } from '@/components/flow-header';
+import { PhotoField } from '@/components/photo-field';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
-import { Radius, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { FieldHelp } from '@/lib/help';
 import { applyBuyLinkDraft, draftFromPreview, type BuyLinkFields } from '@/lib/link-preview';
 import { previewUrl } from '@/services/preview';
@@ -19,7 +15,6 @@ import { previewUrl } from '@/services/preview';
 const PASTE_MISS = 'Couldn’t grab that post — add a title and photo';
 
 export default function PasteInstagramScreen() {
-  const theme = useTheme();
   const { addItem } = useWishlist();
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -27,6 +22,7 @@ export default function PasteInstagramScreen() {
   const [imageUrl, setImageUrl] = useState('');
   const [lastDraft, setLastDraft] = useState<BuyLinkFields>({ title: '', notes: '', imageUrl: '' });
   const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,7 +88,7 @@ export default function PasteInstagramScreen() {
         onChangeText={setUrl}
       />
 
-      <Button label={busy ? 'Working…' : 'Preview'} disabled={busy} onPress={() => void onPreview()} />
+      <Button label={busy ? 'Working…' : 'Preview'} disabled={busy || photoBusy} onPress={() => void onPreview()} />
 
       <TextField
         label="Title"
@@ -101,14 +97,7 @@ export default function PasteInstagramScreen() {
         loading={busy}
         onChangeText={setTitle}
       />
-      <TextField
-        label="Photo URL"
-        placeholder="https://…"
-        autoCapitalize="none"
-        value={imageUrl}
-        loading={busy}
-        onChangeText={setImageUrl}
-      />
+      <PhotoField value={imageUrl} onChange={setImageUrl} onBusyChange={setPhotoBusy} />
       <TextField
         label="Notes"
         placeholder="Size, colour, where you saw it"
@@ -118,30 +107,13 @@ export default function PasteInstagramScreen() {
         onChangeText={setNotes}
       />
 
-      {imageUrl ? (
-        <Card padded={false} style={styles.preview}>
-          <Image source={{ uri: imageUrl }} style={[styles.image, { backgroundColor: theme.paper }]} contentFit="cover" />
-        </Card>
-      ) : null}
-
       {error ? (
         <ThemedText type="small" themeColor="accent">
           {error}
         </ThemedText>
       ) : null}
 
-      <Button label="Pin as wishlist item" onPress={() => void onPin()} disabled={busy} />
+      <Button label="Pin as wishlist item" onPress={() => void onPin()} disabled={busy || photoBusy} />
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  preview: {
-    borderRadius: Radius.card,
-    overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    aspectRatio: 1,
-  },
-});

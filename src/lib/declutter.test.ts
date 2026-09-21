@@ -43,6 +43,7 @@ describe('Declutter / noise-reduction', () => {
     assert.match(fields, /FieldHelp\.chipIn/);
     assert.match(fields, /FieldHelp\.vibe/);
     assert.match(fields, /FieldHelp\.buyLink/);
+    assert.match(source('components/photo-field.tsx'), /FieldHelp\.photo/);
     assert.match(source('app/(app)/paste.tsx'), /FieldHelp\.instagram/);
     assert.match(source('app/(app)/people.tsx'), /FieldHelp\.findSomeone/);
     assert.match(tip, /accessibilityLabel/);

@@ -1,24 +1,22 @@
-import { Image } from 'expo-image';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { FundedReveal } from '@/components/funded-reveal';
+import { GiftPhoto } from '@/components/gift-photo';
 import { ItemFields, type ItemFieldsValue } from '@/components/item-fields';
 import { NoSubLock } from '@/components/no-sub-lock';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { VibeChips } from '@/components/vibe-chips';
 import { useWishlist } from '@/context/wishlist-context';
-import { Radius, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { Spacing } from '@/constants/theme';
 import { confirmDestructive } from '@/lib/confirm';
 import { PrettyCopy } from '@/lib/copy';
 import { parseAud } from '@/lib/format';
 
 export default function ItemDetailScreen() {
-  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { items, occasions, saveItem, removeItem, refresh } = useWishlist();
   const item = items.find((entry) => entry.id === id);
@@ -31,6 +29,7 @@ export default function ItemDetailScreen() {
   );
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const initialFields = useMemo<ItemFieldsValue | null>(
     () =>
@@ -105,12 +104,12 @@ export default function ItemDetailScreen() {
 
   return (
     <Screen>
-      <Image
-        source={{ uri: item.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
-        style={[styles.image, { backgroundColor: theme.paper }]}
-        contentFit="cover"
-        pointerEvents="none"
-      />
+      {!editing ? (
+        <GiftPhoto
+          uri={item.image_url}
+          missingUri="https://picsum.photos/seed/giftdecider-empty/800/800"
+        />
+      ) : null}
 
       {editing ? (
         <>
@@ -118,13 +117,18 @@ export default function ItemDetailScreen() {
             value={form}
             occasions={occasions}
             onChange={(patch) => setFields({ ...form, ...patch })}
+            onPhotoBusy={setPhotoBusy}
           />
           {error ? (
             <ThemedText type="small" themeColor="accent">
               {error}
             </ThemedText>
           ) : null}
-          <Button label={busy ? 'Saving…' : 'Save vibes'} disabled={busy} onPress={() => void onSave()} />
+          <Button
+            label={busy ? 'Saving…' : 'Save vibes'}
+            disabled={busy || photoBusy}
+            onPress={() => void onSave()}
+          />
           <Button
             label="Cancel"
             variant="ghost"
@@ -185,13 +189,6 @@ export default function ItemDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  image: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: Radius.card,
-    flexGrow: 0,
-    flexShrink: 0,
-  },
   block: {
     gap: Spacing.one,
   },

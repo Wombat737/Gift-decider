@@ -50,6 +50,14 @@
       "expo-router",
       "expo-sqlite",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Gift Decider uses your photos so you can pin a gift picture.",
+          "cameraPermission": "Gift Decider uses the camera so you can snap a gift picture.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#FAFAFA",

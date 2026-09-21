@@ -30,7 +30,7 @@ export const HelpFaq = [
   },
   {
     q: 'How do I add a photo?',
-    a: 'Paste a buy link and we’ll try to grab one, or paste a photo URL. Camera upload is next.',
+    a: 'Add photo from your library or camera. A buy link can grab one too. Paste a URL if that’s easier.',
   },
   {
     q: 'Can I paste a shop link?',
@@ -58,6 +58,10 @@ export const FieldHelp = {
   vibe: {
     title: 'Vibe board',
     body: HelpFaq[3].a,
+  },
+  photo: {
+    title: 'Photo',
+    body: HelpFaq[7].a,
   },
   buyLink: {
     title: 'Buy link',

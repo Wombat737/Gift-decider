@@ -25,6 +25,7 @@ export default function AddItemScreen() {
   const { addItem, occasions } = useWishlist();
   const [fields, setFields] = useState<ItemFieldsValue>(emptyFields);
   const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSave() {
@@ -54,7 +55,12 @@ export default function AddItemScreen() {
 
   return (
     <Screen>
-      <ItemFields value={fields} occasions={occasions} onChange={(patch) => setFields((current) => ({ ...current, ...patch }))} />
+      <ItemFields
+        value={fields}
+        occasions={occasions}
+        onChange={(patch) => setFields((current) => ({ ...current, ...patch }))}
+        onPhotoBusy={setPhotoBusy}
+      />
 
       {error ? (
         <ThemedText type="small" themeColor="accent">
@@ -62,7 +68,12 @@ export default function AddItemScreen() {
         </ThemedText>
       ) : null}
 
-      <Button label={busy ? 'Saving…' : 'Pin to wishlist'} icon="add" disabled={busy} onPress={() => void onSave()} />
+      <Button
+        label={busy ? 'Saving…' : 'Pin to wishlist'}
+        icon="add"
+        disabled={busy || photoBusy}
+        onPress={() => void onSave()}
+      />
       <Button label="Or paste an Instagram URL" variant="ghost" onPress={() => router.push('/paste')} />
     </Screen>
   );

@@ -155,7 +155,7 @@ describe('Flair pass (pretty v2) punch-list', () => {
     const button = source('components/button.tsx');
     const reveal = source('components/funded-reveal.tsx');
     const ownerItem = source('app/(app)/item/[id].tsx');
-    for (const name of ['add', 'share', 'chip-in', 'lock', 'bought', 'payid', 'gift', 'nudge']) {
+    for (const name of ['add', 'share', 'chip-in', 'lock', 'bought', 'payid', 'gift', 'nudge', 'photo']) {
       assert.match(icons, new RegExp(`'${name}'`));
     }
     assert.match(icons, /strokeWidth: 1\.75/);
