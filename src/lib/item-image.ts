@@ -48,6 +48,11 @@ export function mimeFromExt(ext: string) {
   }
 }
 
+export function mimeFromFile(mime?: string | null, fileName?: string | null) {
+  if (mime && mime.toLowerCase().startsWith('image/')) return mime;
+  return mimeFromExt(extFromMime(mime, fileName));
+}
+
 /** First folder must be `auth.uid()` for Storage RLS. */
 export function wishlistImageObjectPath(userId: string, ext: string) {
   const folder = userId.trim();

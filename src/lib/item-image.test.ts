@@ -12,6 +12,7 @@ import {
   isUnsafeImageUri,
   looksLikeImageUri,
   mimeFromExt,
+  mimeFromFile,
   wishlistImageObjectPath,
 } from './item-image';
 
@@ -32,6 +33,8 @@ describe('Add-item photo preview + Storage upload', () => {
     assert.equal(extFromMime('image/jpeg', 'shot.HEIC'), 'heic');
     assert.equal(extFromMime(null, null), 'jpg');
     assert.equal(mimeFromExt('png'), 'image/png');
+    assert.equal(mimeFromFile('', 'gift-photo.png'), 'image/png');
+    assert.equal(mimeFromFile('image/jpeg', 'shot.png'), 'image/jpeg');
     assert.equal(WISHLIST_IMAGES_BUCKET, 'wishlist-images');
     assert.equal(looksLikeImageUri('https://cdn.example/gift.jpg'), true);
     assert.equal(looksLikeImageUri('data:image/jpeg;base64,abc'), true);
@@ -106,6 +109,7 @@ describe('Add-item photo preview + Storage upload', () => {
     assert.match(service, /expo-image-picker/);
     assert.match(service, /launchImageLibraryAsync/);
     assert.match(service, /launchCameraAsync/);
+    assert.match(service, /pickWebImageFile|gift-photo-file/);
     assert.match(service, /WISHLIST_IMAGES_BUCKET/);
     assert.match(service, /getPublicUrl/);
     assert.match(service, /usesDemoData/);
