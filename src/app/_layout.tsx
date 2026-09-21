@@ -126,11 +126,15 @@ function ShareOpenAdd() {
       }, 0);
     };
 
-    Linking.getInitialURL()
-      .then((url) => {
-        openIfShare(url);
-      })
-      .catch(() => {});
+    try {
+      Linking.getInitialURL()
+        .then((url) => {
+          openIfShare(url);
+        })
+        .catch(() => {});
+    } catch {
+      // A cold open must still reach the wishlist if linking is unavailable.
+    }
 
     const sub = Linking.addEventListener('url', ({ url }) => {
       if (retry) clearTimeout(retry);

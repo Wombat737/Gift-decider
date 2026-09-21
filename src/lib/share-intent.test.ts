@@ -120,6 +120,8 @@ describe('iOS share extension opens Add with the shared URL', () => {
     assert.match(plugin, /Sync Share Extension Version/);
     assert.match(plugin, /CFBundleVersion/);
     assert.match(plugin, /ENABLE_USER_SCRIPT_SANDBOXING/);
+    assert.match(plugin, /CodeSignOnCopy/);
+    assert.match(plugin, /RemoveHeadersOnCopy/);
     assert.match(plugin, /ExpoShareIntoAppGroupId/);
     const payload = source('lib/read-share-payload.ts');
     assert.equal(/^import .+ from 'expo-sharing'/m.test(intent), false);

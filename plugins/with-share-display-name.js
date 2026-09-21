@@ -75,6 +75,9 @@ function withShareDisplayName(config) {
     if (hostUuid && extensionUuid && !hostDependsOnExtension(project, hostUuid, extensionUuid)) {
       project.addTargetDependency(hostUuid, [extensionUuid]);
     }
+    // expo-sharing drops the embed attributes. Without CodeSignOnCopy the
+    // appex inside the app is unsigned, and iOS kills the host on a cold open.
+    signEmbeddedShareExtension(project);
     return config;
   });
 
@@ -110,6 +113,31 @@ function withShareDisplayName(config) {
   ]);
 
   return config;
+}
+
+function signEmbeddedShareExtension(project) {
+  const files = project.pbxBuildFileSection();
+  for (const key of Object.keys(files)) {
+    if (key.endsWith('_comment')) continue;
+    const entry = files[key];
+    if (!entry || typeof entry !== 'object') continue;
+    const comment = String(files[`${key}_comment`] ?? '');
+    if (!comment.includes(`${TARGET_DIR}.appex`)) continue;
+    const attrs = new Set(entry.settings?.ATTRIBUTES ?? []);
+    attrs.add('RemoveHeadersOnCopy');
+    attrs.add('CodeSignOnCopy');
+    entry.settings = { ...(entry.settings ?? {}), ATTRIBUTES: [...attrs] };
+  }
+
+  const refs = project.pbxFileReferenceSection();
+  for (const key of Object.keys(refs)) {
+    if (key.endsWith('_comment')) continue;
+    const ref = refs[key];
+    if (!ref || typeof ref !== 'object') continue;
+    for (const field of ['fileEncoding', 'lastKnownFileType', 'explicitFileType', 'defaultEncoding']) {
+      if (ref[field] == null || ref[field] === 'undefined') delete ref[field];
+    }
+  }
 }
 
 function findTargetUuid(project, name) {
