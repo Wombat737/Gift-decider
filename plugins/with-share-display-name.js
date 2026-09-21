@@ -16,8 +16,9 @@ const VERSION_SYNC_PHASE = 'Sync Share Extension Version';
 const VERSION_SYNC_SCRIPT = [
   'set -eu',
   `HOST_PLIST="\${SRCROOT}/${HOST_DIR}/Info.plist"`,
+  `EXT_SRC_PLIST="\${SRCROOT}/${TARGET_DIR}/Info.plist"`,
   'APPEX_PLIST="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Info.plist"',
-  'if [ ! -f "$HOST_PLIST" ] || [ ! -f "$APPEX_PLIST" ]; then',
+  'if [ ! -f "$HOST_PLIST" ]; then',
   '  echo "warning: Gift Decider share extension version sync skipped"',
   '  exit 0',
   'fi',
@@ -29,8 +30,14 @@ const VERSION_SYNC_SCRIPT = [
   'case "$SHORT" in',
   '  ""|*"$"*) echo "warning: host CFBundleShortVersionString is not a literal ($SHORT)"; exit 0 ;;',
   'esac',
-  '/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APPEX_PLIST"',
-  '/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $SHORT" "$APPEX_PLIST"',
+  'sync_plist() {',
+  '  PLIST="$1"',
+  '  if [ ! -f "$PLIST" ]; then return 0; fi',
+  '  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$PLIST"',
+  '  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $SHORT" "$PLIST"',
+  '}',
+  'sync_plist "$EXT_SRC_PLIST"',
+  'sync_plist "$APPEX_PLIST"',
 ].join('\\n');
 
 /** Share sheet label. PRODUCT_NAME stays the target name so the .appex path does not change. */
@@ -62,6 +69,8 @@ function withShareDisplayName(config) {
         shellPath: '/bin/sh',
         shellScript: VERSION_SYNC_SCRIPT,
       });
+      // Patch the extension source plist before Xcode copies it into the appex.
+      movePhaseFirst(project, extensionUuid, VERSION_SYNC_PHASE);
     }
     if (hostUuid && extensionUuid && !hostDependsOnExtension(project, hostUuid, extensionUuid)) {
       project.addTargetDependency(hostUuid, [extensionUuid]);
@@ -121,6 +130,14 @@ function hasVersionSyncPhase(project) {
     const phase = section[key];
     return phase && typeof phase === 'object' && String(phase.name ?? '').includes(VERSION_SYNC_PHASE);
   });
+}
+
+function movePhaseFirst(project, targetUuid, phaseName) {
+  const phases = project.pbxNativeTargetSection()[targetUuid].buildPhases;
+  const index = phases.findIndex((item) => String(item.comment ?? '').includes(phaseName));
+  if (index <= 0) return;
+  const [phase] = phases.splice(index, 1);
+  phases.unshift(phase);
 }
 
 function hostDependsOnExtension(project, hostUuid, extensionUuid) {
