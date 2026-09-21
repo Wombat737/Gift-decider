@@ -7,7 +7,6 @@ import {
   WISHLIST_IMAGES_BUCKET,
   dataUrlFromBase64,
   extFromMime,
-  mimeFromExt,
   mimeFromFile,
   wishlistImageObjectPath,
 } from '@/lib/item-image';
