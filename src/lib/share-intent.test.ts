@@ -5,9 +5,14 @@ import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  consumePendingSharePhoto,
   consumePendingShareUrl,
+  draftFromSharePayloads,
   extractSharedUrl,
+  hasPendingShare,
+  imageFromSharePayloads,
   isIncomingSharePath,
+  rememberPendingSharePhoto,
   rememberPendingShareUrl,
   urlFromSharePayloads,
 } from './share-intent';
@@ -37,6 +42,37 @@ describe('iOS share extension opens Add with the shared URL', () => {
       ]),
       'https://www.instagram.com/reel/ZZ/',
     );
+    assert.equal(
+      urlFromSharePayloads([{ shareType: 'url', value: 'https://www.apple.com/shop/buy-mac/macbook-air' }]),
+      'https://www.apple.com/shop/buy-mac/macbook-air',
+    );
+    assert.equal(
+      draftFromSharePayloads([
+        { shareType: 'image', value: 'file:///shared/screenshot.png', mimeType: 'image/png' },
+        { shareType: 'url', value: 'https://www.kmart.com.au/product/washed-linen-throw/' },
+      ]).url,
+      'https://www.kmart.com.au/product/washed-linen-throw/',
+    );
+    assert.equal(
+      draftFromSharePayloads([
+        { shareType: 'image', value: 'file:///shared/screenshot.png', mimeType: 'image/png' },
+        { shareType: 'url', value: 'https://www.kmart.com.au/product/washed-linen-throw/' },
+      ]).photo,
+      null,
+    );
+    const photo = imageFromSharePayloads([
+      { shareType: 'text', value: 'look at this' },
+      { shareType: 'image', value: 'file:///var/mobile/Containers/Shared/AppGroup/x/IMG_2048.HEIC', mimeType: 'image/heic' },
+    ]);
+    assert.equal(photo?.uri, 'file:///var/mobile/Containers/Shared/AppGroup/x/IMG_2048.HEIC');
+    assert.equal(photo?.mimeType, 'image/heic');
+    assert.equal(photo?.fileName, 'IMG_2048.HEIC');
+    assert.equal(
+      imageFromSharePayloads([{ shareType: 'image', value: 'content://media/external/images/media/12', mimeType: 'image/jpeg' }])
+        ?.uri,
+      'content://media/external/images/media/12',
+    );
+    assert.equal(imageFromSharePayloads([{ shareType: 'image', value: 'https://shop.example/product/1' }]), null);
     assert.equal(isIncomingSharePath('giftdecider://expo-sharing'), true);
     assert.equal(isIncomingSharePath('expo-sharing'), true);
     assert.equal(isIncomingSharePath('/wishlist'), false);
@@ -49,6 +85,16 @@ describe('iOS share extension opens Add with the shared URL', () => {
     rememberPendingShareUrl('https://www.instagram.com/p/Abc123/');
     assert.equal(consumePendingShareUrl(), 'https://www.instagram.com/p/Abc123/');
     assert.equal(consumePendingShareUrl(), null);
+
+    rememberPendingSharePhoto({
+      uri: 'file:///shared/shot.png',
+      mimeType: 'image/png',
+      fileName: 'shot.png',
+    });
+    assert.equal(hasPendingShare(), true);
+    assert.equal(consumePendingShareUrl(), null);
+    assert.equal(consumePendingSharePhoto()?.uri, 'file:///shared/shot.png');
+    assert.equal(hasPendingShare(), false);
   });
 
   it('registers the share extension and routes it to Add', () => {
@@ -63,25 +109,36 @@ describe('iOS share extension opens Add with the shared URL', () => {
     assert.match(appJson, /supportsText/);
     assert.match(appJson, /supportsWebUrlWithMaxCount/);
     assert.match(appJson, /supportsWebPageWithMaxCount/);
+    assert.match(appJson, /supportsImageWithMaxCount/);
+    assert.match(appJson, /image\/\*/);
     assert.match(appJson, /com\.giftdecider\.app\.ShareExtension/);
     assert.match(appJson, /group\.com\.giftdecider\.app/);
     assert.match(appJson, /text\/plain/);
+    assert.equal(/public\.instagram|com\.burbn/i.test(appJson), false);
     assert.match(plugin, /Gift Decider/);
     assert.match(plugin, /CFBundleDisplayName/);
     assert.match(intent, /expo-sharing/);
     assert.match(intent, /\/add\?url=/);
+    assert.match(intent, /\/add\?photo=1/);
     assert.match(intent, /rememberPendingShareUrl/);
+    assert.match(intent, /rememberPendingSharePhoto/);
     assert.match(add, /useLocalSearchParams/);
     assert.match(add, /autofillBuyUrl/);
     assert.match(add, /sanitizeBuyUrl/);
+    assert.match(add, /consumePendingSharePhoto/);
+    assert.match(add, /params\.photo/);
     assert.equal(/await autofillFromBuyUrl/.test(add), false);
-    assert.match(layout, /takeIncomingShareUrl/);
+    assert.match(layout, /stashNativeShare/);
     assert.match(layout, /rememberPendingShareUrl/);
     assert.match(layout, /isLoading \|\| !!user/);
     assert.match(layout, /pathname === '\/add'/);
-    assert.match(source('app/sign-in.tsx'), /peekPendingShareUrl/);
-    assert.match(source('app/auth/callback.tsx'), /peekPendingShareUrl/);
+    assert.match(layout, /photo: '1'/);
+    assert.match(source('app/sign-in.tsx'), /hasPendingShare/);
+    assert.match(source('app/auth/callback.tsx'), /hasPendingShare/);
     assert.match(source('app/index.tsx'), /peekPendingShareUrl/);
+    assert.match(source('app/index.tsx'), /peekPendingSharePhoto/);
+    assert.match(source('components/photo-field.tsx'), /sharedPhoto/);
+    assert.match(source('components/photo-field.tsx'), /uploadGiftPhoto/);
     assert.match(readme, /Share Extension/);
     assert.match(readme, /group\.com\.giftdecider\.app/);
     assert.equal(/graph\.facebook|instagram\.com\/api/i.test(intent + add + layout), false);

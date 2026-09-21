@@ -7,7 +7,7 @@ import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/context/auth-context';
 import { completeAuthFromUrl } from '@/lib/auth-redirect';
-import { peekPendingShareUrl } from '@/lib/share-intent';
+import { hasPendingShare } from '@/lib/share-intent';
 import { supabase } from '@/lib/supabase';
 
 export default function AuthCallbackScreen() {
@@ -37,7 +37,7 @@ export default function AuthCallbackScreen() {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && user && !peekPendingShareUrl()) {
+    if (!isLoading && user && !hasPendingShare()) {
       router.replace('/wishlist');
     }
   }, [isLoading, user]);

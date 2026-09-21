@@ -11,6 +11,7 @@ import { applyBuyLinkDraft, BUY_LINK_AUTOFILL_FAIL, isWishlistImagesUrl, looksLi
 import { useTheme } from '@/hooks/use-theme';
 import type { ItemKind, Occasion } from '@/lib/types';
 import { autofillFromBuyUrl, mirrorPreviewImage } from '@/services/preview';
+import type { SharedPhoto } from '@/lib/share-intent';
 
 export type ItemFieldsValue = {
   title: string;
@@ -33,6 +34,8 @@ type ItemFieldsProps = {
   onPhotoBusy?: (busy: boolean) => void;
   /** Fetch a draft as soon as the screen opens (share extension / deep link). */
   autofillBuyUrl?: boolean;
+  /** Photo from the share sheet when the share had no URL. */
+  sharedPhoto?: SharedPhoto | null;
 };
 
 export function ItemFields({
@@ -42,6 +45,7 @@ export function ItemFields({
   showImageUrl = true,
   onPhotoBusy,
   autofillBuyUrl = false,
+  sharedPhoto = null,
 }: ItemFieldsProps) {
   const theme = useTheme();
   const valueRef = useRef(value);
@@ -167,6 +171,7 @@ export function ItemFields({
             void mirrorCurrent();
           }}
           onBusyChange={onPhotoBusy}
+          sharedPhoto={sharedPhoto}
         />
       ) : null}
       <TextField

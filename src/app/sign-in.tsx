@@ -14,7 +14,7 @@ import { Spacing } from '@/constants/theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
 import { env } from '@/lib/env';
-import { peekPendingShareUrl } from '@/lib/share-intent';
+import { hasPendingShare } from '@/lib/share-intent';
 
 export default function SignInScreen() {
   const { signInWithMagicLink, signInDemo, signInWithApple, signInWithGoogle } = useAuth();
@@ -49,7 +49,7 @@ export default function SignInScreen() {
   function onExploreDemo() {
     track('demo_explore');
     signInDemo();
-    if (!peekPendingShareUrl()) router.replace('/wishlist');
+    if (!hasPendingShare()) router.replace('/wishlist');
   }
 
   return (

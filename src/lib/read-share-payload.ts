@@ -1,22 +1,45 @@
 import { clearSharedPayloads, getSharedPayloads } from 'expo-sharing';
 
-import { consumePendingShareUrl, urlFromSharePayloads } from '@/lib/share-intent';
+import {
+  draftFromSharePayloads,
+  peekPendingSharePhoto,
+  peekPendingShareUrl,
+  rememberPendingSharePhoto,
+  rememberPendingShareUrl,
+  type SharedPhoto,
+} from '@/lib/share-intent';
 
-/** Native share payloads, else a URL remembered during cold start. Clears the extension payload. */
-export function takeIncomingShareUrl(): string | null {
-  let fromNative: string | null = null;
+export type StashedShare = {
+  url: string | null;
+  photo: SharedPhoto | null;
+};
+
+/**
+ * Copy the share extension payload into memory and clear it.
+ * A link is the Add draft. An image is kept only when there is no link.
+ */
+export function stashNativeShare(): StashedShare {
+  let url: string | null = null;
+  let photo: SharedPhoto | null = null;
   try {
-    fromNative = urlFromSharePayloads(getSharedPayloads());
+    const draft = draftFromSharePayloads(getSharedPayloads());
+    url = draft.url;
+    photo = draft.photo;
   } catch {
-    fromNative = null;
+    url = null;
+    photo = null;
   }
-  if (fromNative) {
+  if (url) rememberPendingShareUrl(url);
+  else if (photo) rememberPendingSharePhoto(photo);
+  if (url || photo) {
     try {
       clearSharedPayloads();
     } catch {
-      // Still open Add. A later resume may see the same payload once.
+      // The in-memory copy is enough to open Add.
     }
   }
-  const pending = consumePendingShareUrl();
-  return fromNative ?? pending;
+  return {
+    url: url ?? peekPendingShareUrl(),
+    photo: url ? null : (photo ?? peekPendingSharePhoto()),
+  };
 }

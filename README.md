@@ -10,7 +10,7 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 - **Surprise gifts:** reserved / purchased / pledge progress is **giver-only** while a gift is in flight
 - Group gifts have an **organiser** (who marked it a group gift, else the first named pledge, else “the organiser”). They buy; givers pay them via **PayID / BSB** (honour system — Gift Decider holds no money)
 - When a **group gift’s reveal date** arrives, the recipient sees **who it’s from** (names / Anonymous) — not the dollar amounts, and **not** as soon as it’s funded
-- Instagram v1: paste a public post URL, or share it from Instagram into Gift Decider (iOS share extension). Public OG/meta and oEmbed if Instagram exposes them → edit → pin. Honest empty if it hides the photo — never a fake sample gift
+- Instagram v1: paste a public post URL, or share any link or photo into Gift Decider (iOS share extension — Safari, shops, Messages, Instagram, Photos). Public OG/meta and oEmbed if a page exposes them → edit → pin. Honest empty if a page hides the photo — never a fake sample gift. A shared picture with no link becomes the photo.
 - Soft-launch ready: polished UI, EAS build profiles, privacy + account-deletion stubs
 - Real Stripe, Meta Instagram OAuth, push notifications, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
 - Push notifications are next; Ready to buy uses an in-app banner plus an email stub (`notify-organiser-ready-to-buy`)
@@ -511,9 +511,12 @@ Preview is what you hand to mates before TestFlight. Production is what you subm
 2. `eas submit --platform ios --profile production` (or upload the preview IPA if you only want internal).
 3. TestFlight → Internal Testing → add testers by Apple ID email. They install TestFlight, then your build.
 
-### Share Extension (iOS) — Share from Instagram into Add
+### Share Extension (iOS) — Share any link or photo into Add
 
-Gift Decider shows up in the system share sheet (**Share → Share to… → Gift Decider**). The extension does not pin by itself. It opens the app on **Add item** with the shared URL already in the buy-link field, then the same autofill fills title, notes, and photo. The person edits and taps **Pin to wishlist**.
+Gift Decider shows up in the system share sheet (**Share → Share to… → Gift Decider**) from Safari, Chrome, shopping apps, Messages, Instagram, Photos, and anywhere else that shares a link or a picture. The extension does not pin by itself. It opens the app on **Add item**:
+
+- **A URL** (the usual case) goes in the buy-link field. The same autofill as paste fills title, notes, and photo via `preview-url`. Edit, then **Pin to wishlist**.
+- **A picture with no URL** (Photos, a screenshot) becomes the photo. It uploads to `wishlist-images` when you are signed in. You type the title and pin.
 
 This is native code (`expo-sharing` share extension). **Expo Go and an OTA update cannot add it.** You need a new EAS iOS build after this lands. `eas.json` uses `appVersionSource: remote`, so confirm the version in EAS (`eas build:version:get`) — production builds already auto-increment the build number.
 
@@ -523,10 +526,10 @@ What the project configures (`app.json`):
 | --- | --- |
 | Extension bundle id | `com.giftdecider.app.ShareExtension` |
 | App Group | `group.com.giftdecider.app` |
-| URL scheme | `giftdecider://expo-sharing` → `/add?url=…` |
-| Accepts | Web URLs, web pages, and text that contains a URL (`public.url` / text). Not photos. |
+| URL scheme | `giftdecider://expo-sharing` → `/add?url=…` or `/add?photo=1` |
+| Accepts | Standard share types: web URLs, web pages, text that contains a URL, and a single image (`public.url`, `public.plain-text`, `public.image`). Not limited to Instagram. |
 | Share sheet name | **Gift Decider** (the extension’s display name; icon is the app icon) |
-| Android | Best-effort: `text/plain` share intent uses the same Add draft. Not the locked path. |
+| Android | Best-effort: `text/plain`, `text/html`, and `image/*` use the same Add draft. |
 
 **Apple Developer (one time)** — EAS managed credentials often create these when the build runs. If the build stops and asks, or if you sign locally:
 
@@ -543,7 +546,7 @@ eas build --profile production --platform ios
 eas submit --platform ios --profile production
 ```
 
-On a phone with that build: Instagram → post → **Share** → **Share to…** → **Gift Decider**. The app opens Add with the link filled in. If Instagram hid the photo, the hint is honest and **Add photo** / **Take photo** still work. Signed-out shares wait until you sign in, then open the same draft.
+On a phone with that build: any app → **Share** → **Share to…** → **Gift Decider**. A link opens Add with the URL filled in and autofill running. A photo with no link opens Add with that picture. Signed-out shares wait until you sign in, then open the same draft. If a page hides its photo, the hint is honest and **Add photo** / **Take photo** still work.
 
 Redeploy `preview-url` even if you skip the iOS rebuild — photo rehost and Instagram oEmbed only exist in the new function.
 

@@ -8,7 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { sanitizeBuyUrl } from '@/lib/link-preview';
-import { takeIncomingShareUrl } from '@/lib/read-share-payload';
+import { stashNativeShare } from '@/lib/read-share-payload';
 import { queryValue, rememberPendingShareUrl } from '@/lib/share-intent';
 import { InboxProvider } from '@/context/inbox-context';
 import { WishlistProvider } from '@/context/wishlist-context';
@@ -82,7 +82,7 @@ function ShareOpenAdd() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const params = useGlobalSearchParams<{ url?: string }>();
+  const params = useGlobalSearchParams<{ url?: string; photo?: string }>();
 
   const routeUrl = sanitizeBuyUrl(queryValue(params.url));
 
@@ -98,14 +98,18 @@ function ShareOpenAdd() {
 
   const open = useCallback(() => {
     if (!user) return;
-    const shared = takeIncomingShareUrl();
-    if (!shared) return;
-    const current = sanitizeBuyUrl(queryValue(params.url));
-    if (pathname === '/add' && current === shared) return;
-    // Put it back if this replace loses to the index → wishlist redirect.
-    rememberPendingShareUrl(shared);
-    router.replace({ pathname: '/add', params: { url: shared } });
-  }, [params.url, pathname, router, user]);
+    const incoming = stashNativeShare();
+    if (incoming.url) {
+      const current = sanitizeBuyUrl(queryValue(params.url));
+      if (pathname === '/add' && current === incoming.url) return;
+      router.replace({ pathname: '/add', params: { url: incoming.url } });
+      return;
+    }
+    if (incoming.photo) {
+      if (pathname === '/add' && queryValue(params.photo) === '1') return;
+      router.replace({ pathname: '/add', params: { photo: '1' } });
+    }
+  }, [params.photo, params.url, pathname, router, user]);
 
   useEffect(() => {
     if (isLoading || !user) return;
