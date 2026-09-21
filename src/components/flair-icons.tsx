@@ -2,7 +2,16 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { CoralCoast } from '@/constants/coral-coast';
 
-export type FlairIconName = 'add' | 'share' | 'chip-in' | 'lock' | 'bought' | 'payid' | 'gift' | 'nudge';
+export type FlairIconName =
+  | 'add'
+  | 'share'
+  | 'chip-in'
+  | 'lock'
+  | 'bought'
+  | 'payid'
+  | 'gift'
+  | 'nudge'
+  | 'photo';
 
 type FlairIconProps = {
   name: FlairIconName;
@@ -59,6 +68,12 @@ export function FlairIcon({ name, color, size = 24, active = false }: FlairIconP
           <Path d="M5 11 H19 M12 11 V19" {...common} />
           <Path d="M12 11 C12 7 8 7 8 9.5 C8 11 10 11 12 11" {...common} />
           <Path d="M12 11 C12 7 16 7 16 9.5 C16 11 14 11 12 11" {...common} />
+        </>
+      ) : name === 'photo' ? (
+        <>
+          <Rect x="3.5" y="7" width="17" height="13" rx="2.5" {...common} />
+          <Circle cx="12" cy="13.5" r="3.25" {...common} />
+          <Path d="M8.5 7 L10 4.75 H14 L15.5 7" {...common} />
         </>
       ) : (
         <>

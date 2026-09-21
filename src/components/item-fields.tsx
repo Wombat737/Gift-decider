@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Switch, View } from 'react-native';
 
 import { LabelWithHelp } from '@/components/help-tip';
+import { PhotoField } from '@/components/photo-field';
 import { FilterChips, SUGGESTED_VIBES, VibeChips } from '@/components/vibe-chips';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -29,9 +30,16 @@ type ItemFieldsProps = {
   occasions: Occasion[];
   onChange: (patch: Partial<ItemFieldsValue>) => void;
   showImageUrl?: boolean;
+  onPhotoBusy?: (busy: boolean) => void;
 };
 
-export function ItemFields({ value, occasions, onChange, showImageUrl = true }: ItemFieldsProps) {
+export function ItemFields({
+  value,
+  occasions,
+  onChange,
+  showImageUrl = true,
+  onPhotoBusy,
+}: ItemFieldsProps) {
   const theme = useTheme();
   const valueRef = useRef(value);
   const buyUrlRef = useRef(value.buyUrl);
@@ -104,6 +112,13 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         }}
         onBlur={() => void maybeAutofill(buyUrlRef.current)}
       />
+      {showImageUrl ? (
+        <PhotoField
+          value={value.imageUrl}
+          onChange={(imageUrl) => onChange({ imageUrl })}
+          onBusyChange={onPhotoBusy}
+        />
+      ) : null}
       <TextField
         label="Title"
         placeholder="The exact thing, or the vibe"
@@ -111,16 +126,6 @@ export function ItemFields({ value, occasions, onChange, showImageUrl = true }: 
         loading={previewing}
         onChangeText={(title) => onChange({ title })}
       />
-      {showImageUrl ? (
-        <TextField
-          label="Photo URL"
-          placeholder="https://…"
-          autoCapitalize="none"
-          value={value.imageUrl}
-          loading={previewing}
-          onChangeText={(imageUrl) => onChange({ imageUrl })}
-        />
-      ) : null}
       <TextField
         label="Notes"
         placeholder="Size, colour, where you saw it"

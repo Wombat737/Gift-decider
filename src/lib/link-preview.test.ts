@@ -179,5 +179,6 @@ describe('Buy-link autofill', () => {
     assert.match(paste, /Pin as wishlist item/);
     assert.match(paste, /draftFromPreview/);
     assert.match(paste, /FieldHelp\.instagram/);
+    assert.match(paste, /PhotoField/);
   });
 });
