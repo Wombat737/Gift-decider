@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import {
   draftFromSharePayloads,
   peekPendingSharePhoto,
@@ -24,6 +26,9 @@ type SharingApi = {
  * release builds abort on every cold start.
  */
 function loadSharing(): SharingApi | null {
+  // iOS resolves read-share-payload.ios.ts and never reaches this file.
+  // Android is the only host that still links ExpoSharing.
+  if (Platform.OS !== 'android') return null;
   try {
     const sharing = require('expo-sharing') as SharingApi;
     if (typeof sharing.getSharedPayloads !== 'function' || typeof sharing.clearSharedPayloads !== 'function') {

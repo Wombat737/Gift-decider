@@ -76,6 +76,10 @@ describe('iOS share extension opens Add with the shared URL', () => {
     assert.equal(imageFromSharePayloads([{ shareType: 'image', value: 'https://shop.example/product/1' }]), null);
     assert.equal(isIncomingSharePath('giftdecider://expo-sharing'), true);
     assert.equal(isIncomingSharePath('expo-sharing'), true);
+    assert.equal(isIncomingSharePath(''), false);
+    assert.equal(isIncomingSharePath('/'), false);
+    assert.equal(isIncomingSharePath('giftdecider://'), false);
+    assert.equal(isIncomingSharePath('giftdecider:///'), false);
     assert.equal(isIncomingSharePath('/wishlist'), false);
     assert.equal(isIncomingSharePath('giftdecider://add?url=https%3A%2F%2Fexample.com'), false);
     assert.equal(
@@ -98,60 +102,68 @@ describe('iOS share extension opens Add with the shared URL', () => {
     assert.equal(hasPendingShare(), false);
   });
 
-  it('keeps share-into-Add ready but leaves the iOS extension out of the binary', () => {
+  it('keeps Android share-into and paste, and keeps the iOS host free of share-native', () => {
     const appJson = readFileSync(join(root, '../app.json'), 'utf8');
     const appConfig = readFileSync(join(root, '../app.config.js'), 'utf8');
     const intent = source('app/+native-intent.ts');
     const add = source('app/(app)/add.tsx');
     const layout = source('app/_layout.tsx');
     const plugin = readFileSync(join(root, '../plugins/with-share-display-name.js'), 'utf8');
+    const strip = readFileSync(join(root, '../plugins/without-ios-share-native.js'), 'utf8');
     const readme = readFileSync(join(root, '../README.md'), 'utf8');
+    const pkg = JSON.parse(readFileSync(join(root, '../package.json'), 'utf8')) as {
+      expo?: { autolinking?: { ios?: { exclude?: string[] } } };
+    };
 
     const parsed = JSON.parse(appJson) as {
       expo: { plugins: unknown[] };
     };
     const sharing = parsed.expo.plugins.find(
-      (entry): entry is [string, { ios?: { enabled?: boolean }; android?: { enabled?: boolean } }] =>
+      (entry): entry is [string, { ios?: { enabled?: boolean; appGroupId?: string }; android?: { enabled?: boolean } }] =>
         Array.isArray(entry) && entry[0] === 'expo-sharing',
     );
     assert.ok(sharing);
-    assert.equal(sharing[1].ios?.enabled, false);
+    assert.equal(sharing[1].ios, undefined);
     assert.equal(sharing[1].android?.enabled, true);
+    assert.equal(appJson.includes('with-share-display-name'), false);
+    assert.equal(appJson.includes('group.com.giftdecider.app'), false);
+    assert.equal(appJson.includes('ShareExtension'), false);
     assert.match(appConfig, /const IOS_SHARE_EXTENSION_ENABLED = false/);
-    assert.match(appConfig, /enabled: IOS_SHARE_EXTENSION_ENABLED/);
+    assert.match(appConfig, /delete options\.ios/);
+    assert.match(appConfig, /without-ios-share-native/);
     const require = createRequire(import.meta.url);
     const resolved = require(join(root, '../app.config.js')) as {
-      expo: { plugins: unknown[] };
+      expo: { plugins: unknown[]; ios?: { entitlements?: Record<string, unknown> } };
     };
     const resolvedSharing = resolved.expo.plugins.find(
-      (entry): entry is [string, { ios?: { enabled?: boolean }; android?: { enabled?: boolean } }] =>
+      (entry): entry is [string, { ios?: { enabled?: boolean; appGroupId?: string }; android?: { enabled?: boolean } }] =>
         Array.isArray(entry) && entry[0] === 'expo-sharing',
     );
     assert.ok(resolvedSharing);
-    assert.equal(resolvedSharing[1].ios?.enabled, false);
+    assert.equal(resolvedSharing[1].ios, undefined);
     assert.equal(resolvedSharing[1].android?.enabled, true);
-    assert.match(appJson, /supportsText/);
-    assert.match(appJson, /supportsWebUrlWithMaxCount/);
-    assert.match(appJson, /supportsWebPageWithMaxCount/);
-    assert.match(appJson, /supportsImageWithMaxCount/);
+    assert.equal(resolved.expo.plugins[0], './plugins/without-ios-share-native.js');
+    assert.equal(resolved.expo.plugins.includes('./plugins/with-share-display-name.js'), false);
+    assert.equal(JSON.stringify(resolved).includes('group.com.giftdecider.app'), false);
+    assert.equal(JSON.stringify(resolved).includes('application-groups'), false);
+    assert.equal(resolved.expo.ios?.entitlements?.['com.apple.security.application-groups'], undefined);
+    assert.deepEqual(pkg.expo?.autolinking?.ios?.exclude, ['expo-sharing']);
     assert.match(appJson, /image\/\*/);
-    assert.match(appJson, /com\.giftdecider\.app\.ShareExtension/);
-    assert.match(appJson, /group\.com\.giftdecider\.app/);
     assert.match(appJson, /text\/plain/);
     assert.equal(/public\.instagram|com\.burbn/i.test(appJson), false);
-    assert.match(plugin, /iosShareExtensionEnabled/);
-    assert.match(plugin, /if \(!iosShareExtensionEnabled\(config\)\) return config/);
-    assert.match(plugin, /Gift Decider/);
-    assert.match(plugin, /CFBundleDisplayName/);
-    assert.match(plugin, /Sync Share Extension Version/);
-    assert.match(plugin, /CFBundleVersion/);
-    assert.match(plugin, /ENABLE_USER_SCRIPT_SANDBOXING/);
+    assert.match(plugin, /Not listed in app\.json/);
     assert.match(plugin, /CodeSignOnCopy/);
-    assert.match(plugin, /RemoveHeadersOnCopy/);
-    assert.match(plugin, /ExpoShareIntoAppGroupId/);
+    assert.match(strip, /com\.apple\.security\.application-groups/);
+    assert.match(strip, /ExpoShareIntoAppGroupId/);
+    assert.match(strip, /assertIosHost/);
+    assert.match(strip, /assertIosSharingUnlinked/);
     const payload = source('lib/read-share-payload.ts');
+    const iosPayload = source('lib/read-share-payload.ios.ts');
     assert.equal(/^import .+ from 'expo-sharing'/m.test(intent), false);
     assert.equal(/^import .+ from 'expo-sharing'/m.test(payload), false);
+    assert.equal(iosPayload.includes('expo-sharing'), false);
+    assert.equal(iosPayload.includes('requireNativeModule'), false);
+    assert.match(payload, /Platform\.OS !== 'android'/);
     assert.match(payload, /require\('expo-sharing'\)/);
     assert.match(payload, /rememberPendingShareUrl/);
     assert.match(payload, /rememberPendingSharePhoto/);
@@ -179,10 +191,12 @@ describe('iOS share extension opens Add with the shared URL', () => {
     assert.match(source('app/index.tsx'), /peekPendingSharePhoto/);
     assert.match(source('components/photo-field.tsx'), /sharedPhoto/);
     assert.match(source('components/photo-field.tsx'), /uploadGiftPhoto/);
-    assert.match(readme, /Share Extension/);
+    assert.match(readme, /share extension/i);
+    assert.match(readme, /TestFlight 33/);
     assert.match(readme, /IOS_SHARE_EXTENSION_ENABLED/);
     assert.match(readme, /not in this build/);
     assert.match(readme, /group\.com\.giftdecider\.app/);
+    assert.match(readme, /com\.apple\.security\.application-groups/);
     assert.equal(/graph\.facebook|instagram\.com\/api/i.test(intent + add + layout), false);
   });
 });
