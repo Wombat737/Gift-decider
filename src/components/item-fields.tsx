@@ -11,7 +11,6 @@ import { applyBuyLinkDraft, BUY_LINK_AUTOFILL_FAIL, isWishlistImagesUrl, looksLi
 import { useTheme } from '@/hooks/use-theme';
 import type { ItemKind, Occasion } from '@/lib/types';
 import { autofillFromBuyUrl, mirrorPreviewImage } from '@/services/preview';
-import type { SharedPhoto } from '@/lib/share-intent';
 
 export type ItemFieldsValue = {
   title: string;
@@ -32,10 +31,8 @@ type ItemFieldsProps = {
   onChange: (patch: Partial<ItemFieldsValue>) => void;
   showImageUrl?: boolean;
   onPhotoBusy?: (busy: boolean) => void;
-  /** Fetch a draft as soon as the screen opens (share extension / deep link). */
+  /** Fetch a draft as soon as Add opens with a buy URL already filled in. */
   autofillBuyUrl?: boolean;
-  /** Photo from the share sheet when the share had no URL. */
-  sharedPhoto?: SharedPhoto | null;
 };
 
 export function ItemFields({
@@ -45,7 +42,6 @@ export function ItemFields({
   showImageUrl = true,
   onPhotoBusy,
   autofillBuyUrl = false,
-  sharedPhoto = null,
 }: ItemFieldsProps) {
   const theme = useTheme();
   const valueRef = useRef(value);
@@ -67,7 +63,7 @@ export function ItemFields({
     return () => {
       requestId.current += 1;
     };
-    // Mount-only: share/deep link fills the buy field before the first paint.
+    // Mount-only: a prefilled buy URL should draft once, not on every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -171,7 +167,6 @@ export function ItemFields({
             void mirrorCurrent();
           }}
           onBusyChange={onPhotoBusy}
-          sharedPhoto={sharedPhoto}
         />
       ) : null}
       <TextField

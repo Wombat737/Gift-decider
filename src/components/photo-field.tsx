@@ -11,7 +11,6 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { FieldHelp } from '@/lib/help';
 import { pickGiftPhoto, uploadGiftPhoto } from '@/services/item-image';
-import type { SharedPhoto } from '@/lib/share-intent';
 
 type PhotoFieldProps = {
   value: string;
@@ -22,11 +21,9 @@ type PhotoFieldProps = {
   /** Page the photo came from, sent as Referer while loading the remote image. */
   referrer?: string | null;
   onRemoteError?: () => void;
-  /** Picture shared from Photos or another app. Shown immediately, then stored. */
-  sharedPhoto?: SharedPhoto | null;
 };
 
-export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referrer, onRemoteError, sharedPhoto }: PhotoFieldProps) {
+export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referrer, onRemoteError }: PhotoFieldProps) {
   const theme = useTheme();
   const [busy, setBusy] = useState(false);
   const [localUri, setLocalUri] = useState<string | null>(null);
@@ -37,46 +34,6 @@ export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referre
   useEffect(() => {
     triedFallback.current = false;
   }, [value, fallbackUrl]);
-
-  useEffect(() => {
-    const uri = sharedPhoto?.uri;
-    if (!uri) return;
-    const mimeType = sharedPhoto?.mimeType ?? undefined;
-    const fileName = sharedPhoto?.fileName ?? undefined;
-    let cancelled = false;
-    setLocalUri(uri);
-    setError(null);
-    setBusy(true);
-    onBusyChange?.(true);
-    void (async () => {
-      try {
-        const url = await uploadGiftPhoto({
-          uri,
-          width: 0,
-          height: 0,
-          type: 'image',
-          mimeType,
-          fileName,
-        });
-        if (cancelled) return;
-        onChange(url);
-        setLocalUri(null);
-      } catch (err) {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : 'Couldn’t add that photo');
-      } finally {
-        if (!cancelled) {
-          setBusy(false);
-          onBusyChange?.(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // Upload once per shared file. Parent onChange identity is not a reason to retry.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sharedPhoto?.uri]);
 
   const shown = localUri || value;
   const hasPhoto = Boolean(shown.trim());
