@@ -62,7 +62,7 @@
         "expo-sharing",
         {
           "ios": {
-            "enabled": true,
+            "enabled": false,
             "extensionBundleIdentifier": "com.giftdecider.app.ShareExtension",
             "appGroupId": "group.com.giftdecider.app",
             "activationRule": {
