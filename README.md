@@ -10,7 +10,7 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 - **Surprise gifts:** reserved / purchased / pledge progress is **giver-only** while a gift is in flight
 - Group gifts have an **organiser** (who marked it a group gift, else the first named pledge, else “the organiser”). They buy; givers pay them via **PayID / BSB** (honour system — Gift Decider holds no money)
 - When a **group gift’s reveal date** arrives, the recipient sees **who it’s from** (names / Anonymous) — not the dollar amounts, and **not** as soon as it’s funded
-- Instagram v1: paste a public post URL, or share any link or photo into Gift Decider (iOS share extension — Safari, shops, Messages, Instagram, Photos). Public OG/meta and oEmbed if a page exposes them → edit → pin. Honest empty if a page hides the photo — never a fake sample gift. A shared picture with no link becomes the photo.
+- Instagram v1: paste a public post URL. Public OG/meta and oEmbed if a page exposes them → edit → pin. Honest empty if a page hides the photo — never a fake sample gift. The iOS share sheet is **off** in the current binary (TestFlight 31 and 32 crashed on cold open). Android share-into-Add and the buy-link photo preview stay.
 - Soft-launch ready: polished UI, EAS build profiles, privacy + account-deletion stubs
 - Real Stripe, Meta Instagram OAuth, push notifications, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
 - Push notifications are next; Ready to buy uses an in-app banner plus an email stub (`notify-organiser-ready-to-buy`)
@@ -511,24 +511,37 @@ Preview is what you hand to mates before TestFlight. Production is what you subm
 2. `eas submit --platform ios --profile production` (or upload the preview IPA if you only want internal).
 3. TestFlight → Internal Testing → add testers by Apple ID email. They install TestFlight, then your build.
 
-### Share Extension (iOS) — Share any link or photo into Add
+### Share Extension (iOS) — off until a cold open survives it
 
-Gift Decider shows up in the system share sheet (**Share → Share to… → Gift Decider**) from Safari, Chrome, shopping apps, Messages, Instagram, Photos, and anywhere else that shares a link or a picture. The extension does not pin by itself. It opens the app on **Add item**:
+**The iOS share extension is not in this build.** TestFlight **31** was the first binary that embedded `com.giftdecider.app.ShareExtension`, and it died on a normal icon tap. **32** shipped PR #34 (`CodeSignOnCopy`, version sync, lazy `getSharedPayloads`) and still died on a real device. The main app opening beats keeping Share to… in the binary. Paste-a-link, buy-link photo preview, and Android share-into-Add are unchanged.
 
-- **A URL** (the usual case) goes in the buy-link field. The same autofill as paste fills title, notes, and photo via `preview-url`. Edit, then **Pin to wishlist**.
-- **A picture with no URL** (Photos, a screenshot) becomes the photo. It uploads to `wishlist-images` when you are signed in. You type the title and pin.
+`IOS_SHARE_EXTENSION_ENABLED` in `app.config.js` is `false`. That forces `expo-sharing` `ios.enabled` off even if `app.json` is flipped by itself. With the extension off, prebuild does not add:
 
-This is native code (`expo-sharing` share extension). **Expo Go and an OTA update cannot add it.** You need a new EAS iOS build after this lands. `eas.json` uses `appVersionSource: remote`, so confirm the version in EAS (`eas build:version:get`) — production builds already auto-increment the build number.
+- an `expo-sharing-extension` target or an embedded `.appex`
+- `com.apple.security.application-groups` / `group.com.giftdecider.app` on the host
+- `extra.eas.build.experimental.ios.appExtensions`
+- `ExpoShareIntoAppGroupId` on the host Info.plist (`plugins/with-share-display-name.js` returns immediately unless `ios.enabled` is true)
 
-TestFlight build 31 crashes on a normal cold open after the update, before any share sheet. Three defects from the new extension target:
+`expo-sharing` stays installed. Its iOS module is the normal share-out API and does not read the App Group unless something calls `getSharedPayloads()`. That call still runs only for a `giftdecider://expo-sharing` open, and the require stays inside that path.
 
-- The appex is embedded with no `CodeSignOnCopy`. On a device that unsigned plugin kills the host process as soon as you tap the icon. The embed phase now signs the extension on copy.
-- Signed-in cold start called synchronous `getSharedPayloads()` on every activation, including an icon open. That native call now runs only when the open URL is `giftdecider://expo-sharing`. The module is loaded lazily, so a missing `ExpoSharing` native module cannot abort startup.
-- The extension target hardcoded `CURRENT_PROJECT_VERSION` `1` while EAS writes the remote build number (31) into the host `Info.plist`. Apple requires those `CFBundleVersion` values to match. A run script on the extension target copies the host version onto the extension plist and the built `.appex`.
+Why signing the appex was not enough:
 
-An OTA update cannot ship either fix. After this merges, run a new production iOS build. Confirm App Group `group.com.giftdecider.app` is enabled on both `com.giftdecider.app` and `com.giftdecider.app.ShareExtension`, and do not reuse the provisioning profile from before the extension existed.
+- `expo-sharing` writes `com.apple.security.application-groups` = `group.com.giftdecider.app` onto **both** the host and the extension. iOS kills a process at exec when that entitlement is not in the provisioning profile. No JS runs.
+- [EAS capability sync](https://docs.expo.dev/build-reference/ios-capabilities/) can turn the App Groups capability on, but **registering and assigning the group identifier requires a local Apple session**. The App Store Connect API does not support that assignment. A cloud build can sign a binary whose profile does not contain `group.com.giftdecider.app`.
+- The extension target still hardcodes `CURRENT_PROJECT_VERSION` from `ios.buildNumber` (`1` in `app.json`) while EAS remote versioning writes the TestFlight number onto the host. The version-sync script bails out when the host plist still contains `$(CURRENT_PROJECT_VERSION)`, and it runs before the built appex plist exists. PR #34 did not prove those versions match inside the IPA.
+- There is no device in this environment, and build 32 already showed a prebuild-only signing check is not a launch proof. Another embed tweak would be another crashing TestFlight.
 
-What the project configures (`app.json`):
+After this merges, ship a **new** production iOS build (an OTA cannot remove an appex). Let EAS regenerate the App Store profile for `com.giftdecider.app` so it no longer has to carry the App Group. Cold-open that build before anything else.
+
+**Turn the extension back on** only after the Apple account actually has the group, then prove a cold open on a device before the next TestFlight:
+
+1. [Identifiers](https://developer.apple.com/account/resources/identifiers/list) → **App Groups** → register `group.com.giftdecider.app`.
+2. App ID `com.giftdecider.app` → enable **App Groups** → tick that group. Regenerate the distribution profile (do not reuse the profile from builds 31 or 32, and do not reuse the pre-extension profile without checking it).
+3. Register App ID `com.giftdecider.app.ShareExtension` (explicit) → enable **App Groups** → tick the same group. No Push, Sign in with Apple, or Associated Domains on the extension.
+4. Set `IOS_SHARE_EXTENSION_ENABLED` to `true` in `app.config.js` and `"enabled": true` under `expo-sharing` → `ios` in `app.json`.
+5. `npx expo prebuild --platform ios --no-install --clean` and confirm the embed build file has `CodeSignOnCopy` and `RemoveHeadersOnCopy`, both targets list the same App Group, and `CFBundleVersion` matches. Then `eas build --profile production --platform ios` and cold-open the install. If it dies, set the flag back to `false` before submitting.
+
+What the project configures once that flag is on (`app.json`):
 
 | Piece | Value |
 | --- | --- |
@@ -539,24 +552,20 @@ What the project configures (`app.json`):
 | Share sheet name | **Gift Decider** (the extension’s display name; icon is the app icon) |
 | Android | Best-effort: `text/plain`, `text/html`, and `image/*` use the same Add draft. |
 
-**Apple Developer (one time)** — EAS managed credentials often create these when the build runs. If the build stops and asks, or if you sign locally:
-
-1. [Identifiers](https://developer.apple.com/account/resources/identifiers/list) → **+** → **App Groups** → register `group.com.giftdecider.app`.
-2. App ID `com.giftdecider.app` → enable **App Groups** → tick that group.
-3. Register App ID `com.giftdecider.app.ShareExtension` (explicit, not a wildcard) → enable **App Groups** → tick the same group. No extra entitlement beyond App Groups. Push, Sign in with Apple, and Associated Domains stay off the extension.
-4. EAS → project credentials → iOS. Let it provision **both** bundle ids (the first build after this change usually prompts). Do not reuse the old profile that has no App Group.
-
-Then:
+Next iOS binary (extension off):
 
 ```bash
-npx supabase functions deploy preview-url
 eas build --profile production --platform ios
 eas submit --platform ios --profile production
 ```
 
-On a phone with that build: any app → **Share** → **Share to…** → **Gift Decider**. A link opens Add with the URL filled in and autofill running. A photo with no link opens Add with that picture. Signed-out shares wait until you sign in, then open the same draft. If a page hides its photo, the hint is honest and **Add photo** / **Take photo** still work.
+Cold-open that build from the icon. Share to… will not list Gift Decider until the flag above is turned back on. Paste on Add, and the buy-link photo preview, still work.
 
-Redeploy `preview-url` even if you skip the iOS rebuild — photo rehost and Instagram oEmbed only exist in the new function.
+`preview-url` (photo rehost and Instagram oEmbed) is independent of the extension. Redeploy it if that function is not already the #33 version:
+
+```bash
+npx supabase functions deploy preview-url
+```
 
 **Play internal testing**
 
@@ -584,7 +593,7 @@ src/services/            Preview + wishlist API + item photo upload (Supabase or
 src/lib/                 Env, types, confidence, AU buy URLs, heal-link contract, substitutes, analytics stub, demo store
 supabase/migrations/     Schema + RLS (init through live_rls, giver status, giver social A/B/C)
 supabase/functions/      preview-url (OG / oEmbed + wishlist-images rehost), heal-link stub, optional improv-substitutes, notify-organiser-ready-to-buy stub
-plugins/                 iOS share-sheet display name (Gift Decider)
+plugins/                 iOS share-sheet display name (no-ops while the extension is off)
 ```
 
 ## Scripts

@@ -40,8 +40,23 @@ const VERSION_SYNC_SCRIPT = [
   'sync_plist "$APPEX_PLIST"',
 ].join('\\n');
 
+function iosShareExtensionEnabled(config) {
+  const plugins = config.plugins ?? [];
+  for (const entry of plugins) {
+    if (Array.isArray(entry) && entry[0] === 'expo-sharing') {
+      return entry[1]?.ios?.enabled === true;
+    }
+  }
+  return false;
+}
+
 /** Share sheet label. PRODUCT_NAME stays the target name so the .appex path does not change. */
 function withShareDisplayName(config) {
+  // app.config.js forces ios.enabled off until the extension can be proven
+  // not to kill a cold open. Skip every native patch in that mode so the
+  // host Info.plist does not gain ExpoShareIntoAppGroupId.
+  if (!iosShareExtensionEnabled(config)) return config;
+
   config = withXcodeProject(config, (config) => {
     const project = config.modResults;
     const section = project.pbxXCBuildConfigurationSection();
