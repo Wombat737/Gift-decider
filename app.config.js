@@ -5,35 +5,36 @@ const baseUrl = (process.env.EXPO_BASE_URL || '').trim();
 const EAS_OWNER = 'wombats';
 const EAS_PROJECT_ID = 'd2cd72f5-20f3-42da-866d-c60b9dcd6b3e';
 
-// Kill switch for the iOS share extension.
-//
-// TestFlight builds 31 and 32 crash on a cold open while
-// com.giftdecider.app.ShareExtension is inside the app. PR #34 set
-// CodeSignOnCopy on the embed; a real device still died. The host is also
-// signed with App Group group.com.giftdecider.app. Assigning that group
-// needs a local Apple session — the App Store Connect API cannot — so a
-// cloud provisioning profile can omit it and iOS kills the process before
-// any screen. This flag is what EAS and prebuild read. Leave it false until
-// the README checklist is done on the Apple account, then flip it and ship
-// a new production iOS build. An OTA update cannot add the extension back.
+// The iOS share extension is not in this host. TestFlight 31–33 died on a
+// cold open. Do not flip this to true: that path used to inject
+// group.com.giftdecider.app, and a cloud profile that lacks the group
+// gets the process killed before JS. Bring the extension back only as a
+// new change after the README checklist, including removing the iOS
+// autolinking exclude in package.json.
 const IOS_SHARE_EXTENSION_ENABLED = false;
 
-function pluginsWithIosShareExtension(plugins) {
-  return (plugins ?? []).map((plugin) => {
-    if (!Array.isArray(plugin) || plugin[0] !== 'expo-sharing') return plugin;
-    const options = plugin[1] && typeof plugin[1] === 'object' ? plugin[1] : {};
-    const ios = options.ios && typeof options.ios === 'object' ? options.ios : {};
-    return [
-      'expo-sharing',
-      {
-        ...options,
-        ios: {
-          ...ios,
-          enabled: IOS_SHARE_EXTENSION_ENABLED,
-        },
-      },
-    ];
-  });
+if (IOS_SHARE_EXTENSION_ENABLED) {
+  throw new Error(
+    'iOS share extension is ripped out of the host. Leave IOS_SHARE_EXTENSION_ENABLED false. See README.',
+  );
+}
+
+function pluginsWithoutIosShare(plugins) {
+  const next = [];
+  for (const plugin of plugins ?? []) {
+    if (plugin === './plugins/with-share-display-name.js') continue;
+    if (!Array.isArray(plugin) || plugin[0] !== 'expo-sharing') {
+      next.push(plugin);
+      continue;
+    }
+    const options = plugin[1] && typeof plugin[1] === 'object' ? { ...plugin[1] } : {};
+    delete options.ios;
+    next.push(['expo-sharing', options]);
+  }
+  // First in the array so its mods run after expo-sharing and can delete
+  // an App Group the entitlements provider merged back in.
+  next.unshift('./plugins/without-ios-share-native.js');
+  return next;
 }
 
 module.exports = {
@@ -41,7 +42,7 @@ module.exports = {
   expo: {
     ...appJson.expo,
     owner: appJson.expo.owner || EAS_OWNER,
-    plugins: pluginsWithIosShareExtension(appJson.expo.plugins),
+    plugins: pluginsWithoutIosShare(appJson.expo.plugins),
     extra: {
       ...(appJson.expo.extra || {}),
       eas: {

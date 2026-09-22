@@ -1,3 +1,5 @@
+// Not listed in app.json or app.config.js. The iOS share extension is out of
+// the host until a new change adds it back. Do not re-add this plugin before that.
 const { withDangerousMod, withXcodeProject } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
