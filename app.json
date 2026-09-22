@@ -58,16 +58,6 @@
         }
       ],
       [
-        "expo-sharing",
-        {
-          "android": {
-            "enabled": true,
-            "singleShareMimeTypes": ["text/plain", "text/html", "image/*"],
-            "multipleShareMimeTypes": ["text/plain", "image/*"]
-          }
-        }
-      ],
-      [
         "expo-splash-screen",
         {
           "backgroundColor": "#FAFAFA",

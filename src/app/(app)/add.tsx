@@ -1,15 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { Button } from '@/components/button';
 import { ItemFields, type ItemFieldsValue } from '@/components/item-fields';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { useAuth } from '@/context/auth-context';
 import { useWishlist } from '@/context/wishlist-context';
 import { parseAud } from '@/lib/format';
 import { isInstagramHost, sanitizeBuyUrl } from '@/lib/link-preview';
-import { consumePendingSharePhoto, queryValue, type SharedPhoto } from '@/lib/share-intent';
 
 const emptyFields: ItemFieldsValue = {
   title: '',
@@ -24,36 +22,23 @@ const emptyFields: ItemFieldsValue = {
   occasionId: null,
 };
 
-export default function AddItemScreen() {
-  const params = useLocalSearchParams<{ url?: string; photo?: string }>();
-  const initialUrl = sanitizeBuyUrl(queryValue(params.url)) ?? '';
-  const wantsSharedPhoto = queryValue(params.photo) === '1' && !initialUrl;
-  return (
-    <AddDraft
-      key={initialUrl || (wantsSharedPhoto ? 'shared-photo' : 'new')}
-      initialUrl={initialUrl}
-      wantsSharedPhoto={wantsSharedPhoto}
-    />
-  );
+function queryValue(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] ?? '';
+  return value ?? '';
 }
 
-function AddDraft({ initialUrl, wantsSharedPhoto }: { initialUrl: string; wantsSharedPhoto: boolean }) {
-  const { user } = useAuth();
+export default function AddItemScreen() {
+  const params = useLocalSearchParams<{ url?: string }>();
+  const initialUrl = sanitizeBuyUrl(queryValue(params.url)) ?? '';
+  return <AddDraft key={initialUrl || 'new'} initialUrl={initialUrl} />;
+}
+
+function AddDraft({ initialUrl }: { initialUrl: string }) {
   const { addItem, occasions } = useWishlist();
   const [fields, setFields] = useState<ItemFieldsValue>({ ...emptyFields, buyUrl: initialUrl });
-  const [sharedPhoto, setSharedPhoto] = useState<SharedPhoto | null>(null);
-  const tookPhoto = useRef(false);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!wantsSharedPhoto || !user || tookPhoto.current) return;
-    const photo = consumePendingSharePhoto();
-    if (!photo) return;
-    tookPhoto.current = true;
-    setSharedPhoto(photo);
-  }, [user, wantsSharedPhoto]);
 
   async function onSave() {
     setBusy(true);
@@ -99,7 +84,6 @@ function AddDraft({ initialUrl, wantsSharedPhoto }: { initialUrl: string; wantsS
         onChange={(patch) => setFields((current) => ({ ...current, ...patch }))}
         onPhotoBusy={setPhotoBusy}
         autofillBuyUrl
-        sharedPhoto={sharedPhoto}
       />
 
       {error ? (
