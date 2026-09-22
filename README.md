@@ -520,6 +520,14 @@ Gift Decider shows up in the system share sheet (**Share → Share to… → Gif
 
 This is native code (`expo-sharing` share extension). **Expo Go and an OTA update cannot add it.** You need a new EAS iOS build after this lands. `eas.json` uses `appVersionSource: remote`, so confirm the version in EAS (`eas build:version:get`) — production builds already auto-increment the build number.
 
+TestFlight build 31 crashes on a normal cold open after the update, before any share sheet. Three defects from the new extension target:
+
+- The appex is embedded with no `CodeSignOnCopy`. On a device that unsigned plugin kills the host process as soon as you tap the icon. The embed phase now signs the extension on copy.
+- Signed-in cold start called synchronous `getSharedPayloads()` on every activation, including an icon open. That native call now runs only when the open URL is `giftdecider://expo-sharing`. The module is loaded lazily, so a missing `ExpoSharing` native module cannot abort startup.
+- The extension target hardcoded `CURRENT_PROJECT_VERSION` `1` while EAS writes the remote build number (31) into the host `Info.plist`. Apple requires those `CFBundleVersion` values to match. A run script on the extension target copies the host version onto the extension plist and the built `.appex`.
+
+An OTA update cannot ship either fix. After this merges, run a new production iOS build. Confirm App Group `group.com.giftdecider.app` is enabled on both `com.giftdecider.app` and `com.giftdecider.app.ShareExtension`, and do not reuse the provisioning profile from before the extension existed.
+
 What the project configures (`app.json`):
 
 | Piece | Value |
