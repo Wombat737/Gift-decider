@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
+import { Platform, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
@@ -86,7 +86,8 @@ export function PledgePanel({
   const [deliveryNote, setDeliveryNote] = useState(item.delivery_note ?? '');
   const [trickleKey, setTrickleKey] = useState(0);
   const { height: windowHeight } = useWindowDimensions();
-  const formMaxHeight = Math.max(140, Math.min(220, Math.round(windowHeight * 0.3)));
+  // Fixed cap so chip-in fields scroll inside the card and the lock / purchase buttons stay on screen.
+  const formMaxHeight = Math.max(120, Math.min(180, Math.round(windowHeight * 0.22)));
   const funded = isFunded(item);
   const revealed = isRevealDue(item);
   const phase = groupGiftPhase(item);
@@ -369,7 +370,7 @@ export function PledgePanel({
       </ThemedText>
       {sticky && (item.is_group_gift || drafting) ? (
         <ScrollView
-          style={[styles.formScroll, { maxHeight: formMaxHeight }]}
+          style={[styles.formScroll, { height: formMaxHeight, maxHeight: formMaxHeight }]}
           contentContainerStyle={styles.form}
           nestedScrollEnabled
           keyboardShouldPersistTaps="handled"
@@ -397,7 +398,10 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: '100%',
     flexGrow: 0,
-    flexShrink: 1,
+    flexShrink: 0,
+    ...Platform.select({
+      web: { overflowY: 'auto' as const },
+    }),
   },
   form: {
     width: '100%',
