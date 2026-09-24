@@ -1,4 +1,4 @@
-import { use, type ReactNode } from 'react';
+import { use, type ReactNode, type Ref } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -30,6 +30,8 @@ type ScreenProps = ViewProps & {
   footerTrail?: ReactNode;
   /** Remount the native footer dock when status copy changes (Fabric can keep stale labels). */
   footerKey?: string;
+  /** Scroll the page body. Used to bring an expanded section into view. */
+  scrollRef?: Ref<ScrollView>;
 };
 
 function useKeyboardVerticalOffset() {
@@ -46,6 +48,7 @@ export function Screen({
   footerMiddle,
   footerTrail,
   footerKey,
+  scrollRef,
   ...rest
 }: ScreenProps) {
   const theme = useTheme();
@@ -66,6 +69,7 @@ export function Screen({
   // that ScrollView tree so keyboard dismiss and KAV padding stay intact.
   const scrollView = (
     <ScrollView
+      ref={scrollRef}
       style={styles.scrollView}
       contentContainerStyle={styles.scroll}
       // handled = tap-outside dismisses unless a child (button/input)

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
-import { Card } from '@/components/card';
 import { DateField } from '@/components/date-field';
 import { GroupGiftStrip } from '@/components/group-gift-strip';
 import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
@@ -28,16 +27,12 @@ import {
 } from '@/lib/pledges';
 import type { DeliveryMethod, WishlistItem } from '@/lib/types';
 
-/** One short line for the sticky footer. Surprise-safe rules stay; the essay does not. */
-export const GROUP_GIFT_STICKY_COPY =
-  'Between givers. Organiser buys via PayID / BSB — no money in the app. Names on the reveal date, not when funded.';
-
 type PledgePanelProps = {
   item: WishlistItem;
   busy?: boolean;
   demo?: boolean;
-  /** Compact card for the giver sticky footer. Expanded chip-in scrolls inside the card. */
-  sticky?: boolean;
+  /** Dismiss the expanded chip-in / setup form. */
+  onClose: () => void;
   defaultOrganiserName?: string;
   onToggleGroup: (
     enabled: boolean,
@@ -60,7 +55,7 @@ export function PledgePanel({
   item,
   busy,
   demo,
-  sticky = false,
+  onClose,
   defaultOrganiserName,
   onToggleGroup,
   onSetRevealAt,
@@ -76,7 +71,6 @@ export function PledgePanel({
   const [amount, setAmount] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [drafting, setDrafting] = useState(false);
   const [draftDate, setDraftDate] = useState(shiftLocalDate(1));
   const [draftOrganiser, setDraftOrganiser] = useState(defaultOrganiserName ?? '');
   const [draftPay, setDraftPay] = useState('');
@@ -85,9 +79,6 @@ export function PledgePanel({
   const [payDraft, setPayDraft] = useState(item.pay_instructions ?? '');
   const [deliveryNote, setDeliveryNote] = useState(item.delivery_note ?? '');
   const [trickleKey, setTrickleKey] = useState(0);
-  const { height: windowHeight } = useWindowDimensions();
-  // Fixed cap so chip-in fields scroll inside the card and the lock / purchase buttons stay on screen.
-  const formMaxHeight = Math.max(120, Math.min(180, Math.round(windowHeight * 0.22)));
   const funded = isFunded(item);
   const revealed = isRevealDue(item);
   const phase = groupGiftPhase(item);
@@ -126,7 +117,6 @@ export function PledgePanel({
       return;
     }
     setError(null);
-    setDrafting(false);
     setEditDate(date);
     onToggleGroup(true, date, draftOrganiser.trim() || defaultOrganiserName || null, draftPay.trim() || null);
   }
@@ -307,9 +297,17 @@ export function PledgePanel({
               />
             </>
           ) : null}
-          <Button label="Not a group gift" variant="ghost" disabled={busy} onPress={() => onToggleGroup(false)} />
+          <Button
+            label="Not a group gift"
+            variant="ghost"
+            disabled={busy}
+            onPress={() => {
+              onToggleGroup(false);
+              onClose();
+            }}
+          />
         </>
-      ) : drafting ? (
+      ) : (
         <>
           <DateField
             label="When should they see who chipped in?"
@@ -333,76 +331,23 @@ export function PledgePanel({
             hint="Honour system. The app tracks pledges only."
           />
           <Button label="Save as a group gift" disabled={busy} onPress={confirmGroupGift} />
-          <Button
-            label="Cancel"
-            variant="ghost"
-            disabled={busy}
-            onPress={() => {
-              setDrafting(false);
-              setError(null);
-            }}
-          />
+          <Button label="Cancel" variant="ghost" disabled={busy} onPress={onClose} />
         </>
-      ) : (
-        <Button
-          nativePress={sticky}
-          label="Mark as a group gift"
-          variant="secondary"
-          disabled={busy}
-          onPress={() => {
-            setDraftDate(shiftLocalDate(1));
-            setDraftOrganiser(defaultOrganiserName ?? '');
-            setDraftPay('');
-            setDrafting(true);
-            setError(null);
-          }}
-        />
       );
 
   return (
-    <Card style={sticky ? styles.sticky : undefined} accessibilityLabel="Group gift">
-      <ThemedText type="eyebrow" themeColor="accent">
-        Givers only
-      </ThemedText>
-      <ThemedText type="smallBold">Group gift · honour system</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        {GROUP_GIFT_STICKY_COPY}
-      </ThemedText>
-      {sticky && (item.is_group_gift || drafting) ? (
-        <ScrollView
-          style={[styles.formScroll, { height: formMaxHeight, maxHeight: formMaxHeight }]}
-          contentContainerStyle={styles.form}
-          nestedScrollEnabled
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
-          {details}
-        </ScrollView>
-      ) : (
-        details
-      )}
+    <View style={styles.form} accessibilityLabel="Group gift">
+      {details}
       {error ? (
         <ThemedText type="small" themeColor="accent">
           {error}
         </ThemedText>
       ) : null}
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  sticky: {
-    padding: Spacing.twoHalf,
-    gap: Spacing.one + 2,
-  },
-  formScroll: {
-    width: '100%',
-    maxWidth: '100%',
-    flexGrow: 0,
-    flexShrink: 0,
-    ...Platform.select({
-      web: { overflowY: 'auto' as const },
-    }),
-  },
   form: {
     width: '100%',
     maxWidth: '100%',

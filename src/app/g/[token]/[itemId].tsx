@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, StyleSheet, View } from 'react-native';
+import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AuBuyLinks } from '@/components/au-buy-links';
 import { Button } from '@/components/button';
@@ -104,8 +104,15 @@ export default function GiverItemScreen() {
   const [loading, setLoading] = useState(!shareItem);
   const [busy, setBusy] = useState(false);
   const [flickKey, setFlickKey] = useState(0);
+  const [groupOpen, setGroupOpen] = useState(false);
   const autoChecked = useRef<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const groupAnchor = useRef(0);
   const demo = Boolean(token && isDemoShareToken(token));
+
+  useEffect(() => {
+    setGroupOpen(false);
+  }, [itemId]);
 
   useEffect(() => {
     if (!shareItem) return;
@@ -337,6 +344,7 @@ export default function GiverItemScreen() {
 
   return (
     <Screen
+      scrollRef={scrollRef}
       footerKey={`${current.id}:${current.status}:${busy ? 'busy' : 'idle'}`}
       footer={
         <GiverStatusLead
@@ -347,24 +355,13 @@ export default function GiverItemScreen() {
         />
       }
       footerMiddle={
-        <PledgePanel
-          sticky
-          item={current}
-          busy={busy}
-          demo={demo}
-          defaultOrganiserName={name.trim() || undefined}
-          onToggleGroup={(enabled, revealAt, organiserName, payInstructions) =>
-            void toggleGroup(enabled, revealAt, organiserName, payInstructions)
-          }
-          onSetRevealAt={(revealAt) => void onSetRevealAt(revealAt)}
-          onSetOrganiser={(organiserName) => void onSetOrganiser(organiserName)}
-          onSetPayInstructions={(value) => void onSetPayInstructions(value)}
-          onSetDelivery={(method, note) => void onSetDelivery(method, note)}
-          onPledge={onPledge}
-          onMarkFunded={() => void onMarkFunded()}
-          onMarkPurchased={() => void updateStatus('purchased')}
-          onSimulateFunded={() => void onSimulateFunded()}
-          onSimulateReveal={(which) => void onSimulateReveal(which)}
+        <Button
+          nativePress
+          variant="secondary"
+          icon={current.is_group_gift ? 'chip-in' : undefined}
+          label={current.is_group_gift ? PrettyCopy.chipInCta : 'Mark as a group gift'}
+          disabled={busy}
+          onPress={() => setGroupOpen((open) => !open)}
         />
       }
       footerTrail={
@@ -443,6 +440,35 @@ export default function GiverItemScreen() {
         value={name}
         onChangeText={setName}
       />
+
+      {groupOpen ? (
+        <View
+          onLayout={(event) => {
+            const y = event.nativeEvent.layout.y;
+            groupAnchor.current = y;
+            scrollRef.current?.scrollTo({ y: Math.max(0, y - Spacing.two), animated: true });
+          }}>
+          <PledgePanel
+            item={current}
+            busy={busy}
+            demo={demo}
+            defaultOrganiserName={name.trim() || undefined}
+            onClose={() => setGroupOpen(false)}
+            onToggleGroup={(enabled, revealAt, organiserName, payInstructions) =>
+              void toggleGroup(enabled, revealAt, organiserName, payInstructions)
+            }
+            onSetRevealAt={(revealAt) => void onSetRevealAt(revealAt)}
+            onSetOrganiser={(organiserName) => void onSetOrganiser(organiserName)}
+            onSetPayInstructions={(value) => void onSetPayInstructions(value)}
+            onSetDelivery={(method, note) => void onSetDelivery(method, note)}
+            onPledge={onPledge}
+            onMarkFunded={() => void onMarkFunded()}
+            onMarkPurchased={() => void updateStatus('purchased')}
+            onSimulateFunded={() => void onSimulateFunded()}
+            onSimulateReveal={(which) => void onSimulateReveal(which)}
+          />
+        </View>
+      ) : null}
 
       <GiverComments
         itemId={current.id}
