@@ -29,9 +29,9 @@ export function TextField({
   return (
     <View style={styles.wrap}>
       <View style={styles.labelRow}>
-        <ThemedText type="smallBold" style={styles.label}>
-          {label}
-        </ThemedText>
+        <View style={styles.label}>
+          <ThemedText type="smallBold">{label}</ThemedText>
+        </View>
         {help ? <HelpTip title={help.title} body={help.body} /> : null}
       </View>
       <View style={styles.inputWrap}>

@@ -85,7 +85,7 @@ Send them the Pages demo on their phone, or sit together and tap:
 3. **Share / occasions** → **Copy invite** (Birthday or Housewarming) or **Open giver view**.
 4. As a giver: mark group gift (reveal date + organiser + PayID note), chip in, **Simulate funded (demo)** → **Funded — time to buy** banner + email stub. Organiser marks purchased + delivery. Owner still unspoiled. Then **Simulate reveal date = yesterday**.
 5. Flip back to the owner tab: espresso **From the group** + names only (no dollars, no PayID). Grinder is already revealed.
-6. As a giver, open **Washed linen throw** (Housewarming). **Link may be broken** + **See alternatives** — Amazon AU / Kmart / Target AU searches. Flip to the owner item: no heal banner, no substitutes.
+6. As a giver, open **Washed linen throw** (Housewarming). List badge **Link may be broken**; on the gift, **Buy online** with a small **(link’s dead)** — not a check-link panel. AU store searches sit further down. Flip to the owner item: no heal banner, no substitutes.
 
 Direct giver links (keep the `/Gift-decider` prefix):
 
@@ -109,7 +109,7 @@ Store submit itself is **not** done here. Wombat still needs Apple Developer, Pl
 
 ## Dead-link heal (giver-only)
 
-When a `buy_url` looks dead, **givers** can check the link and see 1–3 close AU alternatives (title + merchant + search URL). Recipients never see the warning or the substitutes — surprise-safe.
+When a `buy_url` looks dead, **givers** see a list badge and a small **(link’s dead)** beside **Buy online**. Recipients never see the warning — surprise-safe. Close AU searches still live in the store links under the gift, not in a heal panel.
 
 | Piece | Where |
 | --- | --- |
@@ -117,10 +117,10 @@ When a `buy_url` looks dead, **givers** can check the link and see 1–3 close A
 | **Detection (stub)** | Known-bad demo URLs (`broken-buy-link`, `dead-link`, …), malformed URLs, or `buy_url_dead`. Optional HEAD/GET via `supabase/functions/heal-link` — **no LLM key**. |
 | **Suggestions** | Deterministic title / vibe / tag matcher in `src/lib/substitutes.ts`, then Amazon AU / Kmart / Target AU search URLs. |
 | **`no_substitution`** | Flag “link looks broken” only. **No** alternatives. |
-| **UI** | Giver list badge + banner; giver item **See alternatives** sheet. Owner `/wishlist` and `/item/[id]` never mount heal UI. |
-| **Demo** | Housewarming → **Washed linen throw** (`https://example.com/broken-buy-link/…`). Check link auto-runs in demo. |
+| **UI** | Giver list badge + banner; giver item **Buy online** plus inline **(link’s dead)**. Owner `/wishlist` and `/item/[id]` never mount heal UI. |
+| **Demo** | Housewarming → **Washed linen throw** (`https://example.com/broken-buy-link/…`). Demo still marks known-bad URLs dead in the background. |
 
-**Stub vs future LLM:** demo and CI use the heuristic only. Do not set `EXPO_PUBLIC_OPENAI_API_KEY` for this flow. Plug a model in later by implementing `HealLinkLlm` (or filling `heal-link` Edge Function suggestions) — the sheet already renders `title`, `merchant`, and `buyUrl`.
+**Stub vs future LLM:** demo and CI use the heuristic only. Do not set `EXPO_PUBLIC_OPENAI_API_KEY` for this flow. Plug a model in later by implementing `HealLinkLlm` (or filling `heal-link` Edge Function suggestions) — same `title`, `merchant`, and `buyUrl` shape. The giver item does not render that list.
 
 ## Phase 3 (still here)
 
@@ -130,8 +130,8 @@ Surprise-safe rule: the recipient/owner never sees reserved, purchased, who lock
 | --- | --- | --- |
 | **Reveal-date group gift** | Owner item on/after `reveal_at`; givers keep the pledge bar | Housewarming → **Home espresso machine** (reveal date in the future). As a giver, tap **Simulate funded (demo)** — flip to the owner tab: still unspoiled. Back as a giver, tap **Simulate reveal date = yesterday** (or **today**). Owner espresso then shows **From the group** and **who chipped in** (Alex, Anonymous, …). **Burr coffee grinder** is already funded with a past reveal date so the owner grid shows it immediately. |
 | **Organiser + honour-system buy** | Giver item + list banner | Enabling a group gift asks for reveal date, organiser name, and PayID / BSB. States: Collecting → Ready to buy → Purchased → Revealed. Funded fires **Funded — time to buy** in-app (demo) plus `notify-organiser-ready-to-buy` email stub. Organiser marks purchased and picks delivery (`to_organiser` / collect / other). Owner never sees pay notes or delivery. |
-| **Dead-link heal** | Giver list + item only | Housewarming → **Washed linen throw**. Badge **Link may be broken**, **See alternatives** sheet (sage linen / oatmeal cotton × Amazon AU / Kmart / Target AU). Owner item has no heal UI. |
-| **Exact lock** | Giver heal on a locked item | Birthday → **Speckled ceramic mug** (🔒). Mark **Link’s dead**. Banner only — **no** substitutes. |
+| **Dead-link heal** | Giver list + item only | Housewarming → **Washed linen throw**. Badge **Link may be broken**. On the gift: **Buy online** and **(link’s dead)**. Owner item has no heal UI. |
+| **Exact lock** | Giver item | Birthday → **Speckled ceramic mug** (🔒) and **Buy online**. Locked items never get substitute suggestions. Owner item has no heal UI. |
 | **Vibe improv** | Giver confidence + substitute copy | Heuristic uses title + vibe tags. Optional LLM via `EXPO_PUBLIC_OPENAI_API_KEY` / `EXPO_PUBLIC_LLM_URL` or `improv-substitutes` / `heal-link` Edge Functions when a key is present. Demo stays deterministic without a key. |
 
 ## Phase 2 (still here)
@@ -161,8 +161,8 @@ npx expo start --web
 4. Open espresso as a giver: Alex is organiser, PayID note, chip-in progress, future reveal date. Tap **Simulate funded (demo)** — giver list/item show **Funded — time to buy** plus an email stub (no API key). Flip to the owner tab — espresso is **still unspoiled**.
 5. As the organiser, mark purchased and pick delivery. Owner is still blind.
 6. Back as a giver, tap **Simulate reveal date = yesterday** (or **today**). Owner espresso now shows **From the group** + names (still no dollars / PayID).
-7. Open **Washed linen throw**: **Link may be broken** + **See alternatives**. Owner never sees this panel.
-8. Optional: giver mug → **Link’s dead** → broken-link banner only (exact lock, no substitutes).
+7. Open **Washed linen throw**: list says **Link may be broken**; the gift shows **Buy online** and **(link’s dead)**. Owner never sees that.
+8. Giver mug stays **Buy online** with the no-substitutions lock — no dead-link panel.
 
 Sample data lives in `localStorage` (`giftdecider.demo.v5`). `/g/demo` is the whole list; occasion tokens are `demo-birthday` and `demo-housewarming`. Espresso starts collecting with a future reveal date; grinder is already purchased with yesterday’s reveal date.
 

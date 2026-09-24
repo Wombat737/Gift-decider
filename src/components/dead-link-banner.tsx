@@ -23,8 +23,7 @@ export function DeadLinkBanner({ items }: { items: WishlistItem[] }) {
         {HEAL_BADGE}
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        {broken.map((item) => item.title || 'Untitled gift').join(' · ')}. Open the gift to check the link or see
-        AU alternatives. They won’t see this.
+        {broken.map((item) => item.title || 'Untitled gift').join(' · ')}. They won’t see this.
       </ThemedText>
     </Card>
   );

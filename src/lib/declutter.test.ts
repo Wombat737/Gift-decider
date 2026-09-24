@@ -96,4 +96,36 @@ describe('Declutter / noise-reduction', () => {
     assert.equal(/FlowHeader/.test(add), false);
     assert.equal(/Pin a gift/.test(add), false);
   });
+
+  it('keeps ? tips beside complex fields and a one-line dead link on the giver item', () => {
+    const tip = source('components/help-tip.tsx');
+    const fields = source('components/item-fields.tsx');
+    const giverItem = source('app/g/[token]/[itemId].tsx');
+    const ownerItem = source('app/(app)/item/[id].tsx');
+
+    assert.match(tip, /flexShrink: 0/);
+    assert.match(fields, /FieldHelp\.exactVsTaste/);
+    assert.match(fields, /FieldHelp\.noSubs/);
+    assert.match(fields, /FieldHelp\.chipIn/);
+    assert.match(fields, /FieldHelp\.vibe/);
+    assert.match(fields, /FieldHelp\.buyLink/);
+    assert.equal(/Shows a lock to givers/.test(fields), false);
+
+    assert.match(giverItem, /Buy online/);
+    assert.match(giverItem, /\(link’s dead\)/);
+    assert.match(giverItem, /linkNeedsHeal/);
+    assert.match(giverItem, /PledgePanel/);
+    assert.match(giverItem, /footer=\{/);
+    assert.match(giverItem, /updateStatus\('reserved'\)/);
+    assert.match(giverItem, /updateStatus\('purchased'\)/);
+    assert.equal(/LinkHealPanel/.test(giverItem), false);
+    assert.equal(/check-buy-link/.test(giverItem), false);
+    assert.equal(/giver-link-heal/.test(giverItem), false);
+    assert.equal(/mark-link-dead/.test(giverItem), false);
+    assert.equal(/See alternatives/.test(giverItem), false);
+
+    assert.equal(/link’s dead/.test(ownerItem), false);
+    assert.equal(/LinkHealPanel/.test(ownerItem), false);
+    assert.equal(/Buy online/.test(ownerItem), false);
+  });
 });
