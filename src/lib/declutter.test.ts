@@ -128,4 +128,51 @@ describe('Declutter / noise-reduction', () => {
     assert.equal(/LinkHealPanel/.test(ownerItem), false);
     assert.equal(/Buy online/.test(ownerItem), false);
   });
+
+  it('drops giver-item vibe pills and keeps only a group-gift button in the sticky footer', () => {
+    const giverItem = source('app/g/[token]/[itemId].tsx');
+    const ownerItem = source('app/(app)/item/[id].tsx');
+    const fields = source('components/item-fields.tsx');
+    const pledge = source('components/pledge-panel.tsx');
+
+    assert.equal(/VibeChips/.test(giverItem), false);
+    assert.match(giverItem, /ConfidenceBadge/);
+    assert.match(ownerItem, /VibeChips/);
+    assert.match(fields, /VibeChips/);
+
+    const lead = giverItem.indexOf('footer={');
+    const middle = giverItem.indexOf('footerMiddle=');
+    const trail = giverItem.indexOf('footerTrail=');
+    const screenClose = giverItem.indexOf('}>', trail);
+    assert.ok(lead !== -1 && middle > lead && trail > middle && screenClose > trail);
+    const leadChunk = giverItem.slice(lead, middle);
+    const middleChunk = giverItem.slice(middle, trail);
+    const trailChunk = giverItem.slice(trail, screenClose);
+    const footerChunk = giverItem.slice(lead, screenClose);
+    assert.match(leadChunk, /onLock/);
+    assert.match(leadChunk, /updateStatus\('reserved'\)/);
+    assert.equal(/PledgePanel/.test(leadChunk), false);
+    assert.equal(/onPurchase/.test(leadChunk), false);
+    assert.match(middleChunk, /Mark as a group gift/);
+    assert.match(middleChunk, /nativePress/);
+    assert.equal(/PledgePanel/.test(middleChunk), false);
+    assert.equal(/Givers only/.test(footerChunk), false);
+    assert.equal(/Group gift · honour system/.test(footerChunk), false);
+    assert.equal(/<Card/.test(footerChunk), false);
+    assert.match(trailChunk, /onPurchase/);
+    assert.match(trailChunk, /updateStatus\('purchased'\)/);
+    assert.match(trailChunk, /onRelease/);
+    assert.match(trailChunk, /updateStatus\('available'\)/);
+
+    assert.match(giverItem, /groupOpen \?/);
+    assert.match(giverItem, /<PledgePanel/);
+    const body = giverItem.slice(screenClose);
+    assert.match(body, /<PledgePanel/);
+    assert.equal(/Givers only/.test(pledge), false);
+    assert.equal(/GROUP_GIFT_STICKY_COPY/.test(pledge), false);
+    assert.equal(/<Card/.test(pledge), false);
+    assert.match(pledge, /PrettyCopy\.chipInCta/);
+    assert.match(pledge, /Save as a group gift/);
+    assert.match(pledge, /onClose/);
+  });
 });

@@ -1,4 +1,4 @@
-import { use, type ReactNode } from 'react';
+import { use, type ReactNode, type Ref } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -21,8 +21,17 @@ type ScreenProps = ViewProps & {
   padded?: boolean;
   /** Mounted as a sibling of ScrollView, not inside it. Use for primary CTAs. */
   footer?: ReactNode;
+  /**
+   * Sticky dock content between `footer` and `footerTrail`.
+   * Stays mounted when `footerKey` remounts status labels.
+   */
+  footerMiddle?: ReactNode;
+  /** Sticky dock content after `footerMiddle`. Remounts with `footerKey`. */
+  footerTrail?: ReactNode;
   /** Remount the native footer dock when status copy changes (Fabric can keep stale labels). */
   footerKey?: string;
+  /** Scroll the page body. Used to bring an expanded section into view. */
+  scrollRef?: Ref<ScrollView>;
 };
 
 function useKeyboardVerticalOffset() {
@@ -30,7 +39,18 @@ function useKeyboardVerticalOffset() {
   return Platform.OS === 'ios' ? (headerHeight ?? 0) : 0;
 }
 
-export function Screen({ children, style, scroll = true, padded = true, footer, footerKey, ...rest }: ScreenProps) {
+export function Screen({
+  children,
+  style,
+  scroll = true,
+  padded = true,
+  footer,
+  footerMiddle,
+  footerTrail,
+  footerKey,
+  scrollRef,
+  ...rest
+}: ScreenProps) {
   const theme = useTheme();
   const keyboardVerticalOffset = useKeyboardVerticalOffset();
   const body = (
@@ -49,6 +69,7 @@ export function Screen({ children, style, scroll = true, padded = true, footer, 
   // that ScrollView tree so keyboard dismiss and KAV padding stay intact.
   const scrollView = (
     <ScrollView
+      ref={scrollRef}
       style={styles.scrollView}
       contentContainerStyle={styles.scroll}
       // handled = tap-outside dismisses unless a child (button/input)
@@ -83,11 +104,19 @@ export function Screen({ children, style, scroll = true, padded = true, footer, 
                   backgroundColor: theme.background,
                 },
               ]}>
-              <View
-                key={footerKey}
-                collapsable={false}
-                style={[styles.footerInner, padded && styles.footerPadded]}>
-                {footer}
+              <View collapsable={false} style={[styles.footerInner, padded && styles.footerPadded]}>
+                <View key={footerKey} collapsable={false} style={styles.footerCluster}>
+                  {footer}
+                </View>
+                {footerMiddle}
+                {footerTrail ? (
+                  <View
+                    key={footerKey ? `${footerKey}:trail` : undefined}
+                    collapsable={false}
+                    style={styles.footerCluster}>
+                    {footerTrail}
+                  </View>
+                ) : null}
               </View>
             </View>
           ) : null}
@@ -178,6 +207,12 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingTop: Spacing.three,
     paddingBottom: Spacing.two,
+  },
+  footerCluster: {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    gap: Spacing.two,
   },
   footerPadded: {
     paddingHorizontal: Spacing.four,

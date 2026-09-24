@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
-import { Card } from '@/components/card';
 import { DateField } from '@/components/date-field';
 import { GroupGiftStrip } from '@/components/group-gift-strip';
 import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { FilterChips } from '@/components/vibe-chips';
+import { Spacing } from '@/constants/theme';
 import { PrettyCopy } from '@/lib/copy';
 import { tryStartDelight } from '@/lib/delight';
 import { formatAud, parseAud } from '@/lib/format';
@@ -30,6 +31,8 @@ type PledgePanelProps = {
   item: WishlistItem;
   busy?: boolean;
   demo?: boolean;
+  /** Dismiss the expanded chip-in / setup form. */
+  onClose: () => void;
   defaultOrganiserName?: string;
   onToggleGroup: (
     enabled: boolean,
@@ -52,6 +55,7 @@ export function PledgePanel({
   item,
   busy,
   demo,
+  onClose,
   defaultOrganiserName,
   onToggleGroup,
   onSetRevealAt,
@@ -67,7 +71,6 @@ export function PledgePanel({
   const [amount, setAmount] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [drafting, setDrafting] = useState(false);
   const [draftDate, setDraftDate] = useState(shiftLocalDate(1));
   const [draftOrganiser, setDraftOrganiser] = useState(defaultOrganiserName ?? '');
   const [draftPay, setDraftPay] = useState('');
@@ -114,7 +117,6 @@ export function PledgePanel({
       return;
     }
     setError(null);
-    setDrafting(false);
     setEditDate(date);
     onToggleGroup(true, date, draftOrganiser.trim() || defaultOrganiserName || null, draftPay.trim() || null);
   }
@@ -129,18 +131,7 @@ export function PledgePanel({
     onSetRevealAt(date);
   }
 
-  return (
-    <Card>
-      <ThemedText type="eyebrow" themeColor="accent">
-        Givers only
-      </ThemedText>
-      <ThemedText type="smallBold">Group gift · honour system</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        Chip-in progress stays between givers. The organiser buys. Pay them via PayID / BSB — Gift Decider
-        holds no money. The recipient sees who chipped in on the reveal date, not when it’s funded.
-      </ThemedText>
-
-      {item.is_group_gift ? (
+  const details = item.is_group_gift ? (
         <>
           <ThemedText type="smallBold" themeColor={phase === 'collecting' ? 'accent' : 'brand'}>
             {groupGiftPhaseLabel(phase)}
@@ -306,9 +297,17 @@ export function PledgePanel({
               />
             </>
           ) : null}
-          <Button label="Not a group gift" variant="ghost" disabled={busy} onPress={() => onToggleGroup(false)} />
+          <Button
+            label="Not a group gift"
+            variant="ghost"
+            disabled={busy}
+            onPress={() => {
+              onToggleGroup(false);
+              onClose();
+            }}
+          />
         </>
-      ) : drafting ? (
+      ) : (
         <>
           <DateField
             label="When should they see who chipped in?"
@@ -332,36 +331,26 @@ export function PledgePanel({
             hint="Honour system. The app tracks pledges only."
           />
           <Button label="Save as a group gift" disabled={busy} onPress={confirmGroupGift} />
-          <Button
-            label="Cancel"
-            variant="ghost"
-            disabled={busy}
-            onPress={() => {
-              setDrafting(false);
-              setError(null);
-            }}
-          />
+          <Button label="Cancel" variant="ghost" disabled={busy} onPress={onClose} />
         </>
-      ) : (
-        <Button
-          label="Mark as a group gift"
-          variant="secondary"
-          disabled={busy}
-          onPress={() => {
-            setDraftDate(shiftLocalDate(1));
-            setDraftOrganiser(defaultOrganiserName ?? '');
-            setDraftPay('');
-            setDrafting(true);
-            setError(null);
-          }}
-        />
-      )}
+      );
 
+  return (
+    <View style={styles.form} accessibilityLabel="Group gift">
+      {details}
       {error ? (
         <ThemedText type="small" themeColor="accent">
           {error}
         </ThemedText>
       ) : null}
-    </Card>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  form: {
+    width: '100%',
+    maxWidth: '100%',
+    gap: Spacing.two,
+  },
+});

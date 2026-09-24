@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, StyleSheet, View } from 'react-native';
+import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AuBuyLinks } from '@/components/au-buy-links';
 import { Button } from '@/components/button';
@@ -16,7 +16,6 @@ import { Screen } from '@/components/screen';
 import { StatusChip } from '@/components/status-chip';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
-import { VibeChips } from '@/components/vibe-chips';
 import { Radius, Spacing } from '@/constants/theme';
 import { useGiverShare } from '@/context/giver-share-context';
 import { useAuth } from '@/context/auth-context';
@@ -45,20 +44,16 @@ import {
   simulateSharedReveal,
 } from '@/services/wishlist';
 
-function GiverItemStatusFooter({
+function GiverStatusLead({
   item,
   busy,
   error,
   onLock,
-  onPurchase,
-  onRelease,
 }: {
   item: WishlistItem;
   busy: boolean;
   error: string | null;
   onLock: () => void;
-  onPurchase: () => void;
-  onRelease: () => void;
 }) {
   const actions = giverStatusActions(item, busy);
   return (
@@ -70,6 +65,24 @@ function GiverItemStatusFooter({
         </ThemedText>
       ) : null}
       <Button nativePress icon="lock" label={actions.lockLabel} onPress={onLock} disabled={busy} />
+    </>
+  );
+}
+
+function GiverStatusTrail({
+  item,
+  busy,
+  onPurchase,
+  onRelease,
+}: {
+  item: WishlistItem;
+  busy: boolean;
+  onPurchase: () => void;
+  onRelease: () => void;
+}) {
+  const actions = giverStatusActions(item, busy);
+  return (
+    <>
       <Button nativePress icon="bought" label={actions.purchaseLabel} variant="secondary" disabled={busy} onPress={onPurchase} />
       <Button nativePress label={actions.releaseLabel} variant="ghost" disabled={busy} onPress={onRelease} />
     </>
@@ -91,8 +104,15 @@ export default function GiverItemScreen() {
   const [loading, setLoading] = useState(!shareItem);
   const [busy, setBusy] = useState(false);
   const [flickKey, setFlickKey] = useState(0);
+  const [groupOpen, setGroupOpen] = useState(false);
   const autoChecked = useRef<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const groupAnchor = useRef(0);
   const demo = Boolean(token && isDemoShareToken(token));
+
+  useEffect(() => {
+    setGroupOpen(false);
+  }, [itemId]);
 
   useEffect(() => {
     if (!shareItem) return;
@@ -324,13 +344,30 @@ export default function GiverItemScreen() {
 
   return (
     <Screen
+      scrollRef={scrollRef}
       footerKey={`${current.id}:${current.status}:${busy ? 'busy' : 'idle'}`}
       footer={
-        <GiverItemStatusFooter
+        <GiverStatusLead
           item={current}
           busy={busy}
           error={error}
           onLock={() => void updateStatus('reserved')}
+        />
+      }
+      footerMiddle={
+        <Button
+          nativePress
+          variant="secondary"
+          icon={current.is_group_gift ? 'chip-in' : undefined}
+          label={current.is_group_gift ? PrettyCopy.chipInCta : 'Mark as a group gift'}
+          disabled={busy}
+          onPress={() => setGroupOpen((open) => !open)}
+        />
+      }
+      footerTrail={
+        <GiverStatusTrail
+          item={current}
+          busy={busy}
           onPurchase={() => void updateStatus('purchased')}
           onRelease={() => void updateStatus('available')}
         />
@@ -390,7 +427,6 @@ export default function GiverItemScreen() {
 
       <ConfidenceBadge item={current} />
       {current.no_substitution ? <NoSubLock /> : null}
-      {current.tags.length > 0 ? <VibeChips tags={current.tags} /> : null}
       {current.size_hint ? (
         <ThemedText type="small" themeColor="textSecondary">
           Size / fit: {current.size_hint}
@@ -405,24 +441,35 @@ export default function GiverItemScreen() {
         onChangeText={setName}
       />
 
-      <PledgePanel
-        item={current}
-        busy={busy}
-        demo={demo}
-        defaultOrganiserName={name.trim() || undefined}
-        onToggleGroup={(enabled, revealAt, organiserName, payInstructions) =>
-          void toggleGroup(enabled, revealAt, organiserName, payInstructions)
-        }
-        onSetRevealAt={(revealAt) => void onSetRevealAt(revealAt)}
-        onSetOrganiser={(organiserName) => void onSetOrganiser(organiserName)}
-        onSetPayInstructions={(value) => void onSetPayInstructions(value)}
-        onSetDelivery={(method, note) => void onSetDelivery(method, note)}
-        onPledge={onPledge}
-        onMarkFunded={() => void onMarkFunded()}
-        onMarkPurchased={() => void updateStatus('purchased')}
-        onSimulateFunded={() => void onSimulateFunded()}
-        onSimulateReveal={(which) => void onSimulateReveal(which)}
-      />
+      {groupOpen ? (
+        <View
+          onLayout={(event) => {
+            const y = event.nativeEvent.layout.y;
+            groupAnchor.current = y;
+            scrollRef.current?.scrollTo({ y: Math.max(0, y - Spacing.two), animated: true });
+          }}>
+          <PledgePanel
+            item={current}
+            busy={busy}
+            demo={demo}
+            defaultOrganiserName={name.trim() || undefined}
+            onClose={() => setGroupOpen(false)}
+            onToggleGroup={(enabled, revealAt, organiserName, payInstructions) =>
+              void toggleGroup(enabled, revealAt, organiserName, payInstructions)
+            }
+            onSetRevealAt={(revealAt) => void onSetRevealAt(revealAt)}
+            onSetOrganiser={(organiserName) => void onSetOrganiser(organiserName)}
+            onSetPayInstructions={(value) => void onSetPayInstructions(value)}
+            onSetDelivery={(method, note) => void onSetDelivery(method, note)}
+            onPledge={onPledge}
+            onMarkFunded={() => void onMarkFunded()}
+            onMarkPurchased={() => void updateStatus('purchased')}
+            onSimulateFunded={() => void onSimulateFunded()}
+            onSimulateReveal={(which) => void onSimulateReveal(which)}
+          />
+        </View>
+      ) : null}
+
       <GiverComments
         itemId={current.id}
         ownerName={meta?.owner_display_name || meta?.owner_handle || 'them'}
