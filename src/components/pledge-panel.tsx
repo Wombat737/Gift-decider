@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
@@ -8,6 +9,7 @@ import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { FilterChips } from '@/components/vibe-chips';
+import { Spacing } from '@/constants/theme';
 import { PrettyCopy } from '@/lib/copy';
 import { tryStartDelight } from '@/lib/delight';
 import { formatAud, parseAud } from '@/lib/format';
@@ -26,10 +28,16 @@ import {
 } from '@/lib/pledges';
 import type { DeliveryMethod, WishlistItem } from '@/lib/types';
 
+/** One short line for the sticky footer. Surprise-safe rules stay; the essay does not. */
+export const GROUP_GIFT_STICKY_COPY =
+  'Between givers. Organiser buys via PayID / BSB — no money in the app. Names on the reveal date, not when funded.';
+
 type PledgePanelProps = {
   item: WishlistItem;
   busy?: boolean;
   demo?: boolean;
+  /** Compact card for the giver sticky footer. Expanded chip-in scrolls inside the card. */
+  sticky?: boolean;
   defaultOrganiserName?: string;
   onToggleGroup: (
     enabled: boolean,
@@ -52,6 +60,7 @@ export function PledgePanel({
   item,
   busy,
   demo,
+  sticky = false,
   defaultOrganiserName,
   onToggleGroup,
   onSetRevealAt,
@@ -76,6 +85,8 @@ export function PledgePanel({
   const [payDraft, setPayDraft] = useState(item.pay_instructions ?? '');
   const [deliveryNote, setDeliveryNote] = useState(item.delivery_note ?? '');
   const [trickleKey, setTrickleKey] = useState(0);
+  const { height: windowHeight } = useWindowDimensions();
+  const formMaxHeight = Math.max(140, Math.min(220, Math.round(windowHeight * 0.3)));
   const funded = isFunded(item);
   const revealed = isRevealDue(item);
   const phase = groupGiftPhase(item);
@@ -129,18 +140,7 @@ export function PledgePanel({
     onSetRevealAt(date);
   }
 
-  return (
-    <Card>
-      <ThemedText type="eyebrow" themeColor="accent">
-        Givers only
-      </ThemedText>
-      <ThemedText type="smallBold">Group gift · honour system</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        Chip-in progress stays between givers. The organiser buys. Pay them via PayID / BSB — Gift Decider
-        holds no money. The recipient sees who chipped in on the reveal date, not when it’s funded.
-      </ThemedText>
-
-      {item.is_group_gift ? (
+  const details = item.is_group_gift ? (
         <>
           <ThemedText type="smallBold" themeColor={phase === 'collecting' ? 'accent' : 'brand'}>
             {groupGiftPhaseLabel(phase)}
@@ -344,6 +344,7 @@ export function PledgePanel({
         </>
       ) : (
         <Button
+          nativePress={sticky}
           label="Mark as a group gift"
           variant="secondary"
           disabled={busy}
@@ -355,8 +356,29 @@ export function PledgePanel({
             setError(null);
           }}
         />
-      )}
+      );
 
+  return (
+    <Card style={sticky ? styles.sticky : undefined} accessibilityLabel="Group gift">
+      <ThemedText type="eyebrow" themeColor="accent">
+        Givers only
+      </ThemedText>
+      <ThemedText type="smallBold">Group gift · honour system</ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        {GROUP_GIFT_STICKY_COPY}
+      </ThemedText>
+      {sticky && (item.is_group_gift || drafting) ? (
+        <ScrollView
+          style={[styles.formScroll, { maxHeight: formMaxHeight }]}
+          contentContainerStyle={styles.form}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          {details}
+        </ScrollView>
+      ) : (
+        details
+      )}
       {error ? (
         <ThemedText type="small" themeColor="accent">
           {error}
@@ -365,3 +387,21 @@ export function PledgePanel({
     </Card>
   );
 }
+
+const styles = StyleSheet.create({
+  sticky: {
+    padding: Spacing.twoHalf,
+    gap: Spacing.one + 2,
+  },
+  formScroll: {
+    width: '100%',
+    maxWidth: '100%',
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  form: {
+    width: '100%',
+    maxWidth: '100%',
+    gap: Spacing.two,
+  },
+});

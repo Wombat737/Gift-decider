@@ -128,4 +128,47 @@ describe('Declutter / noise-reduction', () => {
     assert.equal(/LinkHealPanel/.test(ownerItem), false);
     assert.equal(/Buy online/.test(ownerItem), false);
   });
+
+  it('drops giver-item vibe pills and keeps the group-gift card in the sticky footer', () => {
+    const giverItem = source('app/g/[token]/[itemId].tsx');
+    const ownerItem = source('app/(app)/item/[id].tsx');
+    const fields = source('components/item-fields.tsx');
+    const pledge = source('components/pledge-panel.tsx');
+    const screen = source('components/screen.tsx');
+
+    assert.equal(/VibeChips/.test(giverItem), false);
+    assert.match(giverItem, /ConfidenceBadge/);
+    assert.match(ownerItem, /VibeChips/);
+    assert.match(fields, /VibeChips/);
+
+    const lead = giverItem.indexOf('footer={');
+    const middle = giverItem.indexOf('footerMiddle=');
+    const trail = giverItem.indexOf('footerTrail=');
+    assert.ok(lead !== -1 && middle > lead && trail > middle);
+    const leadChunk = giverItem.slice(lead, middle);
+    const middleChunk = giverItem.slice(middle, trail);
+    const trailChunk = giverItem.slice(trail, giverItem.indexOf('}>', trail));
+    assert.match(leadChunk, /onLock/);
+    assert.match(leadChunk, /updateStatus\('reserved'\)/);
+    assert.equal(/PledgePanel/.test(leadChunk), false);
+    assert.equal(/onPurchase/.test(leadChunk), false);
+    assert.match(middleChunk, /<PledgePanel/);
+    assert.match(middleChunk, /\bsticky\b/);
+    assert.match(trailChunk, /onPurchase/);
+    assert.match(trailChunk, /updateStatus\('purchased'\)/);
+    assert.match(trailChunk, /onRelease/);
+    assert.match(trailChunk, /updateStatus\('available'\)/);
+
+    assert.match(pledge, /GROUP_GIFT_STICKY_COPY/);
+    assert.match(pledge, /Between givers\. Organiser buys via PayID \/ BSB/);
+    assert.match(pledge, /Names on the reveal date, not when funded/);
+    assert.equal(/Chip-in progress stays between givers/.test(pledge), false);
+    assert.match(pledge, /Mark as a group gift/);
+    assert.match(pledge, /maxHeight: formMaxHeight/);
+
+    const keyedAt = screen.indexOf('key={footerKey}');
+    const middleAt = screen.indexOf('{footerMiddle}');
+    assert.ok(keyedAt !== -1 && middleAt > keyedAt);
+    assert.equal(/\{footerMiddle\}/.test(screen.slice(keyedAt, middleAt)), false);
+  });
 });
