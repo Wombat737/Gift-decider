@@ -48,9 +48,9 @@ type LabelWithHelpProps = {
 export function LabelWithHelp({ label, help }: LabelWithHelpProps) {
   return (
     <View style={styles.labelRow}>
-      <ThemedText type="smallBold" style={styles.label}>
-        {label}
-      </ThemedText>
+      <View style={styles.label}>
+        <ThemedText type="smallBold">{label}</ThemedText>
+      </View>
       <HelpTip title={help.title} body={help.body} />
     </View>
   );
@@ -62,6 +62,7 @@ const styles = StyleSheet.create({
     height: 28,
     minWidth: 28,
     minHeight: 28,
+    flexShrink: 0,
     borderRadius: Radius.pill,
     borderWidth: 1,
     alignItems: 'center',

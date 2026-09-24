@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import * as Linking from 'expo-linking';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
@@ -8,7 +9,7 @@ import { Button } from '@/components/button';
 import { ConfidenceBadge } from '@/components/confidence-badge';
 import { DollarFlick } from '@/components/dollar-flick';
 import { GiverComments } from '@/components/giver-comments';
-import { LinkHealPanel } from '@/components/link-heal-panel';
+import { NativePressable } from '@/components/native-pressable';
 import { NoSubLock } from '@/components/no-sub-lock';
 import { PledgePanel } from '@/components/pledge-panel';
 import { Screen } from '@/components/screen';
@@ -25,6 +26,7 @@ import { PrettyCopy } from '@/lib/copy';
 import { tryStartDelight } from '@/lib/delight';
 import { hapticLight } from '@/lib/haptics';
 import { isDemoShareToken } from '@/lib/demo-store';
+import { linkNeedsHeal } from '@/lib/link-health';
 import { patchGiverCatalog, pickSharedItem, shareTokenParam, useGiverCatalog } from '@/lib/giver-catalog';
 import { applyItemStatus, giverStatusActions, preferLocalGiverItem } from '@/lib/giver-status';
 import type { DeliveryMethod, ItemStatus, WishlistItem } from '@/lib/types';
@@ -36,7 +38,6 @@ import {
   setSharedDelivery,
   setSharedGroupGift,
   setSharedItemStatus,
-  setSharedLinkDead,
   setSharedOrganiser,
   setSharedPayInstructions,
   setSharedRevealAt,
@@ -281,19 +282,6 @@ export default function GiverItemScreen() {
     }
   }
 
-  async function onMarkDead(dead: boolean) {
-    if (!token || !current) return;
-    setError(null);
-    setBusy(true);
-    try {
-      commitItem(await setSharedLinkDead(token, current.id, dead));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not update link');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function onCheckLink() {
     if (!token || !current) return;
     setError(null);
@@ -363,6 +351,30 @@ export default function GiverItemScreen() {
           They won’t see this
         </ThemedText>
         <ThemedText type="heading">{current.title || 'Untitled gift'}</ThemedText>
+        {current.buy_url?.trim() ? (
+          <View style={styles.buyRow}>
+            <NativePressable
+              accessibilityRole="link"
+              accessibilityLabel="Buy online"
+              hitSlop={8}
+              onPress={() => {
+                const url = current.buy_url?.trim();
+                if (!url) return;
+                void Linking.openURL(url).catch(() => {
+                  setError('Could not open that buy link.');
+                });
+              }}>
+              <ThemedText type="smallBold" themeColor="brand">
+                Buy online
+              </ThemedText>
+            </NativePressable>
+            {linkNeedsHeal(current) ? (
+              <ThemedText type="small" themeColor="textSecondary" accessibilityLabel="link-dead-inline">
+                (link’s dead)
+              </ThemedText>
+            ) : null}
+          </View>
+        ) : null}
         <View style={styles.chipRow}>
           <StatusChip label={actions.chipLabel} tone={actions.chipTone} />
           <DollarFlick playKey={flickKey} />
@@ -411,13 +423,6 @@ export default function GiverItemScreen() {
         onSimulateFunded={() => void onSimulateFunded()}
         onSimulateReveal={(which) => void onSimulateReveal(which)}
       />
-      <LinkHealPanel
-        item={current}
-        busy={busy}
-        demo={demo}
-        onMarkDead={(dead) => void onMarkDead(dead)}
-        onCheckLink={() => void onCheckLink()}
-      />
       <GiverComments
         itemId={current.id}
         ownerName={meta?.owner_display_name || meta?.owner_handle || 'them'}
@@ -450,6 +455,13 @@ const styles = StyleSheet.create({
   chipRow: {
     position: 'relative',
     alignSelf: 'flex-start',
+    maxWidth: '100%',
+  },
+  buyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
     maxWidth: '100%',
   },
 });
