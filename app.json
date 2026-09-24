@@ -19,6 +19,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Gift Decider uses your photos so you can pin a gift picture.",
+        "NSCameraUsageDescription": "Gift Decider uses the camera so you can snap a gift picture.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": ["giftdecider"]

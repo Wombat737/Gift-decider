@@ -67,7 +67,7 @@ export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referre
           uri={shown}
           referrer={referrer}
           onLoadError={() => {
-            if (busy) return false;
+            if (busy) return true;
             if (fallbackUrl && fallbackUrl !== value && !triedFallback.current) {
               triedFallback.current = true;
               onChange(fallbackUrl);

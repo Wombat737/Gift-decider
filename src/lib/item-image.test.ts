@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { applyBuyLinkDraft } from './link-preview';
 import {
   WISHLIST_IMAGES_BUCKET,
+  arrayBufferFromBase64,
   dataUrlFromBase64,
   extFromMime,
   isUnsafeImageUri,
@@ -42,6 +43,9 @@ describe('Add-item photo preview + Storage upload', () => {
     assert.equal(isUnsafeImageUri('javascript:alert(1)'), true);
     assert.equal(isUnsafeImageUri('https://cdn.example/gift.jpg'), false);
     assert.match(dataUrlFromBase64('abc', 'image/png'), /^data:image\/png;base64,abc$/);
+    const bytes = new Uint8Array(arrayBufferFromBase64(btoa('hi')));
+    assert.equal(String.fromCharCode(...bytes), 'hi');
+    assert.throws(() => arrayBufferFromBase64('   '));
   });
 
   it('shows a live preview on Add before Pin, and keeps URL paste secondary', () => {
@@ -109,12 +113,19 @@ describe('Add-item photo preview + Storage upload', () => {
     assert.match(service, /expo-image-picker/);
     assert.match(service, /launchImageLibraryAsync/);
     assert.match(service, /launchCameraAsync/);
+    assert.match(service, /UIImagePickerPreferredAssetRepresentationMode\.Compatible/);
+    assert.match(service, /base64: true/);
+    assert.match(service, /arrayBufferFromBase64/);
+    assert.match(service, /requestCameraPermissionsAsync/);
+    assert.equal(/requestMediaLibraryPermissionsAsync/.test(service), false);
     assert.match(service, /pickWebImageFile|gift-photo-file/);
     assert.match(service, /WISHLIST_IMAGES_BUCKET/);
     assert.match(service, /getPublicUrl/);
     assert.match(service, /usesDemoData/);
     assert.equal(/instagram\.com\/api|graph\.facebook|barcode|openai/i.test(service), false);
     assert.match(appJson, /expo-image-picker/);
+    assert.match(appJson, /NSPhotoLibraryUsageDescription/);
+    assert.match(appJson, /NSCameraUsageDescription/);
     assert.match(appJson, /microphonePermission": false/);
     assert.match(migration, /wishlist-images/);
     assert.match(migration, /storage\.foldername\(name\)\)\[1\] = auth\.uid/);

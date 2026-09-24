@@ -164,20 +164,31 @@ export function usableProductImage(raw: string | null | undefined, pageUrl?: str
 
 export function choosePreviewImage(remote: string | null, stored: string | null) {
   const storedOk = stored && stored !== remote ? stored : null;
-  const remoteHttps = remote?.startsWith('https://') ? remote : null;
   if (remote && isWishlistImagesUrl(remote)) {
     return { imageUrl: remote, fallbackImageUrl: storedOk };
   }
-  if (remote && isHotlinkProneImageUrl(remote) && storedOk) {
-    return { imageUrl: storedOk, fallbackImageUrl: remoteHttps };
-  }
-  if (remoteHttps && !isHotlinkProneImageUrl(remoteHttps)) {
-    return { imageUrl: remoteHttps, fallbackImageUrl: storedOk };
-  }
+  // The Storage copy is what the app can load. Shop CDNs often 403 an in-app request
+  // even when the page itself is fine, so it is the preview — remote stays as fallback.
   if (storedOk) {
-    return { imageUrl: storedOk, fallbackImageUrl: remote && remote !== storedOk ? remote : null };
+    const fallback = remote && remote !== storedOk && remote.startsWith('https://') ? remote : null;
+    return { imageUrl: storedOk, fallbackImageUrl: fallback };
   }
   return { imageUrl: remote, fallbackImageUrl: null as string | null };
+}
+
+/** Public product image for an Amazon ASIN when the page hid Open Graph. Not a scrape. */
+export function productImageGuess(pageUrl: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(pageUrl);
+  } catch {
+    return null;
+  }
+  const host = bareHost(parsed.hostname);
+  if (!/(^|\.)amazon\./.test(host) && host !== 'amzn.to') return null;
+  const asin = parsed.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})(?:[/?#]|$)/i)?.[1];
+  if (!asin) return null;
+  return `https://m.media-amazon.com/images/P/${asin.toUpperCase()}.01._SCLZZZZZZZ_SX500_.jpg`;
 }
 
 function titleCaseWords(value: string) {
@@ -383,6 +394,18 @@ function readJsonLdProduct(html: string): BuyLinkDraft {
     }
   }
   return { title: null, notes: null, imageUrl: null };
+}
+
+/** Fill gaps from public page HTML. Never replaces a photo the edge function already stored. */
+export function draftWithPageHtml(draft: BuyLinkDraft, html: string | null, pageUrl: string): BuyLinkDraft {
+  const parsed = html ? parseHtmlPreview(html, pageUrl) : { title: null, notes: null, imageUrl: null };
+  const imageUrl = draft.imageUrl ?? parsed.imageUrl ?? productImageGuess(pageUrl);
+  return {
+    title: draft.title ?? parsed.title,
+    notes: draft.notes ?? parsed.notes,
+    imageUrl,
+    ...(draft.fallbackImageUrl ? { fallbackImageUrl: draft.fallbackImageUrl } : {}),
+  };
 }
 
 export function parseHtmlPreview(html: string, pageUrl: string): BuyLinkDraft {
