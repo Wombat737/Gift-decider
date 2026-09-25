@@ -5,6 +5,7 @@ import { usesDemoData } from '@/lib/app-mode';
 import {
   WISHLIST_IMAGE_MAX_BYTES,
   WISHLIST_IMAGES_BUCKET,
+  arrayBufferFromBase64,
   dataUrlFromBase64,
   extFromMime,
   mimeFromFile,
@@ -20,6 +21,11 @@ function pickerOptions(): ImagePicker.ImagePickerOptions {
     quality: 0.72,
     allowsMultipleSelection: false,
     exif: false,
+    // Library photos are HEIC. `compatible` asks iOS for a JPEG, and `base64` is
+    // always JPEG even when the file copy stays HEIC. Camera already returns JPEG.
+    base64: true,
+    preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+    shouldDownloadFromNetwork: true,
   };
 }
 
@@ -115,8 +121,9 @@ export async function pickGiftPhoto(source: GiftPhotoSource): Promise<ImagePicke
       return result.assets[0] ?? null;
     }
 
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) throw new Error('Allow photos to add a picture');
+    // PHPicker does not need photo-library permission. Requesting it first makes
+    // iOS hand back a limited library, then fail to read the file ("public.jpeg"),
+    // while the camera path still works.
     const result = await ImagePicker.launchImageLibraryAsync(pickerOptions());
     if (result.canceled) return null;
     return result.assets[0] ?? null;
@@ -146,6 +153,13 @@ async function bodyFromAsset(asset: ImagePicker.ImagePickerAsset): Promise<{
   contentType: string;
   ext: string;
 }> {
+  // Prefer the picker's JPEG base64. A camera-roll HEIC file is often over 8MB
+  // and the public URL then fails to paint, which is why library looked broken.
+  if (asset.base64) {
+    const body = arrayBufferFromBase64(asset.base64);
+    return { body, contentType: 'image/jpeg', ext: 'jpg' };
+  }
+
   const contentType = mimeFromFile(asset.file?.type || asset.mimeType, asset.fileName);
   const ext = extFromMime(contentType, asset.fileName);
 

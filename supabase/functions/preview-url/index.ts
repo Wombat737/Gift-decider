@@ -8,10 +8,12 @@
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 const FETCH_MS = 5000;
 const IMAGE_MS = 4000;
+const STORE_MS = 3500;
 const MAX_BYTES = 1_200_000;
 const MAX_IMAGE_BYTES = 8_000_000;
 const MIN_IMAGE_BYTES = 1000;
@@ -459,6 +461,22 @@ async function downloadImage(imageUrl: string, pageUrl: string) {
   }
 }
 
+function withDeadline<T>(promise: Promise<T | null>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      },
+    );
+  });
+}
+
 async function storeImage(req: Request, imageUrl: string, pageUrl: string): Promise<string | null> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -564,14 +582,14 @@ Deno.serve(async (req) => {
 
   if (!parsed.image_url) {
     const guess = amazonImageCandidate(finalUrl);
-    const storedGuess = guess ? await storeImage(req, guess, finalUrl) : null;
-    if (storedGuess) {
-      parsed.image_url = guess;
+    if (guess) {
+      // Return the public image even when rehost is slow or blocked. The app can paint it.
+      const storedGuess = await withDeadline(storeImage(req, guess, finalUrl), STORE_MS);
       return json({
         url,
         title: parsed.title,
         description: parsed.description,
-        image_url: parsed.image_url,
+        image_url: guess,
         stored_image_url: storedGuess,
         provider: providerFor(finalHost),
         stub: false,
@@ -579,7 +597,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  const stored = parsed.image_url ? await storeImage(req, parsed.image_url, finalUrl) : null;
+  const stored = parsed.image_url ? await withDeadline(storeImage(req, parsed.image_url, finalUrl), STORE_MS) : null;
   return json({
     url,
     title: parsed.title,

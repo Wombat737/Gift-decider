@@ -77,3 +77,13 @@ export function dataUrlFromBase64(base64: string, mime?: string | null) {
   const type = mime && mime.startsWith('image/') ? mime : 'image/jpeg';
   return `data:${type};base64,${base64}`;
 }
+
+/** JPEG bytes from ImagePicker `base64` (library HEIC is re-encoded by the picker). */
+export function arrayBufferFromBase64(base64: string): ArrayBuffer {
+  const cleaned = base64.trim().replace(/\s/g, '');
+  if (!cleaned) throw new Error('Couldn’t read that photo');
+  const binary = atob(cleaned);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i) & 0xff;
+  return bytes.buffer;
+}
