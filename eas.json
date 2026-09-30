@@ -18,6 +18,9 @@
       "channel": "preview",
       "android": {
         "buildType": "apk"
+      },
+      "ios": {
+        "enterpriseProvisioning": "adhoc"
       }
     },
     "production": {
