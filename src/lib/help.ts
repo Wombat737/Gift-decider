@@ -22,7 +22,7 @@ export const HelpFaq = [
   },
   {
     q: 'How do I share my list?',
-    a: 'Share / occasions sends a read-only link. Occasion packs (birthday, housewarming) scope the link to those gifts.',
+    a: 'Share sends your whole list. You won’t see what mates reserved. Occasion packs and email sit under Advanced.',
   },
   {
     q: 'How do I find someone’s list?',

@@ -22,6 +22,7 @@ import {
   shareTokenParam,
   writeGiverCatalog,
 } from './giver-catalog';
+import { PrettyCopy } from './copy';
 import {
   applyItemStatus,
   coerceItemStatus,
@@ -242,7 +243,7 @@ describe('Giver status icon after lock / purchase / release', () => {
     const open = paint();
     assert.ok(open);
     assert.equal(giverStatusChip(open).label, 'Open');
-    assert.equal(giverStatusActions(open).lockLabel, 'Soft-lock this');
+    assert.equal(giverStatusActions(open).lockLabel, PrettyCopy.claimCta);
     assert.equal(giverStatusActions(open).purchaseLabel, 'Mark purchased');
     assert.equal(giverStatusActions(open).releaseLabel, 'Not on hold');
 
@@ -268,7 +269,7 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.ok(bought);
     assert.equal(giverStatusChip(bought).label, 'Bought');
     assert.equal(giverStatusActions(bought).purchaseLabel, 'Already purchased');
-    assert.equal(giverStatusActions(bought).lockLabel, 'Soft-lock this');
+    assert.equal(giverStatusActions(bought).lockLabel, PrettyCopy.claimCta);
     assert.equal(giverStatusActions(bought).releaseLabel, 'Release hold');
     patchGiverCatalog(liveToken, local);
     assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(liveToken))!).label, 'Bought');
@@ -279,7 +280,7 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.equal(released.status, 'available');
     assert.equal(giverStatusChip(released).label, 'Open');
     assert.equal(giverStatusActions(released).releaseLabel, 'Not on hold');
-    assert.equal(giverStatusActions(released).lockLabel, 'Soft-lock this');
+    assert.equal(giverStatusActions(released).lockLabel, PrettyCopy.claimCta);
     patchGiverCatalog(liveToken, local);
     assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(liveToken))!).label, 'Open');
 

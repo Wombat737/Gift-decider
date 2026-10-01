@@ -1,4 +1,4 @@
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect, type Href } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 
@@ -17,25 +17,32 @@ import { useInbox } from '@/context/inbox-context';
 import { useGiverShare } from '@/context/giver-share-context';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { track } from '@/lib/analytics';
 import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
 import { giverListTitle } from '@/lib/list-title';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
-import { giverListPaint, giverPaintItems, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
+import { giverListPaint, giverPaintItems, patchGiverCatalog, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
+import { applyItemStatus, rememberedGiverName, rememberGiverName } from '@/lib/giver-status';
+import { hapticLight } from '@/lib/haptics';
 import { groupGiftPhase } from '@/lib/pledges';
+import type { WishlistItem } from '@/lib/types';
 import { ownerTasteTagsHint, searchSharedWishlistItems } from '@/services/giver-social';
+import { setSharedItemStatus } from '@/services/wishlist';
 
 export default function GiverShareScreen() {
   const theme = useTheme();
   const { user } = useAuth();
   const { newlyReady, refreshInbox } = useInbox();
-  const { token, meta, error, loading, fetchSettled, refresh, items: shareItems } = useGiverShare();
+  const { token, meta, error, loading, fetchSettled, refresh, items: shareItems, patchItem } = useGiverShare();
   const { items: catalogItems, hydrated } = useGiverCatalogState(token);
   const items = giverPaintItems(catalogItems, shareItems);
   const [focusGen, setFocusGen] = useState(0);
   const [query, setQuery] = useState('');
   const [hitIds, setHitIds] = useState<string[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   function goAddSomeone() {
     router.push(user ? '/people?add=1' : '/sign-in');
@@ -84,6 +91,35 @@ export default function GiverShareScreen() {
     query,
     error,
   });
+
+  async function claimFromList(item: WishlistItem) {
+    if (!token || item.status !== 'available' || claimingId) return;
+    const known = rememberedGiverName();
+    if (!known) {
+      router.push(`/g/${token}/${item.id}?claim=1` as Href);
+      return;
+    }
+    setClaimError(null);
+    setClaimingId(item.id);
+    const snapshot = item;
+    const optimistic = applyItemStatus(item, 'reserved', known);
+    patchItem(optimistic);
+    patchGiverCatalog(token, optimistic);
+    void hapticLight();
+    try {
+      const saved = await setSharedItemStatus(token, item.id, 'reserved', known);
+      rememberGiverName(known);
+      patchItem(saved);
+      patchGiverCatalog(token, saved);
+      track('giver_status', { status: 'reserved', source: 'list' });
+    } catch (err) {
+      patchItem(snapshot);
+      patchGiverCatalog(token, snapshot);
+      setClaimError(err instanceof Error ? err.message : 'Could not claim that gift');
+    } finally {
+      setClaimingId(null);
+    }
+  }
 
   async function remindThem() {
     const text = mateNudgeMessage();
@@ -161,6 +197,11 @@ export default function GiverShareScreen() {
           {searchError}
         </ThemedText>
       ) : null}
+      {claimError ? (
+        <ThemedText type="small" themeColor="accent">
+          {claimError}
+        </ThemedText>
+      ) : null}
 
       {error ? (
         <>
@@ -181,6 +222,8 @@ export default function GiverShareScreen() {
           key={`${token ?? 'share'}:${focusGen}:${query}`}
           items={visible}
           showStatus
+          onClaim={(item) => void claimFromList(item)}
+          claimingId={claimingId}
           hrefFor={(item) => `/g/${token}/${item.id}`}
           emptyTitle={query.trim() ? 'Nothing matched' : PrettyCopy.giverEmptyTitle}
           emptyBody={query.trim() ? 'Try another word — titles and notes, not a tag cloud.' : PrettyCopy.giverEmptyBody}

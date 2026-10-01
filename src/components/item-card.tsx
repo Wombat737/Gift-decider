@@ -23,15 +23,19 @@ type ItemCardProps = {
   onPress?: () => void;
   /** Giver-only. Owners never see reserve/purchased/pledges — surprise gifts. */
   showStatus?: boolean;
+  /** One-tap claim for an open gift. Stays off owner cards. */
+  onClaim?: (item: WishlistItem) => void;
+  claimBusy?: boolean;
 };
 
-export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardProps) {
+export function ItemCard({ item, href, onPress, showStatus = false, onClaim, claimBusy = false }: ItemCardProps) {
   const theme = useTheme();
   const [pressed, setPressed] = useState(false);
   const confidence = showStatus ? improvisedConfidence(item) : null;
   const revealTone = ownerMomentTone();
   const statusChip = showStatus ? giverStatusChip(item) : null;
   const chipIn = showStatus && groupGiftPhase(item) === 'collecting';
+  const canClaim = Boolean(showStatus && onClaim && item.status === 'available');
 
   const body = (
     <>
@@ -90,32 +94,47 @@ export function ItemCard({ item, href, onPress, showStatus = false }: ItemCardPr
     </>
   );
 
+  const claim = canClaim ? (
+    <NativePressable
+      accessibilityRole="button"
+      accessibilityLabel={`${PrettyCopy.claimCta}, ${item.title || 'gift'}`}
+      disabled={claimBusy}
+      onPress={() => onClaim?.(item)}
+      style={[styles.claimBtn, { backgroundColor: theme.brand, opacity: claimBusy ? 0.45 : 1 }]}>
+      <ThemedText type="smallBold" style={[styles.claimLabel, { color: theme.brandText }]}>
+        {claimBusy ? 'Saving…' : PrettyCopy.claimCta}
+      </ThemedText>
+    </NativePressable>
+  ) : null;
+
   if (href) {
     return (
-      <Link href={href} asChild>
-        <NativePressable
-          style={styles.press}
-          accessibilityRole="link"
-          onPressIn={() => setPressed(true)}
-          onPressOut={() => setPressed(false)}>
-          <Card padded={false} selected={pressed} style={styles.card}>
+      <Card padded={false} selected={pressed} style={styles.card}>
+        <Link href={href} asChild>
+          <NativePressable
+            style={styles.press}
+            accessibilityRole="link"
+            onPressIn={() => setPressed(true)}
+            onPressOut={() => setPressed(false)}>
             {body}
-          </Card>
-        </NativePressable>
-      </Link>
+          </NativePressable>
+        </Link>
+        {claim}
+      </Card>
     );
   }
 
   return (
-    <NativePressable
-      onPress={onPress}
-      style={styles.press}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}>
-      <Card padded={false} selected={pressed} style={styles.card}>
+    <Card padded={false} selected={pressed} style={styles.card}>
+      <NativePressable
+        onPress={onPress}
+        style={styles.press}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}>
         {body}
-      </Card>
-    </NativePressable>
+      </NativePressable>
+      {claim}
+    </Card>
   );
 }
 
@@ -153,5 +172,20 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     paddingHorizontal: ChipPad.horizontal,
     paddingVertical: ChipPad.vertical,
+  },
+  claimBtn: {
+    marginTop: Spacing.two,
+    minHeight: 40,
+    borderRadius: Radius.button,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
+  },
+  claimLabel: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });

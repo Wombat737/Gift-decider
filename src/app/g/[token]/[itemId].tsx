@@ -27,7 +27,7 @@ import { hapticLight } from '@/lib/haptics';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { linkNeedsHeal } from '@/lib/link-health';
 import { patchGiverCatalog, pickSharedItem, shareTokenParam, useGiverCatalog } from '@/lib/giver-catalog';
-import { applyItemStatus, giverStatusActions, preferLocalGiverItem } from '@/lib/giver-status';
+import { applyItemStatus, giverHoldsClaim, giverStatusActions, preferLocalGiverItem, rememberGiverName, rememberedGiverName } from '@/lib/giver-status';
 import type { DeliveryMethod, ItemStatus, WishlistItem } from '@/lib/types';
 import {
   addSharedPledge,
@@ -48,14 +48,21 @@ function GiverStatusLead({
   item,
   busy,
   error,
+  name,
+  askingName,
+  onName,
   onLock,
 }: {
   item: WishlistItem;
   busy: boolean;
   error: string | null;
+  name: string;
+  askingName: boolean;
+  onName: (value: string) => void;
   onLock: () => void;
 }) {
   const actions = giverStatusActions(item, busy);
+  const showClaim = item.status !== 'purchased' && !giverHoldsClaim(item, name);
   return (
     <>
       <StatusChip label={actions.chipLabel} tone={actions.chipTone} />
@@ -64,7 +71,21 @@ function GiverStatusLead({
           {error}
         </ThemedText>
       ) : null}
-      <Button nativePress icon="lock" label={actions.lockLabel} onPress={onLock} disabled={busy} />
+      {askingName ? (
+        <TextField
+          label={PrettyCopy.claimNameLabel}
+          placeholder="Not shown to other givers"
+          value={name}
+          onChangeText={onName}
+          autoFocus
+          autoCapitalize="words"
+          returnKeyType="done"
+          onSubmitEditing={onLock}
+        />
+      ) : null}
+      {showClaim ? (
+        <Button nativePress label={actions.lockLabel} onPress={onLock} disabled={busy} />
+      ) : null}
     </>
   );
 }
@@ -81,6 +102,7 @@ function GiverStatusTrail({
   onRelease: () => void;
 }) {
   const actions = giverStatusActions(item, busy);
+  if (item.status === 'available') return null;
   return (
     <>
       <Button nativePress icon="bought" label={actions.purchaseLabel} variant="secondary" disabled={busy} onPress={onPurchase} />
@@ -91,7 +113,11 @@ function GiverStatusTrail({
 
 export default function GiverItemScreen() {
   const theme = useTheme();
-  const { token: paramToken, itemId: paramItemId } = useLocalSearchParams<{ token: string; itemId: string }>();
+  const { token: paramToken, itemId: paramItemId, claim: claimParam } = useLocalSearchParams<{
+    token: string;
+    itemId: string;
+    claim?: string;
+  }>();
   const { token: shareToken, items, loading: shareLoading, patchItem, meta } = useGiverShare();
   const { user } = useAuth();
   const token = shareToken ?? shareTokenParam(paramToken);
@@ -99,7 +125,8 @@ export default function GiverItemScreen() {
   const catalogItems = useGiverCatalog(token);
   const shareItem = pickSharedItem(itemId, catalogItems, items);
   const [item, setItem] = useState<WishlistItem | null>(shareItem);
-  const [name, setName] = useState('');
+  const [name, setName] = useState(rememberedGiverName);
+  const [askingName, setAskingName] = useState(() => shareTokenParam(claimParam) === '1' && !rememberedGiverName());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!shareItem);
   const [busy, setBusy] = useState(false);
@@ -113,6 +140,10 @@ export default function GiverItemScreen() {
   useEffect(() => {
     setGroupOpen(false);
   }, [itemId]);
+
+  useEffect(() => {
+    if (shareTokenParam(claimParam) === '1' && !rememberedGiverName()) setAskingName(true);
+  }, [claimParam]);
 
   useEffect(() => {
     if (!shareItem) return;
@@ -151,12 +182,24 @@ export default function GiverItemScreen() {
 
   const current = preferLocalGiverItem(shareItem, item);
 
-  async function updateStatus(status: ItemStatus) {
+  async function updateStatus(status: ItemStatus, reservedBy?: string) {
     if (!current) return;
     if (!token) {
       setError('Tap registered — this share link is missing a token.');
       return;
     }
+    let who = (reservedBy ?? (name.trim() || rememberedGiverName())).trim();
+    if (status === 'reserved' && !who) {
+      setAskingName(true);
+      setError(PrettyCopy.claimNameMissing);
+      return;
+    }
+    if (status !== 'available' && who) {
+      rememberGiverName(who);
+      setName(who);
+      setAskingName(false);
+    }
+    if (status === 'available') who = '';
     try {
       Keyboard.dismiss();
     } catch {
@@ -165,7 +208,7 @@ export default function GiverItemScreen() {
     setError(null);
     setBusy(true);
     const snapshot = current;
-    commitItem(applyItemStatus(snapshot, status, name.trim() || undefined));
+    commitItem(applyItemStatus(snapshot, status, who || undefined));
     if (status === 'purchased' && snapshot.status !== 'purchased' && tryStartDelight('flick')) {
       setFlickKey((count) => count + 1);
       track('delight_purchased_flick', { status });
@@ -174,7 +217,7 @@ export default function GiverItemScreen() {
       void hapticLight();
     }
     try {
-      commitItem(await setSharedItemStatus(token, snapshot.id, status, name.trim() || undefined));
+      commitItem(await setSharedItemStatus(token, snapshot.id, status, who || undefined));
       track('giver_status', { status });
     } catch (err) {
       commitItem(snapshot);
@@ -351,6 +394,12 @@ export default function GiverItemScreen() {
           item={current}
           busy={busy}
           error={error}
+          name={name}
+          askingName={askingName}
+          onName={(value) => {
+            setName(value);
+            if (value.trim()) setError(null);
+          }}
           onLock={() => void updateStatus('reserved')}
         />
       }
@@ -421,7 +470,7 @@ export default function GiverItemScreen() {
             ? PrettyCopy.purchasedGiver
             : current.status === 'reserved'
               ? PrettyCopy.softLock
-              : 'Soft lock is honour-system. Other givers see Taken/Bought — not names.'}
+              : PrettyCopy.claimHint}
         </ThemedText>
       </View>
 
@@ -433,13 +482,6 @@ export default function GiverItemScreen() {
         </ThemedText>
       ) : null}
       {current.notes ? <ThemedText>{current.notes}</ThemedText> : null}
-
-      <TextField
-        label="Your name (optional, stored for the lock — not shown to other givers)"
-        placeholder="Only used if we need to unwind a hold"
-        value={name}
-        onChangeText={setName}
-      />
 
       {groupOpen ? (
         <View

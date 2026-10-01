@@ -1,11 +1,9 @@
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Share, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
-import { Card } from '@/components/card';
 import { EmptyIllustration } from '@/components/empty-illustration';
-import { FlowHeader } from '@/components/flow-header';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -33,6 +31,7 @@ export default function ShareScreen() {
   const [occasionTitle, setOccasionTitle] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
   const link = wishlist ? shareLink(wishlist.share_token) : '';
 
   async function onInvite() {
@@ -72,91 +71,98 @@ export default function ShareScreen() {
 
   return (
     <Screen>
-      <FlowHeader title={PrettyCopy.shareTitle} />
+      <Stack.Screen options={{ title: PrettyCopy.shareTitle }} />
 
-      <Card>
-        <ThemedText type="eyebrow" themeColor="brand">
-          Whole wishlist
-        </ThemedText>
-        <ThemedText type="titleSm">Every pinned gift</ThemedText>
-        <ThemedText type="code">{link || 'Loading…'}</ThemedText>
-        <View style={styles.row}>
-          <Button label={PrettyCopy.shareCta} icon="share" onPress={() => link && void sharePack(wishlist!.share_token)} />
-          <Button
-            label="Open giver view"
-            variant="secondary"
-            onPress={() => openGiverShare(wishlist?.share_token, router.push, prefetchSharedItems)}
-          />
-        </View>
-      </Card>
-
-      <Card>
-        <ThemedText type="eyebrow" themeColor="brand">
-          Occasion packs
-        </ThemedText>
-        <ThemedText type="smallBold">Birthday, housewarming, Christmas</ThemedText>
-        {occasions.length === 0 ? (
-          <View style={styles.invitesEmpty}>
-            <EmptyIllustration kind="invites" size={120} />
-            <ThemedText type="small" themeColor="textSecondary">
-              No packs yet.
-            </ThemedText>
-          </View>
-        ) : (
-          occasions.map((occasion) => {
-            const count = items.filter((item) => item.occasion_id === occasion.id).length;
-            const occasionLink = shareLink(occasion.share_token);
-            return (
-              <View key={occasion.id} style={styles.occasion}>
-                <ThemedText type="smallBold">
-                  {occasion.title} · {count} item{count === 1 ? '' : 's'}
-                </ThemedText>
-                <ThemedText type="code">{occasionLink}</ThemedText>
-                <View style={styles.row}>
-                  <Button
-                    label={PrettyCopy.shareCta}
-                    icon="share"
-                    variant="secondary"
-                    onPress={() => void sharePack(occasion.share_token, occasion.title)}
-                  />
-                  <Button
-                    label="Open giver view"
-                    variant="ghost"
-                    onPress={() => openGiverShare(occasion.share_token, router.push, prefetchSharedItems)}
-                  />
-                </View>
-              </View>
-            );
-          })
-        )}
-        <TextField
-          label="New occasion"
-          placeholder="Christmas"
-          value={occasionTitle}
-          onChangeText={setOccasionTitle}
-        />
-        <Button label={busy ? 'Saving…' : 'Create occasion pack'} disabled={busy} onPress={() => void onCreateOccasion()} />
-        {message ? (
-          <ThemedText type="small" themeColor="textSecondary">
-            {message}
-          </ThemedText>
-        ) : null}
-      </Card>
-
-      <TextField
-        label="Invite by email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        placeholder="auntie@example.com"
-        value={email}
-        onChangeText={setEmail}
+      <Button
+        label={PrettyCopy.shareWithMates}
+        icon="share"
+        disabled={!link}
+        onPress={() => link && wishlist && void sharePack(wishlist.share_token)}
       />
-      <Button label="Save invite" variant="secondary" onPress={() => void onInvite()} />
-
+      <ThemedText themeColor="textSecondary">{PrettyCopy.shareSubtitle}</ThemedText>
       {message ? (
         <ThemedText type="small" themeColor="textSecondary">
           {message}
         </ThemedText>
+      ) : null}
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: advanced }}
+        accessibilityLabel={PrettyCopy.shareAdvanced}
+        onPress={() => setAdvanced((open) => !open)}
+        hitSlop={8}
+        style={styles.advancedToggle}>
+        <ThemedText type="smallBold" themeColor="brand">
+          {PrettyCopy.shareAdvanced}
+        </ThemedText>
+      </Pressable>
+
+      {advanced ? (
+        <View style={styles.advanced}>
+          <ThemedText type="titleSm">Share a pack</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            A link to just those gifts.
+          </ThemedText>
+          {occasions.length === 0 ? (
+            <View style={styles.invitesEmpty}>
+              <EmptyIllustration kind="invites" size={120} />
+              <ThemedText type="small" themeColor="textSecondary">
+                No packs yet.
+              </ThemedText>
+            </View>
+          ) : (
+            occasions.map((occasion) => {
+              const count = items.filter((item) => item.occasion_id === occasion.id).length;
+              const occasionLink = shareLink(occasion.share_token);
+              return (
+                <View key={occasion.id} style={styles.occasion}>
+                  <ThemedText type="smallBold">
+                    {occasion.title} · {count} item{count === 1 ? '' : 's'}
+                  </ThemedText>
+                  <ThemedText type="code">{occasionLink}</ThemedText>
+                  <View style={styles.row}>
+                    <Button
+                      label={PrettyCopy.shareCta}
+                      icon="share"
+                      variant="secondary"
+                      onPress={() => void sharePack(occasion.share_token, occasion.title)}
+                    />
+                    <Button
+                      label="Open giver view"
+                      variant="ghost"
+                      onPress={() => openGiverShare(occasion.share_token, router.push, prefetchSharedItems)}
+                    />
+                  </View>
+                </View>
+              );
+            })
+          )}
+          <TextField
+            label="New occasion"
+            placeholder="Christmas"
+            value={occasionTitle}
+            onChangeText={setOccasionTitle}
+          />
+          <Button label={busy ? 'Saving…' : 'Create occasion pack'} disabled={busy} onPress={() => void onCreateOccasion()} />
+
+          <TextField
+            label="Invite by email"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="auntie@example.com"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <Button label="Save invite" variant="secondary" onPress={() => void onInvite()} />
+
+          {link ? <ThemedText type="code">{link}</ThemedText> : null}
+          <Button
+            label="Open giver view"
+            variant="ghost"
+            onPress={() => openGiverShare(wishlist?.share_token, router.push, prefetchSharedItems)}
+          />
+        </View>
       ) : null}
     </Screen>
   );
@@ -174,5 +180,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     paddingVertical: Spacing.two,
+  },
+  advancedToggle: {
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.two,
+  },
+  advanced: {
+    gap: Spacing.three,
   },
 });

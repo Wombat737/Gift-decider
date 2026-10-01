@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/button';
+import { FlairIcon } from '@/components/flair-icons';
 import { HeaderInboxLink } from '@/components/inbox-badge';
 import { InboxBanner } from '@/components/inbox-banner';
 import { ItemGrid } from '@/components/item-grid';
@@ -13,12 +14,14 @@ import { ThemedText } from '@/components/themed-text';
 import { useInbox } from '@/context/inbox-context';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
 import { acceptBannerText, requestBannerText } from '@/lib/inbox';
 import { shouldShowOccasionFilter } from '@/lib/occasions';
 
 export default function WishlistGridScreen() {
+  const theme = useTheme();
   const { items, occasions, loading, error, refresh } = useWishlist();
   const { pendingRequests, newlyReady, requests, refreshInbox } = useInbox();
   const [occasionId, setOccasionId] = useState('all');
@@ -54,6 +57,17 @@ export default function WishlistGridScreen() {
         options={{
           headerRight: () => (
             <View style={styles.headerRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Share"
+              onPress={() => {
+                track('share_screen_opened');
+                router.push('/share');
+              }}
+              hitSlop={12}
+              style={styles.headerIcon}>
+              <FlairIcon name="share" color={theme.brand} size={22} />
+            </Pressable>
             <HeaderInboxLink
               label="People"
               count={newlyReady.length}
@@ -85,19 +99,11 @@ export default function WishlistGridScreen() {
           ),
         }}
       />
-      <View style={styles.actions}>
-        <Button label="Add a gift" icon="gift" onPress={() => router.push('/add')} />
-        <Button label="Paste Instagram URL" variant="secondary" onPress={() => router.push('/paste')} />
-        <Button
-          label="Share / occasions"
-          icon="share"
-          variant="ghost"
-          onPress={() => {
-            track('share_screen_opened');
-            router.push('/share');
-          }}
-        />
-      </View>
+      {!loading && visible.length > 0 ? (
+        <View style={styles.actions}>
+          <Button label={PrettyCopy.ownerEmptyCta} icon="gift" onPress={() => router.push('/add')} />
+        </View>
+      ) : null}
 
       {shouldShowOccasionFilter(occasions.length) ? (
         <QuietSelect
@@ -147,8 +153,6 @@ export default function WishlistGridScreen() {
           emptyBody={PrettyCopy.ownerEmptyBody}
           emptyActionLabel={PrettyCopy.ownerEmptyCta}
           onEmptyAction={() => router.push('/add')}
-          emptySecondaryLabel={PrettyCopy.ownerEmptySecondary}
-          onEmptySecondary={() => router.push('/paste')}
           emptyKind="owner"
         />
       ) : null}
@@ -170,5 +174,11 @@ const styles = StyleSheet.create({
   headerBtn: {
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.one,
+  },
+  headerIcon: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
