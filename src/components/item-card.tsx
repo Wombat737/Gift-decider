@@ -80,9 +80,6 @@ export function ItemCard({ item, href, onPress, showStatus = false, onClaim, cla
             {confidence.label}
           </ThemedText>
         ) : null}
-        <ThemedText type="bodyEm" themeColor="brand">
-          Open
-        </ThemedText>
         {chipIn ? (
           <View style={[styles.chipIn, { backgroundColor: theme.accentSoft, borderColor: theme.accentSoft }]}>
             <ThemedText type="caption" themeColor="accent">
@@ -156,20 +153,20 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 4 / 5,
     overflow: 'hidden',
-    borderRadius: Radius.card - 4,
+    borderRadius: Radius.card - 6,
   },
   image: {
     width: '100%',
     height: '100%',
   },
   meta: {
-    gap: Spacing.one,
+    gap: Spacing.one + 2,
     paddingTop: Spacing.twoHalf,
   },
   chipIn: {
     alignSelf: 'flex-start',
     borderRadius: Radius.pill,
-    borderWidth: 2,
+    borderWidth: 1,
     paddingHorizontal: ChipPad.horizontal,
     paddingVertical: ChipPad.vertical,
   },
@@ -185,7 +182,8 @@ const styles = StyleSheet.create({
   claimLabel: {
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: '700',
+    fontWeight: '600',
+    letterSpacing: -0.15,
     textAlign: 'center',
   },
 });

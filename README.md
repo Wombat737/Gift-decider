@@ -80,7 +80,7 @@ Never commit `.env.local` or paste keys into GitHub Actions. Pages CI must stay 
 
 Send them the Pages demo on their phone, or sit together and tap:
 
-1. **Explore demo** — recipient grid. No Taken/Bought. Occasion dropdown only when there are two packs.
+1. **Explore demo** — recipient grid. No Reserved/Bought. Occasion dropdown only when there are two packs.
 2. Open **Home espresso machine** — still unspoiled (future reveal date, even if givers fund it). **Burr coffee grinder** already shows **From the group** (reveal date in the past). Settings → Privacy / deletion stub if a mate asks “is this a real app?”
 3. **Share / occasions** → **Copy invite** (Birthday or Housewarming) or **Open giver view**.
 4. As a giver: mark group gift (reveal date + organiser + PayID note), chip in, **Simulate funded (demo)** → **Funded — time to buy** banner + email stub. Organiser marks purchased + delivery. Owner still unspoiled. Then **Simulate reveal date = yesterday**.
@@ -145,7 +145,7 @@ Surprise-safe rule is unchanged for in-flight gifts.
 | **Occasion packs** | Share screen; giver URL scopes items | Share / occasions → **Birthday** (`/g/demo-birthday`) vs **Housewarming** (`/g/demo-housewarming`). Create another pack and assign items. |
 | **Giver confidence** | Giver list + item only | On `/g/demo`: mug → Safe pick; socks → Needs size; plant → Bold. Owner grid has no score. |
 | **AU buy helpers** | Giver item | Open any gift as a giver → Amazon AU / Kmart / Target AU / Big W search from the title. |
-| **Soft lock** | Giver item; other givers see Taken/Bought **without names** | Socks start Taken. Reserve the mug; the owner wishlist still looks untouched. |
+| **Reservation** | Giver item; other givers see Reserved/Bought **without names** | Socks start Reserved. Reserve the mug; the owner wishlist still looks untouched. |
 | **Group / chip-in** | Giver item; honour system, no Stripe | Housewarming → **Home espresso machine**. Progress is giver-only. Enabling group gift asks for a **reveal date**. |
 
 Local demo (empty `.env.local`):
@@ -155,7 +155,7 @@ npm install
 npx expo start --web
 ```
 
-1. **Explore demo** → recipient wishlist (no Taken/Bought badges, no pledge bar). Espresso is not yet “from the group”; **Burr coffee grinder** already is (past reveal date).
+1. **Explore demo** → recipient wishlist (no Reserved/Bought badges, no pledge bar). Espresso is not yet “from the group”; **Burr coffee grinder** already is (past reveal date).
 2. Occasion → **Housewarming** (demo has two packs) or just open **Home espresso machine** — still a normal unspoiled item.
 3. **Share / occasions** → **Open giver view** for Housewarming (or `/g/demo-housewarming`).
 4. Open espresso as a giver: Alex is organiser, PayID note, chip-in progress, future reveal date. Tap **Simulate funded (demo)** — giver list/item show **Funded — time to buy** plus an email stub (no API key). Flip to the owner tab — espresso is **still unspoiled**.
@@ -452,7 +452,7 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 | `/people` | Giver (signed in) | People I buy for — pin, handle search, email invite stub, paste share link |
 | `/requests` | Recipient | Accept / Decline / Block giver access requests |
 | `/privacy` | Anyone | Store-listing privacy stub (works on `/Gift-decider/privacy`) |
-| `/g/[token]` | Giver | Read-only list **with** Taken/Bought (no names), search field (no tag chips), confidence, **Link may be broken** badge, **Funded — time to buy** banner |
+| `/g/[token]` | Giver | Read-only list **with** Reserved/Bought (no names), search field (no tag chips), confidence, **Link may be broken** badge, **Ready to buy** banner |
 | `/g/[token]/[itemId]` | Giver | Soft lock, group pledges, organiser / PayID / delivery, reveal date, mark funded, dead-link heal sheet, AU buy helpers, giver-only comments (logged-in) |
 | `/auth/callback` | Auth | Completes the magic-link session, then `/wishlist` |
 

@@ -41,7 +41,7 @@ export function ReadyToBuyBanner({
       <ThemedText type="eyebrow" themeColor="brand">
         Givers only
       </ThemedText>
-      <ThemedText type="moment">Funded — time to buy</ThemedText>
+      <ThemedText type="moment">Ready to buy</ThemedText>
       {listMode ? (
         <>
           <ThemedText type="bodyEm">

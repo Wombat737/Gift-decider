@@ -94,7 +94,7 @@ export function GroupGiftStrip({ item, trickleKey = 0 }: GroupGiftStripProps) {
       </HeroWash>
       {funded ? (
         <ThemedText type="caption" themeColor="textSecondary">
-          Funded
+          {item.status === 'purchased' ? 'Bought' : 'Ready to buy'}
         </ThemedText>
       ) : remaining != null ? (
         <ThemedText type="caption" themeColor="textSecondary">
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   pill: {
     alignSelf: 'flex-start',
     borderRadius: Radius.pill,
-    borderWidth: 2,
+    borderWidth: 1,
     paddingHorizontal: ChipPad.horizontal,
     paddingVertical: ChipPad.vertical,
   },

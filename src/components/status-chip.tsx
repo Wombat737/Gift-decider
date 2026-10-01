@@ -49,7 +49,7 @@ export function StatusChip({ label, tone = 'muted' }: StatusChipProps) {
       style={[styles.chip, { backgroundColor: background, borderColor: border }]}
       accessibilityRole="text"
       accessibilityLabel={`Status: ${label}`}>
-      <ThemedText type="caption" style={{ color, fontWeight: 600 }}>
+      <ThemedText type="caption" style={{ color, fontWeight: 600, letterSpacing: 0.15 }}>
         {label}
       </ThemedText>
     </View>
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     maxWidth: '100%',
     borderRadius: Radius.pill,
-    borderWidth: 2,
+    borderWidth: 1,
     paddingHorizontal: ChipPad.horizontal,
     paddingVertical: ChipPad.vertical,
   },

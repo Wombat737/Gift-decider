@@ -57,22 +57,24 @@ const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    gap: Spacing.twoHalf,
-    paddingVertical: Spacing.five,
+    gap: Spacing.three,
+    paddingVertical: Spacing.four,
     overflow: 'visible',
   },
   title: {
     textAlign: 'center',
-    letterSpacing: -0.14,
+    letterSpacing: -0.4,
+    maxWidth: 340,
   },
   body: {
     textAlign: 'center',
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 320,
   },
   actions: {
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 320,
     alignSelf: 'center',
+    marginTop: Spacing.one,
   },
 });

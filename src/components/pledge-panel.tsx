@@ -266,7 +266,7 @@ export function PledgePanel({
                 />
               ) : (
                 <ThemedText type="bodyEm" themeColor="brand">
-                  Purchased. They still only see who chipped in on {revealLabel}.
+                  Bought. They still only see who chipped in on {revealLabel}.
                 </ThemedText>
               )}
             </>

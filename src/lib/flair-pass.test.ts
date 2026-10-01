@@ -80,7 +80,7 @@ describe('Flair pass (pretty v2) punch-list', () => {
     const itemCard = source('components/item-card.tsx');
     const chips = source('components/vibe-chips.tsx');
     const status = source('components/status-chip.tsx');
-    assert.match(theme, /0 2px 4px rgb\(0 0 0 \/ 0\.05\), 0 8px 20px rgb\(0 0 0 \/ 0\.07\)/);
+    assert.match(theme, /0 1px 2px rgb\(23 23 23 \/ 0\.04\), 0 8px 22px rgb\(23 23 23 \/ 0\.05\)/);
     assert.match(theme, /0 8px 28px rgb\(232 93 76 \/ 0\.18\)/);
     assert.match(card, /selected/);
     assert.match(card, /RingSelected/);

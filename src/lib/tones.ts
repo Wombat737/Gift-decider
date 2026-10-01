@@ -18,7 +18,7 @@ export function ownerMomentTone(): 'brand' {
   return 'brand';
 }
 
-/** Giver list/item chips: sunshine chip-in, coral ready-to-buy, success Bought, reserved Taken. */
+/** Giver list/item chips: sunshine chip-in, coral ready-to-buy, success Bought, reserved Reserved. */
 export function giverChipTone(item: WishlistItem): GiverChipTone {
   const phase = groupGiftPhase(item);
   if (phase === 'purchased' || phase === 'revealed' || item.status === 'purchased') {

@@ -6,18 +6,18 @@ export function statusLabel(status: ItemStatus) {
     case 'reserved':
       return 'Reserved';
     case 'purchased':
-      return 'Purchased';
+      return 'Bought';
     default:
-      return 'Open';
+      return 'Available';
   }
 }
 
-/** Giver-facing soft lock — no names, so other givers aren’t spoiled with who. */
+/** Giver-facing reservation — no names, so other givers aren’t spoiled with who. */
 export function giverStatusLabel(status: ItemStatus, funded = false) {
   if (status === 'purchased') return 'Bought';
-  if (funded) return 'Funded';
-  if (status === 'reserved') return 'Taken';
-  return 'Open';
+  if (funded) return 'Ready to buy';
+  if (status === 'reserved') return 'Reserved';
+  return 'Available';
 }
 
 /** Giver grid chip: Collecting → Ready to buy → Bought, plus Revealed after the date. */

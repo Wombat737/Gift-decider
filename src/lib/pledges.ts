@@ -86,7 +86,7 @@ export function groupGiftPhaseLabel(phase: GroupGiftPhase | null) {
     case 'ready_to_buy':
       return 'Ready to buy';
     case 'purchased':
-      return 'Purchased';
+      return 'Bought';
     case 'revealed':
       return 'Revealed';
     default:

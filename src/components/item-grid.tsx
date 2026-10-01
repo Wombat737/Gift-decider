@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   skelImage: {
     width: '100%',
     aspectRatio: 4 / 5,
-    borderRadius: Radius.card - 4,
+    borderRadius: Radius.card - 6,
   },
   skelLine: {
     height: 12,

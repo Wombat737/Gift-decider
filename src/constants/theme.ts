@@ -147,25 +147,47 @@ export const ChipPad = {
 /** Empty-state hero art. */
 export const IlluSize = 140;
 
-/** Richer gift-card lift (pretty v2). */
+/** Quiet card lift — short contact shadow, soft falloff. */
 export const CardShadow: ViewStyle = Platform.select({
   ios: {
     shadowColor: CoralCoast.ink,
-    shadowOpacity: 0.07,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
   },
   android: {
-    elevation: 3,
+    elevation: 2,
   },
   web: {
-    boxShadow: '0 2px 4px rgb(0 0 0 / 0.05), 0 8px 20px rgb(0 0 0 / 0.07)',
+    boxShadow: '0 1px 2px rgb(23 23 23 / 0.04), 0 8px 22px rgb(23 23 23 / 0.05)',
   },
   default: {
     shadowColor: CoralCoast.ink,
-    shadowOpacity: 0.07,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+  },
+}) as ViewStyle;
+
+/** Primary button at rest — coral tint, lighter than the press lift. */
+export const ShadowButton: ViewStyle = Platform.select({
+  ios: {
+    shadowColor: CoralCoast.brand,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  android: {
+    elevation: 2,
+  },
+  web: {
+    boxShadow: '0 1px 2px rgb(23 23 23 / 0.04), 0 6px 16px rgb(232 93 76 / 0.12)',
+  },
+  default: {
+    shadowColor: CoralCoast.brand,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
   },
 }) as ViewStyle;
 

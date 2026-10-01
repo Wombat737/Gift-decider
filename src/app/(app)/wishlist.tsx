@@ -91,7 +91,7 @@ export default function WishlistGridScreen() {
               }}
               hitSlop={12}
               style={styles.headerBtn}>
-              <ThemedText type="smallBold" themeColor="brand">
+              <ThemedText type="smallBold">
                 Settings
               </ThemedText>
             </Pressable>
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.one,
+    gap: Spacing.two,
   },
   headerBtn: {
     paddingHorizontal: Spacing.two,

@@ -101,7 +101,7 @@ export function Screen({
                 styles.footerDock,
                 {
                   borderTopColor: theme.border,
-                  backgroundColor: theme.background,
+                  backgroundColor: theme.backgroundElement,
                 },
               ]}>
               <View collapsable={false} style={[styles.footerInner, padded && styles.footerPadded]}>
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     flexShrink: 0,
     zIndex: 2,
-    elevation: 8,
+    elevation: 2,
     borderTopWidth: StyleSheet.hairlineWidth,
     pointerEvents: 'auto',
   },

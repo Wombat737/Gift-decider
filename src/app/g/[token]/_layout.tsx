@@ -14,7 +14,7 @@ export default function SharedListLayout() {
           headerShadowVisible: false,
           headerStyle: { backgroundColor: theme.background },
           headerTintColor: theme.text,
-          headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '700' },
+          headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '600' },
           contentStyle: { backgroundColor: theme.background },
           freezeOnBlur: false,
           animation: 'slide_from_right',
