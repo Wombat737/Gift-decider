@@ -12,6 +12,8 @@ type ItemGridProps = {
   items: WishlistItem[];
   hrefFor: (item: WishlistItem) => Href;
   showStatus?: boolean;
+  onClaim?: (item: WishlistItem) => void;
+  claimingId?: string | null;
   emptyTitle: string;
   emptyBody: string;
   emptyActionLabel?: string;
@@ -25,6 +27,8 @@ export function ItemGrid({
   items,
   hrefFor,
   showStatus = false,
+  onClaim,
+  claimingId,
   emptyTitle,
   emptyBody,
   emptyActionLabel,
@@ -51,7 +55,13 @@ export function ItemGrid({
     <View style={styles.grid}>
       {items.map((item) => (
         <View key={`${item.id}:${item.status}:${item.reserved_at ?? ''}`} style={styles.cell}>
-          <ItemCard item={item} href={hrefFor(item)} showStatus={showStatus} />
+          <ItemCard
+            item={item}
+            href={hrefFor(item)}
+            showStatus={showStatus}
+            onClaim={onClaim}
+            claimBusy={claimingId === item.id}
+          />
         </View>
       ))}
     </View>

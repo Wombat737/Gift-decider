@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 
 import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { PrettyCopy } from '@/lib/copy';
 
 export default function AppLayout() {
   const theme = useTheme();
@@ -18,7 +19,7 @@ export default function AppLayout() {
       <Stack.Screen name="wishlist" options={{ title: 'Your wishlist' }} />
       <Stack.Screen name="add" options={{ title: 'Add item' }} />
       <Stack.Screen name="paste" options={{ title: 'Paste Instagram URL' }} />
-      <Stack.Screen name="share" options={{ title: 'Share & occasions' }} />
+      <Stack.Screen name="share" options={{ title: PrettyCopy.shareTitle }} />
       <Stack.Screen name="item/[id]" options={{ title: 'Item' }} />
       <Stack.Screen name="people" options={{ title: 'People' }} />
       <Stack.Screen name="requests" options={{ title: 'Requests' }} />

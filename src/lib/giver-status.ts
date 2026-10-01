@@ -1,6 +1,28 @@
+import { PrettyCopy } from '@/lib/copy';
 import { giverItemChipLabel } from '@/lib/format';
 import { giverChipTone, type GiverChipTone } from '@/lib/tones';
 import type { ItemStatus, WishlistItem } from '@/lib/types';
+
+let storedGiverName = '';
+
+/** Name from an earlier claim this session. Empty until they type one. */
+export function rememberedGiverName() {
+  return storedGiverName;
+}
+
+export function rememberGiverName(name: string) {
+  const trimmed = name.trim();
+  if (trimmed) storedGiverName = trimmed;
+  return storedGiverName;
+}
+
+/** True when this giver's name is the one stored on the hold. */
+export function giverHoldsClaim(item: WishlistItem, name?: string | null) {
+  if (item.status === 'available') return false;
+  const by = item.reserved_by?.trim();
+  const mine = (name ?? storedGiverName).trim();
+  return Boolean(by && mine && by === mine);
+}
 
 /** RPC / JSON rows may omit `status` when table column grants hide giver fields. */
 export function coerceItemStatus(value: unknown, fallback: ItemStatus = 'available'): ItemStatus {
@@ -118,9 +140,9 @@ export function giverStatusActions(item: WishlistItem, busy = false) {
     chipTone: chip.tone,
     lockLabel: busy
       ? 'Saving…'
-      : taken && item.status === 'reserved'
+      : item.status === 'reserved'
         ? 'Already taken — steal the lock?'
-        : 'Soft-lock this',
+        : PrettyCopy.claimCta,
     purchaseLabel: item.status === 'purchased' ? 'Already purchased' : 'Mark purchased',
     releaseLabel: item.status === 'available' ? 'Not on hold' : 'Release hold',
     taken,
