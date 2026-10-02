@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.one,
   },
   headerBtn: {
     paddingHorizontal: Spacing.two,
