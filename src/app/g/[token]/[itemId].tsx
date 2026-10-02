@@ -9,6 +9,7 @@ import { Button } from '@/components/button';
 import { ConfidenceBadge } from '@/components/confidence-badge';
 import { DollarFlick } from '@/components/dollar-flick';
 import { GiverComments } from '@/components/giver-comments';
+import { HelpTip } from '@/components/help-tip';
 import { NativePressable } from '@/components/native-pressable';
 import { NoSubLock } from '@/components/no-sub-lock';
 import { PledgePanel } from '@/components/pledge-panel';
@@ -463,12 +464,12 @@ export default function GiverItemScreen() {
           </View>
         ) : null}
         <View style={styles.chipRow}>
-          <StatusChip label={actions.chipLabel} tone={actions.chipTone} />
+          <View style={styles.chipWithTip}>
+            <StatusChip label={actions.chipLabel} tone={actions.chipTone} />
+            <HelpTip title={actions.chipLabel} body={giverStatusHint(current)} />
+          </View>
           <DollarFlick playKey={flickKey} />
         </View>
-        <ThemedText type="small" themeColor="textSecondary">
-          {giverStatusHint(current)}
-        </ThemedText>
       </View>
 
       <ConfidenceBadge item={current} />
@@ -541,6 +542,13 @@ const styles = StyleSheet.create({
   chipRow: {
     position: 'relative',
     alignSelf: 'flex-start',
+    maxWidth: '100%',
+  },
+  chipWithTip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: Spacing.two,
     maxWidth: '100%',
   },
   buyRow: {

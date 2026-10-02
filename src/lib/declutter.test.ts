@@ -53,6 +53,19 @@ describe('Declutter / noise-reduction', () => {
     assert.match(tip, /accessibilityLabel/);
     assert.match(tip, /showHelp/);
     assert.match(tip, /\?/);
+
+    const giverItem = source('app/g/[token]/[itemId].tsx');
+    const badge = source('components/confidence-badge.tsx');
+    const notes = source('components/giver-comments.tsx');
+    assert.match(giverItem, /HelpTip/);
+    assert.match(giverItem, /body=\{giverStatusHint\(current\)\}/);
+    assert.equal(/<ThemedText[^>]*>\s*\{giverStatusHint\(current\)\}/.test(giverItem), false);
+    assert.match(badge, /HelpTip/);
+    assert.match(badge, /body=\{confidence\.reason\}/);
+    assert.equal(/themeColor="textSecondary"/.test(badge), false);
+    assert.match(notes, /HelpTip/);
+    assert.match(notes, /Only other givers see this — not \$\{who\}\./);
+    assert.equal(/<ThemedText[^>]*>\s*Only other givers see this/.test(notes), false);
   });
 
   it('strips view pills and on-screen how-to essays', () => {
@@ -84,6 +97,9 @@ describe('Declutter / noise-reduction', () => {
     assert.equal(/label: 'All'/.test(wishlist), false);
     assert.match(wishlist, /QuietSelect/);
     assert.match(wishlist, /shouldShowOccasionFilter/);
+    assert.match(wishlist, /paddingTop: Spacing\.five/);
+    assert.match(wishlist, /function listLead/);
+    assert.match(wishlist, /1 gift/);
     assert.equal(/YOUR LIST/.test(wishlist), false);
     assert.equal(/accessibilityLabel="Your list"/.test(wishlist), false);
     assert.equal(/accessibilityLabel="Giver view"/.test(wishlist), false);

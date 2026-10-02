@@ -20,6 +20,14 @@ import { PrettyCopy } from '@/lib/copy';
 import { acceptBannerText, requestBannerText } from '@/lib/inbox';
 import { shouldShowOccasionFilter } from '@/lib/occasions';
 
+function listLead(occasionId: string, occasions: { id: string; title: string }[], count: number) {
+  if (occasionId === 'none') return 'Unassigned';
+  const picked = occasions.find((row) => row.id === occasionId);
+  if (picked) return picked.title;
+  if (occasions.length === 1) return occasions[0].title;
+  return count === 1 ? '1 gift' : `${count} gifts`;
+}
+
 export default function WishlistGridScreen() {
   const theme = useTheme();
   const { items, occasions, loading, error, refresh } = useWishlist();
@@ -51,8 +59,10 @@ export default function WishlistGridScreen() {
     }
   }, [occasionId, occasions]);
 
+  const lead = listLead(occasionId, occasions, visible.length);
+
   return (
-    <Screen>
+    <Screen style={styles.page}>
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -101,6 +111,9 @@ export default function WishlistGridScreen() {
       />
       {!loading && visible.length > 0 ? (
         <View style={styles.actions}>
+          <ThemedText type="small" themeColor="textSecondary">
+            {lead}
+          </ThemedText>
           <Button label={PrettyCopy.ownerEmptyCta} icon="gift" onPress={() => router.push('/add')} />
         </View>
       ) : null}
@@ -163,8 +176,12 @@ export default function WishlistGridScreen() {
 }
 
 const styles = StyleSheet.create({
+  page: {
+    paddingTop: Spacing.five,
+  },
   actions: {
     gap: Spacing.twoHalf,
+    marginTop: Spacing.two,
   },
   headerRow: {
     flexDirection: 'row',
