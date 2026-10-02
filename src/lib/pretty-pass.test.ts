@@ -34,7 +34,7 @@ describe('Pretty pass punch-list', () => {
     assert.equal(CoralCoast.brand, '#E85D4C');
     assert.equal(CoralCoast.accent, '#F5B942');
     const theme = source('constants/theme.ts');
-    assert.match(theme, /0 2px 4px rgb\(0 0 0 \/ 0\.05\), 0 8px 20px rgb\(0 0 0 \/ 0\.07\)/);
+    assert.match(theme, /0 1px 2px rgb\(23 23 23 \/ 0\.04\), 0 8px 22px rgb\(23 23 23 \/ 0\.05\)/);
     assert.match(theme, /twoHalf: 12/);
     assert.equal(source('global.css').includes('Fraunces'), false);
     assert.match(source('global.css'), /--bg:\s*#fafafa/);
@@ -79,8 +79,8 @@ describe('Pretty pass punch-list', () => {
     assert.match(header, /type="heading"/);
     assert.match(card, /aspectRatio: 4 \/ 5/);
     assert.match(card, /type="titleSm"/);
-    assert.match(card, /themeColor="brand"/);
-    assert.match(card, /Open/);
+    assert.match(card, /StatusChip/);
+    assert.equal(/Open/.test(card), false);
     assert.match(empty, /type="display"/);
     assert.match(wishlist, /PrettyCopy\.ownerEmptyTitle/);
     assert.match(wishlist, /PrettyCopy\.ownerEmptyCta/);

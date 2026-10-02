@@ -13,7 +13,7 @@ export default function AppLayout() {
         headerShadowVisible: false,
         headerStyle: { backgroundColor: theme.background },
         headerTintColor: theme.text,
-        headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '700' },
+        headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '600' },
         contentStyle: { backgroundColor: theme.background },
       }}>
       <Stack.Screen name="wishlist" options={{ title: 'Your wishlist' }} />

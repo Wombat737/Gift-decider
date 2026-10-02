@@ -74,11 +74,12 @@ const styles = StyleSheet.create({
   titleSm: {
     fontFamily: Fonts.sans,
     ...TypeScale.titleSm,
+    letterSpacing: -0.22,
   },
   display: {
     fontFamily: Fonts.sans,
     ...TypeScale.display,
-    letterSpacing: -0.4,
+    letterSpacing: -0.55,
   },
   small: {
     fontFamily: Fonts.sans,
@@ -95,12 +96,12 @@ const styles = StyleSheet.create({
   heading: {
     fontFamily: Fonts.sans,
     ...TypeScale.title,
-    letterSpacing: -0.2,
+    letterSpacing: -0.28,
   },
   title: {
     fontFamily: Fonts.sans,
     ...TypeScale.display,
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontFamily: Fonts.sans,
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
   moment: {
     fontFamily: Fonts.sans,
     ...TypeScale.title,
-    letterSpacing: -0.2,
+    letterSpacing: -0.28,
   },
   momentSmall: {
     fontFamily: Fonts.sans,
@@ -124,7 +125,7 @@ const styles = StyleSheet.create({
     fontSize: TypeScale.caption.fontSize,
     lineHeight: TypeScale.caption.lineHeight,
     fontWeight: 600,
-    letterSpacing: 1.2,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   code: {

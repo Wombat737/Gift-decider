@@ -88,7 +88,7 @@ function RootNavigator({
         headerShadowVisible: false,
         headerStyle: { backgroundColor: headerBackground },
         headerTintColor: headerTint,
-        headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '700' },
+        headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '600' },
         contentStyle: { backgroundColor: headerBackground },
       }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />

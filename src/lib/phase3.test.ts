@@ -191,7 +191,7 @@ describe('Phase 3 demo walkthrough — surprise-safe', () => {
     const espresso = getDemoItem('demo-espresso');
     assert.ok(espresso);
     assert.equal(groupGiftPhase(espresso), 'collecting');
-    assert.equal(giverItemChipLabel(espresso), 'Open · Collecting');
+    assert.equal(giverItemChipLabel(espresso), 'Available · Collecting');
     assert.match(espresso.pay_instructions ?? '', /PayID/);
 
     const funded = simulateDemoFunded('demo-espresso');

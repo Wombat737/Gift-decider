@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
     minWidth: 0,
     borderRadius: Radius.card,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     gap: Spacing.two,
   },
   padded: {

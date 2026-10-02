@@ -11,7 +11,7 @@ import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, w
 import { FlairIcon, type FlairIconName } from '@/components/flair-icons';
 import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, ShadowFloat, Spacing } from '@/constants/theme';
+import { Radius, ShadowButton, ShadowFloat, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { BUTTON_PRESS_MS, BUTTON_PRESS_SCALE } from '@/lib/delight';
 
@@ -88,6 +88,7 @@ export function Button({
       : variant === 'ghost'
         ? theme.brandInk
         : theme.text;
+  const filled = variant === 'primary' || variant === 'pledge';
   const borderColor =
     variant === 'secondary' ? theme.border : variant === 'ghost' ? 'transparent' : variant === 'pledge' ? theme.accent : theme.brand;
   const face = [
@@ -95,24 +96,26 @@ export function Button({
     {
       backgroundColor: background,
       borderColor,
+      borderWidth: filled ? 0 : 1,
       opacity: disabled ? 0.45 : 1,
     },
   ];
+  const labelStyle = { color, textAlign: 'center' as const, pointerEvents: 'none' as const, fontWeight: '600' as const, letterSpacing: -0.15 };
 
   const labelNode = icon ? (
     <View style={styles.labelRow}>
       <FlairIcon name={icon} color={color} />
-      <ThemedText type="bodyEm" style={{ color, textAlign: 'center', pointerEvents: 'none' }}>
+      <ThemedText type="bodyEm" style={labelStyle}>
         {label}
       </ThemedText>
     </View>
   ) : (
-    <ThemedText type="bodyEm" style={{ color, textAlign: 'center', pointerEvents: 'none' }}>
+    <ThemedText type="bodyEm" style={labelStyle}>
       {label}
     </ThemedText>
   );
 
-  const wrapStyle = [styles.scaleWrap, pressStyle, lift ? ShadowFloat : null];
+  const wrapStyle = [styles.scaleWrap, pressStyle, filled && !disabled ? (lift ? ShadowFloat : ShadowButton) : null];
 
   if (nativePress) {
     return (

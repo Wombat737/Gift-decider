@@ -91,7 +91,7 @@ export default function WishlistGridScreen() {
               }}
               hitSlop={12}
               style={styles.headerBtn}>
-              <ThemedText type="smallBold" themeColor="brand">
+              <ThemedText type="smallBold">
                 Settings
               </ThemedText>
             </Pressable>

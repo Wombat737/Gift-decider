@@ -44,18 +44,18 @@ describe('Giver status icon after lock / purchase / release', () => {
     const list = listDemoSharedItems('demo');
     const mug = list.find((item) => item.id === 'demo-mug');
     assert.ok(mug);
-    assert.equal(giverStatusChip(mug).label, 'Open');
+    assert.equal(giverStatusChip(mug).label, 'Available');
     assert.equal(giverStatusChip(mug).tone, 'muted');
 
     const taken = setDemoItemStatus('demo-mug', 'reserved', 'Alex');
     assert.equal(taken.status, 'reserved');
-    assert.equal(giverStatusChip(taken).label, 'Taken');
+    assert.equal(giverStatusChip(taken).label, 'Reserved');
     assert.equal(giverStatusChip(taken).tone, 'reserved');
 
     const afterLock = replaceSharedItem(list, taken);
     const listMug = afterLock.find((item) => item.id === 'demo-mug');
     assert.ok(listMug);
-    assert.equal(giverStatusChip(listMug).label, 'Taken');
+    assert.equal(giverStatusChip(listMug).label, 'Reserved');
     assert.equal(giverStatusChip(listMug).tone, 'reserved');
 
     const bought = setDemoItemStatus('demo-mug', 'purchased', 'Alex');
@@ -66,20 +66,20 @@ describe('Giver status icon after lock / purchase / release', () => {
 
     const released = setDemoItemStatus('demo-mug', 'available');
     const afterRelease = replaceSharedItem(afterBuy, released);
-    assert.equal(giverStatusChip(released).label, 'Open');
+    assert.equal(giverStatusChip(released).label, 'Available');
     assert.equal(giverStatusChip(released).tone, 'muted');
-    assert.equal(giverStatusChip(afterRelease.find((item) => item.id === 'demo-mug')!).label, 'Open');
+    assert.equal(giverStatusChip(afterRelease.find((item) => item.id === 'demo-mug')!).label, 'Available');
 
     const collecting = getDemoItem('demo-espresso')!;
-    assert.equal(giverStatusChip(collecting).label, 'Open · Collecting');
+    assert.equal(giverStatusChip(collecting).label, 'Available · Collecting');
     const takenEspresso = setDemoItemStatus('demo-espresso', 'reserved', 'Alex');
-    assert.equal(giverStatusChip(takenEspresso).label, 'Taken · Collecting');
+    assert.equal(giverStatusChip(takenEspresso).label, 'Reserved · Collecting');
     const boughtEspresso = setDemoItemStatus('demo-espresso', 'purchased', 'Alex');
     assert.equal(giverStatusChip(boughtEspresso).label, 'Bought');
   });
 
   it('giver list re-reads the demo store after lock / purchase / release without a local patch', () => {
-    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
+    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Available');
 
     let notified = 0;
     const stop = subscribeDemoStore(() => {
@@ -91,25 +91,25 @@ describe('Giver status icon after lock / purchase / release', () => {
 
     assert.ok(notified >= 1);
     assert.ok(getDemoStoreVersion() > versionBefore);
-    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Taken');
-    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Taken');
+    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Reserved');
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Reserved');
 
     setDemoItemStatus('demo-mug', 'purchased', 'Alex');
     assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Bought');
     assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Bought');
 
     setDemoItemStatus('demo-mug', 'available');
-    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
-    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
+    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Available');
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Available');
 
     const housewarming = listDemoSharedItems('demo-housewarming');
     const book = housewarming.find((item) => item.id === 'demo-book');
     assert.ok(book);
-    assert.equal(giverStatusChip(book).label, 'Open');
+    assert.equal(giverStatusChip(book).label, 'Available');
     setDemoItemStatus('demo-book', 'reserved', 'Jo');
     assert.equal(
       giverStatusChip(listDemoSharedItems('demo-housewarming').find((item) => item.id === 'demo-book')!).label,
-      'Taken',
+      'Reserved',
     );
 
     const owner = ownerSafeItem(getDemoItem('demo-mug')!);
@@ -119,10 +119,10 @@ describe('Giver status icon after lock / purchase / release', () => {
 
   it('seeded socks stay Taken on the giver list and look Open to the owner', () => {
     const socks = getDemoItem('demo-socks')!;
-    assert.equal(giverStatusChip(socks).label, 'Taken');
+    assert.equal(giverStatusChip(socks).label, 'Reserved');
     const owner = ownerSafeItem(socks);
     assert.equal(owner.status, 'available');
-    assert.equal(giverStatusChip(owner).label, 'Open');
+    assert.equal(giverStatusChip(owner).label, 'Available');
     assert.equal(giverStatusChip(owner).tone, 'muted');
     assert.equal(JSON.stringify(owner).includes('Taken'), false);
   });
@@ -135,7 +135,7 @@ describe('Giver status icon after lock / purchase / release', () => {
 
     const stripped = { ...mug, status: undefined as unknown as typeof mug.status };
     const taken = applyItemStatus(stripped, coerceItemStatus(stripped.status, 'reserved'), 'Alex');
-    assert.equal(giverStatusChip(taken).label, 'Taken');
+    assert.equal(giverStatusChip(taken).label, 'Reserved');
 
     const bought = applyItemStatus(taken, coerceItemStatus(undefined, 'purchased'));
     assert.equal(giverStatusChip(bought).label, 'Bought');
@@ -153,20 +153,20 @@ describe('Giver status icon after lock / purchase / release', () => {
 
     const listOpen = pickSharedItem('demo-mug', peekGiverCatalog(token));
     assert.ok(listOpen);
-    assert.equal(giverStatusChip(listOpen).label, 'Open');
+    assert.equal(giverStatusChip(listOpen).label, 'Available');
 
     const taken = applyItemStatus(mug, 'reserved', 'Alex');
     patchGiverCatalog(token, taken);
     const listTaken = pickSharedItem('demo-mug', peekGiverCatalog(token), [mug]);
     assert.ok(listTaken);
-    assert.equal(giverStatusChip(listTaken).label, 'Taken');
+    assert.equal(giverStatusChip(listTaken).label, 'Reserved');
     assert.equal(listTaken.status, 'reserved');
 
     patchGiverCatalog(token, applyItemStatus(taken, 'purchased', 'Alex'));
     assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(token))!).label, 'Bought');
 
     patchGiverCatalog(token, applyItemStatus(taken, 'available'));
-    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(token))!).label, 'Open');
+    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(token))!).label, 'Available');
 
     assert.equal(shareTokenParam(['demo-mug']), 'demo-mug');
     assert.equal(pickSharedItem(shareTokenParam(['demo-mug']), peekGiverCatalog(token))?.id, 'demo-mug');
@@ -191,7 +191,7 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.equal(giverStatusChip(peekGiverCatalog('live-share-stale')[0]).label, 'Bought');
 
     const released = mergeGiverItem(applyItemStatus(bought, 'available'), bought);
-    assert.equal(giverStatusChip(released).label, 'Open');
+    assert.equal(giverStatusChip(released).label, 'Available');
     assert.equal(released.status, 'available');
     assert.equal(released.reserved_at, null);
 
@@ -229,7 +229,7 @@ describe('Giver status icon after lock / purchase / release', () => {
 
     const released = setDemoItemStatus('demo-mug', 'available');
     patchGiverCatalog('demo', released);
-    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Available');
   });
 
   it('item screen paints Taken/Bought/Open immediately while the catalog is still stale', () => {
@@ -242,27 +242,27 @@ describe('Giver status icon after lock / purchase / release', () => {
 
     const open = paint();
     assert.ok(open);
-    assert.equal(giverStatusChip(open).label, 'Open');
+    assert.equal(giverStatusChip(open).label, 'Available');
     assert.equal(giverStatusActions(open).lockLabel, PrettyCopy.claimCta);
     assert.equal(giverStatusActions(open).purchaseLabel, 'Mark purchased');
-    assert.equal(giverStatusActions(open).releaseLabel, 'Not on hold');
+    assert.equal(giverStatusActions(open).releaseLabel, 'Available');
 
     local = applyItemStatus(open, 'reserved', 'Alex');
     const taken = paint();
     assert.ok(taken);
     assert.equal(taken.status, 'reserved');
-    assert.equal(giverStatusChip(taken).label, 'Taken');
-    assert.equal(giverStatusActions(taken).lockLabel, 'Already taken — steal the lock?');
+    assert.equal(giverStatusChip(taken).label, 'Reserved');
+    assert.equal(giverStatusActions(taken).lockLabel, PrettyCopy.claimTaken);
     assert.equal(giverStatusActions(taken).purchaseLabel, 'Mark purchased');
-    assert.equal(giverStatusActions(taken).releaseLabel, 'Release hold');
+    assert.equal(giverStatusActions(taken).releaseLabel, 'Release reservation');
     assert.equal(giverStatusActions(taken, true).lockLabel, 'Saving…');
     // Catalog not patched yet — the old `shareItem ?? item` paint would stay Open.
-    assert.equal(giverStatusChip((pickSharedItem('demo-mug', peekGiverCatalog(liveToken)) ?? local)!).label, 'Open');
-    assert.equal(giverStatusChip(preferLocalGiverItem(pickSharedItem('demo-mug', peekGiverCatalog(liveToken)), local)!).label, 'Taken');
+    assert.equal(giverStatusChip((pickSharedItem('demo-mug', peekGiverCatalog(liveToken)) ?? local)!).label, 'Available');
+    assert.equal(giverStatusChip(preferLocalGiverItem(pickSharedItem('demo-mug', peekGiverCatalog(liveToken)), local)!).label, 'Reserved');
 
     patchGiverCatalog(liveToken, local);
-    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(liveToken))!).label, 'Taken');
-    assert.equal(giverStatusChip(paint()!).label, 'Taken');
+    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(liveToken))!).label, 'Reserved');
+    assert.equal(giverStatusChip(paint()!).label, 'Reserved');
 
     local = applyItemStatus(taken, 'purchased', 'Alex');
     const bought = paint();
@@ -270,7 +270,7 @@ describe('Giver status icon after lock / purchase / release', () => {
     assert.equal(giverStatusChip(bought).label, 'Bought');
     assert.equal(giverStatusActions(bought).purchaseLabel, 'Already purchased');
     assert.equal(giverStatusActions(bought).lockLabel, PrettyCopy.claimCta);
-    assert.equal(giverStatusActions(bought).releaseLabel, 'Release hold');
+    assert.equal(giverStatusActions(bought).releaseLabel, 'Release reservation');
     patchGiverCatalog(liveToken, local);
     assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(liveToken))!).label, 'Bought');
 
@@ -278,11 +278,11 @@ describe('Giver status icon after lock / purchase / release', () => {
     const released = paint();
     assert.ok(released);
     assert.equal(released.status, 'available');
-    assert.equal(giverStatusChip(released).label, 'Open');
-    assert.equal(giverStatusActions(released).releaseLabel, 'Not on hold');
+    assert.equal(giverStatusChip(released).label, 'Available');
+    assert.equal(giverStatusActions(released).releaseLabel, 'Available');
     assert.equal(giverStatusActions(released).lockLabel, PrettyCopy.claimCta);
     patchGiverCatalog(liveToken, local);
-    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(liveToken))!).label, 'Open');
+    assert.equal(giverStatusChip(pickSharedItem('demo-mug', peekGiverCatalog(liveToken))!).label, 'Available');
 
     const socks = getDemoItem('demo-socks')!;
     assert.equal(preferLocalGiverItem(socks, local)?.id, 'demo-socks');
@@ -292,10 +292,10 @@ describe('Giver status icon after lock / purchase / release', () => {
 
   it('demo overlay write-through keeps Taken while the demo store is still Open', () => {
     const mug = getDemoItem('demo-mug')!;
-    assert.equal(giverStatusChip(mug).label, 'Open');
+    assert.equal(giverStatusChip(mug).label, 'Available');
     patchGiverCatalog('demo', applyItemStatus(mug, 'reserved', 'Alex'));
-    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Taken');
-    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Open');
+    assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Reserved');
+    assert.equal(giverStatusChip(listDemoSharedItems('demo').find((item) => item.id === 'demo-mug')!).label, 'Available');
     patchGiverCatalog('demo', applyItemStatus(mug, 'purchased', 'Alex'));
     assert.equal(giverStatusChip(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!).label, 'Bought');
     const owner = ownerSafeItem(peekGiverCatalog('demo').find((item) => item.id === 'demo-mug')!);

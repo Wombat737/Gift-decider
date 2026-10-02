@@ -10,7 +10,7 @@ export const HelpFaq = [
   },
   {
     q: 'How do chip-in and reveal work?',
-    a: 'Optional target amount lets mates chip in. You see who it’s from on the reveal date they pick — not as soon as it’s funded. Taken and bought stay between givers.',
+    a: 'Optional target amount lets mates chip in. You see who it’s from on the reveal date they pick — not as soon as it’s funded. Reserved and bought stay between givers.',
   },
   {
     q: 'What’s the vibe board?',

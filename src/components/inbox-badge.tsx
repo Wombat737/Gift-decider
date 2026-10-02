@@ -24,7 +24,7 @@ export function HeaderInboxLink({ label, count, onPress, accessibilityLabel }: H
       onPress={onPress}
       hitSlop={12}
       style={styles.headerBtn}>
-      <ThemedText type="smallBold" themeColor="brand">
+      <ThemedText type="smallBold">
         {label}
       </ThemedText>
       {badge ? (

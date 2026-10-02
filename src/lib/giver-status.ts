@@ -141,10 +141,10 @@ export function giverStatusActions(item: WishlistItem, busy = false) {
     lockLabel: busy
       ? 'Saving…'
       : item.status === 'reserved'
-        ? 'Already taken — steal the lock?'
+        ? PrettyCopy.claimTaken
         : PrettyCopy.claimCta,
     purchaseLabel: item.status === 'purchased' ? 'Already purchased' : 'Mark purchased',
-    releaseLabel: item.status === 'available' ? 'Not on hold' : 'Release hold',
+    releaseLabel: item.status === 'available' ? 'Available' : PrettyCopy.releaseReservation,
     taken,
   };
 }
