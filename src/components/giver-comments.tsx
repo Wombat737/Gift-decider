@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { HelpTip } from '@/components/help-tip';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -98,12 +99,12 @@ export function GiverComments({ itemId, ownerName, loggedIn, userId, demoGiverPe
 
   return (
     <Card>
-      <ThemedText type="eyebrow" themeColor="brand">
-        Giver notes
-      </ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        Only other givers see this — not {who}.
-      </ThemedText>
+      <View style={styles.titleRow}>
+        <ThemedText type="eyebrow" themeColor="brand">
+          Giver notes
+        </ThemedText>
+        <HelpTip title="Giver notes" body={`Only other givers see this — not ${who}.`} />
+      </View>
 
       {!loggedIn && !demoGiverPersona ? (
         <>
@@ -180,6 +181,13 @@ export function GiverComments({ itemId, ownerName, loggedIn, userId, demoGiverPe
 }
 
 const styles = StyleSheet.create({
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: Spacing.two,
+    maxWidth: '100%',
+  },
   thread: {
     gap: Spacing.one,
     width: '100%',

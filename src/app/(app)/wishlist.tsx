@@ -52,7 +52,7 @@ export default function WishlistGridScreen() {
   }, [occasionId, occasions]);
 
   return (
-    <Screen>
+    <Screen style={styles.page}>
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -163,8 +163,12 @@ export default function WishlistGridScreen() {
 }
 
 const styles = StyleSheet.create({
+  page: {
+    paddingTop: Spacing.five,
+  },
   actions: {
     gap: Spacing.twoHalf,
+    marginTop: Spacing.two,
   },
   headerRow: {
     flexDirection: 'row',
