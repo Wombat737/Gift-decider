@@ -1,4 +1,4 @@
-import { groupGiftPhase, isFunded } from '@/lib/pledges';
+import { groupGiftPhase } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
 
 /** Chip tones used on giver surfaces. `success` is giver-only (Bought). */
@@ -26,6 +26,6 @@ export function giverChipTone(item: WishlistItem): GiverChipTone {
   }
   if (phase === 'ready_to_buy') return 'brand';
   if (item.status === 'reserved') return 'reserved';
-  if (phase === 'collecting' || isFunded(item)) return 'accent';
+  if (phase === 'collecting') return 'accent';
   return 'muted';
 }

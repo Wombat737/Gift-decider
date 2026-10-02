@@ -22,6 +22,7 @@ import { useAuth } from '@/context/auth-context';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
+import { giverStatusHint } from '@/lib/format';
 import { tryStartDelight } from '@/lib/delight';
 import { hapticLight } from '@/lib/haptics';
 import { isDemoShareToken } from '@/lib/demo-store';
@@ -466,11 +467,7 @@ export default function GiverItemScreen() {
           <DollarFlick playKey={flickKey} />
         </View>
         <ThemedText type="small" themeColor="textSecondary">
-          {current.status === 'purchased'
-            ? PrettyCopy.purchasedGiver
-            : current.status === 'reserved'
-              ? PrettyCopy.softLock
-              : PrettyCopy.claimHint}
+          {giverStatusHint(current)}
         </ThemedText>
       </View>
 

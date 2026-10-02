@@ -41,21 +41,40 @@ export function itemPledges(item: WishlistItem): ItemPledge[] {
   return item.pledges ?? [];
 }
 
+function toCents(amount: number) {
+  return Math.round(amount * 100);
+}
+
 export function pledgeTotal(item: WishlistItem) {
   return itemPledges(item).reduce((sum, pledge) => sum + pledge.amount, 0);
 }
 
-export function pledgeRemaining(item: WishlistItem) {
-  const target = item.target_amount;
-  if (target == null || target <= 0) return null;
-  return Math.max(0, Math.round((target - pledgeTotal(item)) * 100) / 100);
+/** Same cents the progress bar uses. A positive target is the funding threshold. */
+export function hasFundingTarget(item: Pick<WishlistItem, 'target_amount'>) {
+  return item.target_amount != null && item.target_amount > 0;
 }
 
+export function pledgeTotalCents(item: WishlistItem) {
+  return itemPledges(item).reduce((sum, pledge) => sum + toCents(pledge.amount), 0);
+}
+
+export function pledgeRemaining(item: WishlistItem) {
+  if (!hasFundingTarget(item)) return null;
+  const short = toCents(item.target_amount!) - pledgeTotalCents(item);
+  return short > 0 ? short / 100 : 0;
+}
+
+/**
+ * Ready-to-buy threshold.
+ * Positive target: pledge cents ≥ target cents (the progress bar). `funded_at`
+ * cannot skip a shortfall. No target: an explicit `funded_at` stamp is the
+ * threshold, because there is no bar to contradict. Never the reveal date.
+ */
 export function isFunded(item: WishlistItem) {
-  if (item.funded_at) return true;
-  const target = item.target_amount;
-  if (target == null || target <= 0) return false;
-  return pledgeTotal(item) >= target;
+  if (hasFundingTarget(item)) {
+    return pledgeTotalCents(item) >= toCents(item.target_amount!);
+  }
+  return Boolean(item.funded_at);
 }
 
 export function contributorLabel(displayName: string | null | undefined) {
@@ -92,6 +111,27 @@ export function groupGiftPhaseLabel(phase: GroupGiftPhase | null) {
     default:
       return null;
   }
+}
+
+/** Headline on the giver group-gift panel. Ready to buy only in that phase. */
+export function groupGiftHeadline(item: WishlistItem) {
+  const phase = groupGiftPhase(item);
+  const label = groupGiftPhaseLabel(phase);
+  if (!label) return null;
+  if (phase === 'ready_to_buy') return `${label} — organiser should purchase`;
+  return label;
+}
+
+/**
+ * Giver copy once the threshold is met. Null while the bar is short, even if
+ * `funded_at` is set or the reveal date has arrived. Reveal stays its own fact.
+ */
+export function fundedProgressNote(item: WishlistItem) {
+  if (!item.is_group_gift || !isFunded(item)) return null;
+  if (isRevealDue(item)) {
+    return 'Funded, and the reveal date has arrived — they can see who it’s from.';
+  }
+  return `Funded among givers. They still won’t see who it’s from until ${formatRevealDate(item.reveal_at)}.`;
 }
 
 export function deliveryMethodLabel(method: WishlistItem['delivery_method']) {
