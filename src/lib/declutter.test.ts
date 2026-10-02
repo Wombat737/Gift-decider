@@ -98,6 +98,8 @@ describe('Declutter / noise-reduction', () => {
     assert.match(wishlist, /QuietSelect/);
     assert.match(wishlist, /shouldShowOccasionFilter/);
     assert.match(wishlist, /paddingTop: Spacing\.five/);
+    assert.match(wishlist, /function listLead/);
+    assert.match(wishlist, /1 gift/);
     assert.equal(/YOUR LIST/.test(wishlist), false);
     assert.equal(/accessibilityLabel="Your list"/.test(wishlist), false);
     assert.equal(/accessibilityLabel="Giver view"/.test(wishlist), false);
