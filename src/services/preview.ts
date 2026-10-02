@@ -118,7 +118,11 @@ async function fetchEdgePreview(url: string): Promise<LinkPreview | null> {
  * public page from the device and take the same Open Graph image. No Instagram scrape.
  */
 async function loadBuyDraft(safe: string): Promise<{ draft: BuyLinkDraft; preview: LinkPreview }> {
-  const htmlPromise = fetchPublicPageHtml(safe);
+  let pageHtml: string | null | undefined;
+  const htmlPromise = fetchPublicPageHtml(safe).then((html) => {
+    pageHtml = html;
+    return html;
+  });
   const edge = await fetchEdgePreview(safe);
   let draft: BuyLinkDraft = edge ? draftFromPreview(edge) : { title: null, notes: null, imageUrl: null };
   if (!draft.imageUrl) {
@@ -126,9 +130,12 @@ async function loadBuyDraft(safe: string): Promise<{ draft: BuyLinkDraft; previe
     const htmlWait = productImageGuess(safe) ? 2500 : PAGE_MS + 400;
     const html = await Promise.race([
       htmlPromise,
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), htmlWait)),
+      new Promise<string | null>((resolve) => setTimeout(() => resolve(null), htmlWait)),
     ]);
     draft = draftWithPageHtml(draft, html, safe);
+  } else if (draft.priceAmount == null && pageHtml) {
+    // Photo is already in. Take a price only if the page HTML finished during the edge call.
+    draft = draftWithPageHtml(draft, pageHtml, safe);
   }
 
   const host = safeHost(safe);
@@ -139,6 +146,7 @@ async function loadBuyDraft(safe: string): Promise<{ draft: BuyLinkDraft; previe
     description: draft.notes,
     image_url: draft.imageUrl,
     stored_image_url: fallback ?? edge?.stored_image_url ?? null,
+    price_amount: draft.priceAmount ?? null,
     provider: isInstagramHost(host) ? 'instagram' : (edge?.provider ?? previewProviderForHost(host)),
     stub: false,
   };

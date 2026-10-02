@@ -7,6 +7,7 @@ import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { parseAud } from '@/lib/format';
+import { noSubstitutionForSave } from '@/lib/item-form';
 import { isInstagramHost, sanitizeBuyUrl } from '@/lib/link-preview';
 
 const emptyFields: ItemFieldsValue = {
@@ -18,7 +19,7 @@ const emptyFields: ItemFieldsValue = {
   targetAmount: '',
   tags: [],
   itemKind: 'exact',
-  noSubstitution: false,
+  noSubstitution: true,
   occasionId: null,
 };
 
@@ -64,7 +65,7 @@ function AddDraft({ initialUrl }: { initialUrl: string }) {
         size_hint: fields.sizeHint.trim() || null,
         target_amount: parseAud(fields.targetAmount),
         occasion_id: fields.occasionId,
-        no_substitution: fields.noSubstitution,
+        no_substitution: noSubstitutionForSave(fields.itemKind, fields.noSubstitution),
         source_type: instagram ? 'instagram' : 'manual',
         source_url: instagram ? buyUrl : undefined,
       });

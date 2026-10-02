@@ -47,7 +47,8 @@ export function ItemFields({
   const valueRef = useRef(value);
   const buyUrlRef = useRef(value.buyUrl);
   const lastFetched = useRef('');
-  const lastDraft = useRef<BuyLinkFields>({ title: '', notes: '', imageUrl: '' });
+  const lastDraft = useRef<BuyLinkFields>({ title: '', notes: '', imageUrl: '', targetAmount: '' });
+  const tasteLock = useRef(value.itemKind === 'vibe' ? value.noSubstitution : false);
   const requestId = useRef(0);
   const [previewing, setPreviewing] = useState(false);
   const [previewHint, setPreviewHint] = useState<string | null>(null);
@@ -89,6 +90,7 @@ export function ItemFields({
       if (patch.title) lastDraft.current.title = patch.title;
       if (patch.notes) lastDraft.current.notes = patch.notes;
       if (patch.imageUrl) lastDraft.current.imageUrl = patch.imageUrl;
+      if (patch.targetAmount) lastDraft.current.targetAmount = patch.targetAmount;
       if (patch.imageUrl || !valueRef.current.imageUrl.trim()) {
         fallbackRef.current = result.draft.fallbackImageUrl ?? null;
         setImageFallback(result.draft.fallbackImageUrl ?? null);
@@ -133,6 +135,17 @@ export function ItemFields({
   function toggleTag(tag: string) {
     const next = value.tags.includes(tag) ? value.tags.filter((entry) => entry !== tag) : [...value.tags, tag];
     onChange({ tags: next.slice(0, 10) });
+  }
+
+  function selectKind(id: string) {
+    const itemKind = id as ItemKind;
+    if (itemKind === value.itemKind) return;
+    if (itemKind === 'vibe') {
+      onChange({ itemKind, noSubstitution: tasteLock.current });
+      return;
+    }
+    tasteLock.current = value.noSubstitution;
+    onChange({ itemKind: 'exact', noSubstitution: true });
   }
 
   return (
@@ -207,27 +220,29 @@ export function ItemFields({
             { id: 'vibe', label: 'Taste / vibe' },
           ]}
           value={value.itemKind}
-          onChange={(id) => onChange({ itemKind: id as ItemKind })}
+          onChange={selectKind}
         />
       </View>
 
-      <View style={{ gap: 8 }}>
-        <LabelWithHelp label="Vibes" help={FieldHelp.vibe} />
-        <VibeChips tags={SUGGESTED_VIBES} selected={value.tags} onToggle={toggleTag} />
-        <TextField
-          label="More vibes"
-          placeholder="quiet luxury, market stall"
-          value={value.tags.filter((tag) => !SUGGESTED_VIBES.includes(tag)).join(', ')}
-          onChangeText={(text) => {
-            const extra = text
-              .split(',')
-              .map((tag) => tag.trim().toLowerCase())
-              .filter(Boolean);
-            const suggested = value.tags.filter((tag) => SUGGESTED_VIBES.includes(tag));
-            onChange({ tags: [...suggested, ...extra] });
-          }}
-        />
-      </View>
+      {value.itemKind === 'vibe' ? (
+        <View style={{ gap: 8 }}>
+          <LabelWithHelp label="Vibes" help={FieldHelp.vibe} />
+          <VibeChips tags={SUGGESTED_VIBES} selected={value.tags} onToggle={toggleTag} />
+          <TextField
+            label="More vibes"
+            placeholder="quiet luxury, market stall"
+            value={value.tags.filter((tag) => !SUGGESTED_VIBES.includes(tag)).join(', ')}
+            onChangeText={(text) => {
+              const extra = text
+                .split(',')
+                .map((tag) => tag.trim().toLowerCase())
+                .filter(Boolean);
+              const suggested = value.tags.filter((tag) => SUGGESTED_VIBES.includes(tag));
+              onChange({ tags: [...suggested, ...extra] });
+            }}
+          />
+        </View>
+      ) : null}
 
       {occasions.length > 0 ? (
         <View style={{ gap: 8 }}>
@@ -240,16 +255,21 @@ export function ItemFields({
         </View>
       ) : null}
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: '100%' }}>
-        <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
-          <LabelWithHelp label="No substitutions" help={FieldHelp.noSubs} />
+      {value.itemKind === 'vibe' ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: '100%' }}>
+          <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+            <LabelWithHelp label="No substitutions" help={FieldHelp.noSubs} />
+          </View>
+          <Switch
+            value={value.noSubstitution}
+            onValueChange={(noSubstitution) => {
+              tasteLock.current = noSubstitution;
+              onChange({ noSubstitution });
+            }}
+            trackColor={{ true: theme.brand }}
+          />
         </View>
-        <Switch
-          value={value.noSubstitution}
-          onValueChange={(noSubstitution) => onChange({ noSubstitution })}
-          trackColor={{ true: theme.brand }}
-        />
-      </View>
+      ) : null}
     </>
   );
 }
