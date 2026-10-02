@@ -15,6 +15,7 @@ import { Spacing } from '@/constants/theme';
 import { confirmDestructive } from '@/lib/confirm';
 import { PrettyCopy } from '@/lib/copy';
 import { parseAud } from '@/lib/format';
+import { noSubstitutionForSave } from '@/lib/item-form';
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -91,7 +92,7 @@ export default function ItemDetailScreen() {
         size_hint: currentForm.sizeHint.trim() || null,
         target_amount: parseAud(currentForm.targetAmount),
         occasion_id: currentForm.occasionId,
-        no_substitution: currentForm.noSubstitution,
+        no_substitution: noSubstitutionForSave(currentForm.itemKind, currentForm.noSubstitution),
       });
       setEditing(false);
       setFields(null);

@@ -17,6 +17,7 @@ import {
   lightNotes,
   looksLikeCompleteBuyUrl,
   parseHtmlPreview,
+  parsePriceAmount,
   previewLooksLikeStub,
   previewMissMessage,
   previewProviderForHost,
@@ -113,6 +114,81 @@ describe('Buy-link autofill', () => {
       { title: 'Old draft title', notes: '', imageUrl: '' },
     );
     assert.equal(replacePrevious.title, 'Washed linen throw');
+  });
+
+  it('prefills a chip-in target from a public price and leaves a typed target alone', () => {
+    const priced = parseHtmlPreview(
+      `<meta property="og:title" content="Linen throw" />
+       <meta property="product:price:amount" content="29.00" />
+       <meta property="product:price:currency" content="AUD" />
+       <script type="application/ld+json">
+         {"@type":"Product","name":"Linen throw","offers":{"@type":"Offer","price":"29.00","priceCurrency":"AUD"}}
+       </script>`,
+      'https://www.kmart.com.au/product/throw',
+    );
+    assert.equal(priced.priceAmount, 29);
+
+    const thousands = parseHtmlPreview(
+      `<script type="application/ld+json">{"@type":"Product","name":"Machine","offers":{"price":"1,299.00","priceCurrency":"AUD","lowPrice":"999"}}</script>`,
+      'https://www.jbhifi.com.au/products/machine',
+    );
+    assert.equal(thousands.priceAmount, 1299);
+
+    const low = parseHtmlPreview(
+      `<script type="application/ld+json">{"@type":"Product","name":"Mug","offers":{"@type":"AggregateOffer","lowPrice":"18.5","priceCurrency":"AUD"}}</script>`,
+      'https://www.target.com.au/p/mug',
+    );
+    assert.equal(low.priceAmount, 18.5);
+
+    const usd = parseHtmlPreview(
+      `<meta property="product:price:amount" content="19.00" />
+       <meta property="product:price:currency" content="USD" />
+       <script type="application/ld+json">{"@type":"Product","name":"Mug","offers":{"price":"19.00","priceCurrency":"USD"}}</script>`,
+      'https://www.amazon.com/dp/B00TEST',
+    );
+    assert.equal(usd.priceAmount, undefined);
+    assert.equal(parsePriceAmount('USD 19'), null);
+
+    const audMeta = parseHtmlPreview(
+      `<meta itemprop="price" content="15" />
+       <meta itemprop="priceCurrency" content="AUD" />`,
+      'https://www.kmart.com.au/product/throw',
+    );
+    assert.equal(audMeta.priceAmount, 15);
+
+    const filled = applyBuyLinkDraft(
+      { title: '', notes: '', imageUrl: '', targetAmount: '' },
+      { title: 'Linen throw', notes: null, imageUrl: null, priceAmount: 29 },
+      { title: '', notes: '', imageUrl: '', targetAmount: '' },
+    );
+    assert.equal(filled.targetAmount, '29');
+
+    const kept = applyBuyLinkDraft(
+      { title: '', notes: '', imageUrl: '', targetAmount: '40' },
+      { title: 'Linen throw', notes: null, imageUrl: null, priceAmount: 29 },
+      { title: '', notes: '', imageUrl: '', targetAmount: '' },
+    );
+    assert.equal(kept.targetAmount, undefined);
+
+    const replaced = applyBuyLinkDraft(
+      { title: 'Old', notes: '', imageUrl: '', targetAmount: '29' },
+      { title: 'New', notes: null, imageUrl: null, priceAmount: 42.5 },
+      { title: 'Old', notes: '', imageUrl: '', targetAmount: '29' },
+    );
+    assert.equal(replaced.targetAmount, '42.50');
+
+    const fromEdge = draftFromPreview({
+      url: 'https://www.kmart.com.au/product/throw',
+      title: 'Linen throw',
+      image_url: 'https://www.kmart.com.au/images/throw.jpg',
+      price_amount: 29,
+      stub: false,
+    });
+    assert.equal(fromEdge.priceAmount, 29);
+
+    const edge = readFileSync(join(root, '../supabase/functions/preview-url/index.ts'), 'utf8');
+    assert.match(edge, /price_amount/);
+    assert.match(edge, /product:price:amount/);
   });
 
   it('never treats the old preview stub as a real photo', () => {

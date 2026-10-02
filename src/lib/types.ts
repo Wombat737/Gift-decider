@@ -170,6 +170,8 @@ export type LinkPreview = {
   image_url: string | null;
   /** Public wishlist-images URL when the edge function rehosted a hotlinked photo. */
   stored_image_url?: string | null;
+  /** Dollar amount from public product metadata, when the page states one. */
+  price_amount?: number | null;
   provider: string | null;
   stub?: boolean;
 };

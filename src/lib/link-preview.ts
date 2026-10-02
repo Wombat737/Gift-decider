@@ -9,12 +9,16 @@ export type BuyLinkDraft = {
   imageUrl: string | null;
   /** Other preview URL to try when the first image is blocked (hotlink / ATS). */
   fallbackImageUrl?: string | null;
+  /** Dollar amount from public product metadata (JSON-LD offer or price meta). */
+  priceAmount?: number | null;
 };
 
 export type BuyLinkFields = {
   title: string;
   notes: string;
   imageUrl: string;
+  /** Chip-in target. Optional so Instagram paste can ignore a shop price. */
+  targetAmount?: string;
 };
 
 const PRIVATE_V4 = /^(0+|10|127)\.|^169\.254\.|^192\.168\.|^172\.(1[6-9]|2\d|3[0-1])\./;
@@ -369,6 +373,76 @@ function isProductType(value: unknown) {
   return false;
 }
 
+function currencyIsAud(raw: unknown) {
+  if (raw == null || raw === '') return true;
+  if (typeof raw !== 'string') return false;
+  const value = raw.trim().toUpperCase().replace(/\s+/g, '');
+  return value === 'AUD' || value === 'A$' || value === 'AU$' || value === '$';
+}
+
+/** A stated dollar amount. Rejects 0, foreign currency codes, and junk. */
+export function parsePriceAmount(raw: unknown): number | null {
+  if (typeof raw === 'number') {
+    if (!Number.isFinite(raw) || raw <= 0 || raw >= 100_000) return null;
+    return Math.round(raw * 100) / 100;
+  }
+  if (typeof raw !== 'string') return null;
+  if (/\b(USD|EUR|GBP|NZD|CAD|JPY|US\$)\b/i.test(raw)) return null;
+  const match = raw.replace(/,/g, '').match(/(\d+(?:\.\d{1,2})?)/);
+  if (!match) return null;
+  const amount = Number.parseFloat(match[1] ?? '');
+  if (!Number.isFinite(amount) || amount <= 0 || amount >= 100_000) return null;
+  return Math.round(amount * 100) / 100;
+}
+
+function formatDraftPrice(amount: number) {
+  const rounded = parsePriceAmount(amount);
+  if (rounded == null) return null;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
+}
+
+function priceFromOffer(offer: unknown, depth = 0): number | null {
+  if (depth > 3 || offer == null) return null;
+  if (Array.isArray(offer)) {
+    for (const entry of offer) {
+      const found = priceFromOffer(entry, depth + 1);
+      if (found != null) return found;
+    }
+    return null;
+  }
+  if (typeof offer !== 'object') return parsePriceAmount(offer);
+  const record = offer as Record<string, unknown>;
+  if (!currencyIsAud(record.priceCurrency ?? record.currency)) return null;
+  const direct = parsePriceAmount(record.price);
+  if (direct != null) return direct;
+  const low = parsePriceAmount(record.lowPrice);
+  if (low != null) return low;
+  if (record.priceSpecification) return priceFromOffer(record.priceSpecification, depth + 1);
+  return null;
+}
+
+function readItemprop(html: string, name: string) {
+  for (const tag of html.match(/<(?:meta|span|div)\b[^>]*>/gi) ?? []) {
+    if ((readAttr(tag, 'itemprop') ?? '').toLowerCase() !== name) continue;
+    const content = readAttr(tag, 'content') ?? readAttr(tag, 'value');
+    if (content) return content;
+  }
+  return null;
+}
+
+function readListedPrice(html: string): number | null {
+  const metaAmount = readMeta(html, ['product:price:amount', 'og:price:amount']);
+  const metaCurrency = readMeta(html, ['product:price:currency', 'og:price:currency']);
+  if (currencyIsAud(metaCurrency)) {
+    const meta = parsePriceAmount(metaAmount);
+    if (meta != null) return meta;
+  }
+  const itemAmount = readItemprop(html, 'price');
+  const itemCurrency = readItemprop(html, 'pricecurrency');
+  if (!currencyIsAud(itemCurrency)) return null;
+  return parsePriceAmount(itemAmount);
+}
+
 function readJsonLdProduct(html: string): BuyLinkDraft {
   const scripts = html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
   for (const script of scripts) {
@@ -383,10 +457,12 @@ function readJsonLdProduct(html: string): BuyLinkDraft {
         if (!node || typeof node !== 'object') continue;
         const record = node as Record<string, unknown>;
         if (!isProductType(record['@type'])) continue;
+        const priceAmount = priceFromOffer(record.offers);
         return {
           title: typeof record.name === 'string' ? record.name : null,
           notes: typeof record.description === 'string' ? record.description : null,
           imageUrl: imageFromJsonLd(record.image),
+          ...(priceAmount != null ? { priceAmount } : {}),
         };
       }
     } catch {
@@ -400,10 +476,12 @@ function readJsonLdProduct(html: string): BuyLinkDraft {
 export function draftWithPageHtml(draft: BuyLinkDraft, html: string | null, pageUrl: string): BuyLinkDraft {
   const parsed = html ? parseHtmlPreview(html, pageUrl) : { title: null, notes: null, imageUrl: null };
   const imageUrl = draft.imageUrl ?? parsed.imageUrl ?? productImageGuess(pageUrl);
+  const priceAmount = draft.priceAmount ?? parsed.priceAmount;
   return {
     title: draft.title ?? parsed.title,
     notes: draft.notes ?? parsed.notes,
     imageUrl,
+    ...(priceAmount != null ? { priceAmount } : {}),
     ...(draft.fallbackImageUrl ? { fallbackImageUrl: draft.fallbackImageUrl } : {}),
   };
 }
@@ -426,7 +504,8 @@ export function parseHtmlPreview(html: string, pageUrl: string): BuyLinkDraft {
     ],
     pageUrl,
   );
-  return { title, notes, imageUrl };
+  const priceAmount = jsonLd.priceAmount ?? readListedPrice(html);
+  return { title, notes, imageUrl, ...(priceAmount != null ? { priceAmount } : {}) };
 }
 
 export function applyBuyLinkDraft(current: BuyLinkFields, draft: BuyLinkDraft, previous: BuyLinkFields): Partial<BuyLinkFields> {
@@ -439,6 +518,12 @@ export function applyBuyLinkDraft(current: BuyLinkFields, draft: BuyLinkDraft, p
   }
   if (draft.imageUrl && (!current.imageUrl.trim() || current.imageUrl.trim() === previous.imageUrl.trim())) {
     patch.imageUrl = draft.imageUrl;
+  }
+  const nextPrice = draft.priceAmount != null ? formatDraftPrice(draft.priceAmount) : null;
+  const currentTarget = (current.targetAmount ?? '').trim();
+  const previousTarget = (previous.targetAmount ?? '').trim();
+  if (nextPrice && (!currentTarget || currentTarget === previousTarget)) {
+    patch.targetAmount = nextPrice;
   }
   return patch;
 }
@@ -464,6 +549,7 @@ export function draftFromPreview(
     description?: string | null;
     image_url?: string | null;
     stored_image_url?: string | null;
+    price_amount?: number | string | null;
     stub?: boolean;
   } | null | undefined,
 ): BuyLinkDraft {
@@ -474,11 +560,13 @@ export function draftFromPreview(
   const remote = sanitizeImageUrl(preview?.image_url, preview?.url);
   const stored = sanitizeImageUrl(preview?.stored_image_url, preview?.url);
   const chosen = choosePreviewImage(remote && isDecorativeImageUrl(remote) ? null : remote, stored);
+  const priceAmount = parsePriceAmount(preview?.price_amount);
   return {
     title,
     notes: lightNotes(preview?.description, title),
     imageUrl: chosen.imageUrl,
     ...(chosen.fallbackImageUrl ? { fallbackImageUrl: chosen.fallbackImageUrl } : {}),
+    ...(priceAmount != null ? { priceAmount } : {}),
   };
 }
 

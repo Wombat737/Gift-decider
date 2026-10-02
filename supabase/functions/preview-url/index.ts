@@ -33,6 +33,7 @@ type Preview = {
   description: string | null;
   image_url: string | null;
   stored_image_url: string | null;
+  price_amount: number | null;
   provider: string;
   stub: boolean;
 };
@@ -201,6 +202,69 @@ function imageFromJsonLd(value: unknown): string | null {
   return null;
 }
 
+function currencyIsAud(raw: unknown) {
+  if (raw == null || raw === '') return true;
+  if (typeof raw !== 'string') return false;
+  const value = raw.trim().toUpperCase().replace(/\s+/g, '');
+  return value === 'AUD' || value === 'A$' || value === 'AU$' || value === '$';
+}
+
+function parsePriceAmount(raw: unknown): number | null {
+  if (typeof raw === 'number') {
+    if (!Number.isFinite(raw) || raw <= 0 || raw >= 100_000) return null;
+    return Math.round(raw * 100) / 100;
+  }
+  if (typeof raw !== 'string') return null;
+  if (/\b(USD|EUR|GBP|NZD|CAD|JPY|US\$)\b/i.test(raw)) return null;
+  const match = raw.replace(/,/g, '').match(/(\d+(?:\.\d{1,2})?)/);
+  if (!match) return null;
+  const amount = Number.parseFloat(match[1] ?? '');
+  if (!Number.isFinite(amount) || amount <= 0 || amount >= 100_000) return null;
+  return Math.round(amount * 100) / 100;
+}
+
+function priceFromOffer(offer: unknown, depth = 0): number | null {
+  if (depth > 3 || offer == null) return null;
+  if (Array.isArray(offer)) {
+    for (const entry of offer) {
+      const found = priceFromOffer(entry, depth + 1);
+      if (found != null) return found;
+    }
+    return null;
+  }
+  if (typeof offer !== 'object') return parsePriceAmount(offer);
+  const record = offer as Record<string, unknown>;
+  if (!currencyIsAud(record.priceCurrency ?? record.currency)) return null;
+  const direct = parsePriceAmount(record.price);
+  if (direct != null) return direct;
+  const low = parsePriceAmount(record.lowPrice);
+  if (low != null) return low;
+  if (record.priceSpecification) return priceFromOffer(record.priceSpecification, depth + 1);
+  return null;
+}
+
+function readItemprop(html: string, name: string) {
+  for (const tag of html.match(/<(?:meta|span|div)\b[^>]*>/gi) ?? []) {
+    if ((readAttr(tag, 'itemprop') ?? '').toLowerCase() !== name) continue;
+    const content = readAttr(tag, 'content') ?? readAttr(tag, 'value');
+    if (content) return content;
+  }
+  return null;
+}
+
+function readListedPrice(html: string): number | null {
+  const metaAmount = readMeta(html, ['product:price:amount', 'og:price:amount']);
+  const metaCurrency = readMeta(html, ['product:price:currency', 'og:price:currency']);
+  if (currencyIsAud(metaCurrency)) {
+    const meta = parsePriceAmount(metaAmount);
+    if (meta != null) return meta;
+  }
+  const itemAmount = readItemprop(html, 'price');
+  const itemCurrency = readItemprop(html, 'pricecurrency');
+  if (!currencyIsAud(itemCurrency)) return null;
+  return parsePriceAmount(itemAmount);
+}
+
 function readJsonLdProduct(html: string) {
   const scripts = html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
   for (const script of scripts) {
@@ -224,13 +288,14 @@ function readJsonLdProduct(html: string) {
           title: typeof record.name === 'string' ? record.name : null,
           description: typeof record.description === 'string' ? record.description : null,
           image: imageFromJsonLd(record.image),
+          price_amount: priceFromOffer(record.offers),
         };
       }
     } catch {
       // Broken JSON-LD is fine — OG tags still apply.
     }
   }
-  return { title: null, description: null, image: null };
+  return { title: null, description: null, image: null, price_amount: null as number | null };
 }
 
 function unescapeJsonUrl(value: string) {
@@ -294,7 +359,8 @@ function parseHtml(html: string, pageUrl: string) {
       break;
     }
   }
-  return { title, description, image_url };
+  const price_amount = jsonLd.price_amount ?? readListedPrice(html);
+  return { title, description, image_url, price_amount };
 }
 
 function emptyPreview(url: string, provider: string): Preview {
@@ -304,6 +370,7 @@ function emptyPreview(url: string, provider: string): Preview {
     description: null,
     image_url: null,
     stored_image_url: null,
+    price_amount: null,
     provider,
     stub: false,
   };
@@ -543,6 +610,7 @@ Deno.serve(async (req) => {
       description: null,
       image_url: explicitImage,
       stored_image_url: stored,
+      price_amount: null,
       provider: providerFor(host),
       stub: false,
     });
@@ -553,7 +621,9 @@ Deno.serve(async (req) => {
     fetchPublicHtml(url, instagram ? CRAWLER_UA : BROWSER_UA),
     instagram ? fetchInstagramOEmbed(url) : Promise.resolve(null),
   ]);
-  let parsed = primary ? parseHtml(primary.html, primary.finalUrl) : { title: null, description: null, image_url: null };
+  let parsed = primary
+    ? parseHtml(primary.html, primary.finalUrl)
+    : { title: null, description: null, image_url: null, price_amount: null as number | null };
   let finalUrl = primary?.finalUrl ?? url;
   let finalHost = primary?.host || host;
 
@@ -565,6 +635,7 @@ Deno.serve(async (req) => {
         title: parsed.title ?? again.title,
         description: parsed.description ?? again.description,
         image_url: again.image_url ?? parsed.image_url,
+        price_amount: parsed.price_amount ?? again.price_amount,
       };
       if (again.image_url || again.title) {
         finalUrl = second.finalUrl;
@@ -591,6 +662,7 @@ Deno.serve(async (req) => {
         description: parsed.description,
         image_url: guess,
         stored_image_url: storedGuess,
+        price_amount: parsed.price_amount,
         provider: providerFor(finalHost),
         stub: false,
       });
@@ -604,6 +676,7 @@ Deno.serve(async (req) => {
     description: parsed.description,
     image_url: parsed.image_url,
     stored_image_url: stored,
+    price_amount: parsed.price_amount,
     provider: providerFor(finalHost),
     stub: false,
   });

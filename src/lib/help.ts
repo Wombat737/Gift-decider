@@ -2,11 +2,11 @@
 export const HelpFaq = [
   {
     q: 'Exact item or taste / vibe?',
-    a: 'Exact is a specific thing. Taste / vibe is the feel — cozy, outdoors, quiet luxury. Givers match the board. If a buy link dies they get close swaps, unless you lock Exact or turn on No substitutions.',
+    a: 'Exact is a specific thing — no substitutes. Taste / vibe is the feel — cozy, outdoors, quiet luxury. Givers match the board. If a buy link dies they get close swaps on a taste item, unless you turn on No substitutions.',
   },
   {
     q: 'What does No substitutions do?',
-    a: 'Shows a lock to givers. If the buy link is dead they only see a warning — no alternatives.',
+    a: 'On a taste / vibe item, shows a lock to givers. If the buy link is dead they only see a warning — no alternatives. Exact item already means no substitutes.',
   },
   {
     q: 'How do chip-in and reveal work?',
@@ -34,7 +34,7 @@ export const HelpFaq = [
   },
   {
     q: 'Can I paste a shop link?',
-    a: 'Yes — paste a buy URL on Add item. We try to fill photo, title, and a short note. Edit anything before you pin. If we miss the photo, add one yourself — Pin still works.',
+    a: 'Yes — paste a buy URL on Add item. We try to fill photo, title, a short note, and the chip-in target when the page shows a price. Edit anything before you pin. If we miss the photo, add one yourself — Pin still works.',
   },
   {
     q: 'What about Instagram?',
