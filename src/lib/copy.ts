@@ -17,6 +17,7 @@ export const PrettyCopy = {
   claimNameLabel: 'Your name',
   claimNameMissing: 'Add your name — other givers won’t see it.',
   claimHint: 'Other givers see Reserved or Bought — not your name.',
+  readyToBuyHint: 'Pledges hit the target. The organiser should buy it.',
   claimTaken: 'Already reserved — take it?',
   releaseReservation: 'Release reservation',
   chipInCta: 'Chip in',

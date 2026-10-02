@@ -897,6 +897,11 @@ export function markDemoItemFunded(itemId: string): WishlistItem {
   adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');
+  const viewed = withPledges(current);
+  const target = viewed.target_amount;
+  if (target != null && target > 0 && !isFunded(viewed)) {
+    return viewed;
+  }
   const next = recordReadyToBuyNotice({
     ...current,
     is_group_gift: true,

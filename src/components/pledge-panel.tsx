@@ -18,8 +18,10 @@ import {
   asRevealDate,
   deliveryMethodLabel,
   formatRevealDate,
+  fundedProgressNote,
+  groupGiftHeadline,
   groupGiftPhase,
-  groupGiftPhaseLabel,
+  hasFundingTarget,
   isFunded,
   isRevealDue,
   pickOrganiserName,
@@ -82,6 +84,9 @@ export function PledgePanel({
   const funded = isFunded(item);
   const revealed = isRevealDue(item);
   const phase = groupGiftPhase(item);
+  const headline = groupGiftHeadline(item);
+  const progressNote = fundedProgressNote(item);
+  const manualFund = !funded && !hasFundingTarget(item);
   const revealLabel = formatRevealDate(item.reveal_at);
   const organiser = pickOrganiserName(item);
   const pledgeNames = [...new Set((item.pledges ?? []).map((row) => row.display_name?.trim()).filter(Boolean))] as string[];
@@ -134,8 +139,7 @@ export function PledgePanel({
   const details = item.is_group_gift ? (
         <>
           <ThemedText type="smallBold" themeColor={phase === 'collecting' ? 'accent' : 'brand'}>
-            {groupGiftPhaseLabel(phase)}
-            {phase === 'ready_to_buy' ? ' — organiser should purchase' : ''}
+            {headline}
           </ThemedText>
           {funded && item.status !== 'purchased' ? (
             <ReadyToBuyBanner item={item} busy={busy} onMarkPurchased={onMarkPurchased} />
@@ -171,15 +175,14 @@ export function PledgePanel({
             disabled={busy}
             onPress={() => void submit()}
           />
-          {funded ? (
+          {progressNote ? (
             <ThemedText type="small" themeColor="accent">
-              {revealed
-                ? 'Funded, and the reveal date has arrived — they can see who it’s from.'
-                : `Funded among givers. They still won’t see who it’s from until ${revealLabel}.`}
+              {progressNote}
             </ThemedText>
-          ) : (
+          ) : null}
+          {manualFund ? (
             <Button label="Mark funded" variant="secondary" disabled={busy} onPress={onMarkFunded} />
-          )}
+          ) : null}
           {demo && !funded && onSimulateFunded ? (
             <Button
               label="Simulate funded (demo)"

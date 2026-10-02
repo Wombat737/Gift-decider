@@ -1,4 +1,5 @@
-import { groupGiftPhase, isFunded } from '@/lib/pledges';
+import { PrettyCopy } from '@/lib/copy';
+import { groupGiftPhase } from '@/lib/pledges';
 import type { ItemStatus, WishlistItem } from '@/lib/types';
 
 export function statusLabel(status: ItemStatus) {
@@ -13,21 +14,34 @@ export function statusLabel(status: ItemStatus) {
 }
 
 /** Giver-facing reservation — no names, so other givers aren’t spoiled with who. */
-export function giverStatusLabel(status: ItemStatus, funded = false) {
+export function giverStatusLabel(status: ItemStatus) {
   if (status === 'purchased') return 'Bought';
-  if (funded) return 'Ready to buy';
   if (status === 'reserved') return 'Reserved';
   return 'Available';
 }
 
-/** Giver grid chip: Collecting → Ready to buy → Bought, plus Revealed after the date. */
+/**
+ * Giver grid chip. Ready to buy is only the group-gift phase (threshold met).
+ * Available / Reserved / Bought stay the reservation, including on solo gifts.
+ */
 export function giverItemChipLabel(item: WishlistItem) {
   const phase = groupGiftPhase(item);
   if (phase === 'ready_to_buy') return 'Ready to buy';
   if (phase === 'purchased') return 'Bought';
   if (phase === 'revealed') return 'Bought · Revealed';
-  if (phase === 'collecting') return `${giverStatusLabel(item.status, false)} · Collecting`;
-  return giverStatusLabel(item.status, isFunded(item));
+  if (phase === 'collecting') return `${giverStatusLabel(item.status)} · Collecting`;
+  return giverStatusLabel(item.status);
+}
+
+/** Subtitle under the chip. Same phase as the pill, so Available never reads Ready to buy. */
+export function giverStatusHint(item: WishlistItem) {
+  const phase = groupGiftPhase(item);
+  if (phase === 'ready_to_buy') return PrettyCopy.readyToBuyHint;
+  if (item.status === 'purchased' || phase === 'purchased' || phase === 'revealed') {
+    return PrettyCopy.purchasedGiver;
+  }
+  if (item.status === 'reserved') return PrettyCopy.softLock;
+  return PrettyCopy.claimHint;
 }
 
 export function parseTags(value: string) {

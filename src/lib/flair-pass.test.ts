@@ -68,9 +68,13 @@ describe('Flair pass (pretty v2) punch-list', () => {
     assert.equal(PrettyCopy.chipInHonour, 'PayID on honour — tick off what you’ve sent.');
     assert.equal(PrettyCopy.revealDay, 'The mates chipped in — here’s who.');
     const giverItem = source('app/g/[token]/[itemId].tsx');
+    const hints = source('lib/format.ts');
     const pledge = source('components/pledge-panel.tsx');
-    assert.match(giverItem, /PrettyCopy\.softLock/);
-    assert.match(giverItem, /PrettyCopy\.purchasedGiver/);
+    assert.match(giverItem, /giverStatusHint/);
+    assert.match(hints, /PrettyCopy\.softLock/);
+    assert.match(hints, /PrettyCopy\.purchasedGiver/);
+    assert.match(hints, /PrettyCopy\.claimHint/);
+    assert.match(hints, /PrettyCopy\.readyToBuyHint/);
     assert.match(pledge, /PrettyCopy\.chipInCta/);
   });
 
