@@ -151,7 +151,7 @@ export default function GiverShareScreen() {
   }
 
   return (
-    <Screen>
+    <Screen demoBanner={false}>
       <Stack.Screen
         options={{
           title: !meta && !error ? listTitle : 'Gift Decider',

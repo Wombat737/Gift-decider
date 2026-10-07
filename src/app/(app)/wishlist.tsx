@@ -39,7 +39,7 @@ export default function OwnerHomeScreen() {
   const initial = (firstName ?? 'G').slice(0, 1).toUpperCase();
 
   return (
-    <Screen style={{ paddingTop: insets.top + Spacing.two }}>
+    <Screen demoBanner={false} style={{ paddingTop: insets.top + Spacing.two }}>
       <Stack.Screen options={{ headerShown: false, title: PrettyCopy.ownerHomeTitle }} />
       <View style={styles.topBar}>
         <ThemedText type="smallBold">Gift Decider</ThemedText>

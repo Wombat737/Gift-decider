@@ -19,6 +19,8 @@ import { useTheme } from '@/hooks/use-theme';
 type ScreenProps = ViewProps & {
   scroll?: boolean;
   padded?: boolean;
+  /** Stage homes hide the demo note so the first breath stays the greeting. */
+  demoBanner?: boolean;
   /** Mounted as a sibling of ScrollView, not inside it. Use for primary CTAs. */
   footer?: ReactNode;
   /**
@@ -44,6 +46,7 @@ export function Screen({
   style,
   scroll = true,
   padded = true,
+  demoBanner = true,
   footer,
   footerMiddle,
   footerTrail,
@@ -60,7 +63,7 @@ export function Screen({
       // That UIView is viewport-tall; overflowing Pressables then miss hits.
       collapsable={false}
       style={[styles.inner, padded && styles.padded, style]}>
-      <DemoBanner />
+      {demoBanner ? <DemoBanner /> : null}
       {children}
     </View>
   );
