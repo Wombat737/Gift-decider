@@ -1,15 +1,20 @@
 import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { HeaderInboxLink } from '@/components/inbox-badge';
+import { InboxBanner } from '@/components/inbox-banner';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/context/auth-context';
+import { useInbox } from '@/context/inbox-context';
+import { PrettyCopy } from '@/lib/copy';
+import { acceptBannerText, requestBannerText } from '@/lib/inbox';
 import { track } from '@/lib/analytics';
 import { env } from '@/lib/env';
 import { accountDeletionMailto, privacyPolicyUrl, supportEmail } from '@/lib/legal';
@@ -21,14 +26,23 @@ import type { Discoverability } from '@/lib/types';
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
+  const { pendingRequests, newlyReady, requests, refreshInbox } = useInbox();
   const version = Constants.expoConfig?.version ?? '0.4.0';
   const live = env.isSupabaseConfigured && !user?.demo;
+  const requestCopy = requestBannerText(requests);
+  const readyCopy = acceptBannerText(newlyReady);
   const [displayName, setDisplayName] = useState('');
   const [handle, setHandle] = useState('');
   const [discoverability, setDiscoverability] = useState<Discoverability>('handle');
   const [tasteTags, setTasteTags] = useState<string[]>([]);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshInbox();
+    }, [refreshInbox]),
+  );
 
   useEffect(() => {
     void getOwnProfile()
@@ -94,6 +108,42 @@ export default function SettingsScreen() {
       <ThemedText themeColor="textSecondary">
         Signed in as {user?.email ?? 'you'}. Store-required privacy and deletion live here.
       </ThemedText>
+
+      <Card>
+        <ThemedText type="eyebrow" themeColor="brand">
+          People
+        </ThemedText>
+        <HeaderInboxLink
+          label="People"
+          count={newlyReady.length}
+          accessibilityLabel={PrettyCopy.peopleTitle}
+          onPress={() => router.push('/people')}
+        />
+        <HeaderInboxLink
+          label="Requests"
+          count={pendingRequests}
+          accessibilityLabel={PrettyCopy.requestsTitle}
+          onPress={() => router.push('/requests')}
+        />
+      </Card>
+      {requestCopy ? (
+        <InboxBanner
+          title="Someone’s waiting"
+          body={requestCopy}
+          actionLabel={PrettyCopy.requestsBannerCta}
+          onAction={() => router.push('/requests')}
+          accessibilityLabel="pending-giver-requests"
+        />
+      ) : null}
+      {readyCopy ? (
+        <InboxBanner
+          title="They’re ready"
+          body={readyCopy}
+          actionLabel={PrettyCopy.peopleTitle}
+          onAction={() => router.push('/people')}
+          accessibilityLabel="accepted-giver-pins"
+        />
+      ) : null}
 
       <Card>
           <ThemedText type="eyebrow" themeColor="brand">

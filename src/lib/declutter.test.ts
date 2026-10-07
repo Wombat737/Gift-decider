@@ -95,17 +95,20 @@ describe('Declutter / noise-reduction', () => {
     const wishlist = source('app/(app)/wishlist.tsx');
     assert.equal(/FilterChips/.test(wishlist), false);
     assert.equal(/label: 'All'/.test(wishlist), false);
-    assert.match(wishlist, /QuietSelect/);
-    assert.match(wishlist, /shouldShowOccasionFilter/);
-    assert.match(wishlist, /paddingTop: Spacing\.five/);
-    assert.match(wishlist, /function listLead/);
-    assert.match(wishlist, /1 gift/);
+    assert.equal(/QuietSelect/.test(wishlist), false);
+    assert.equal(/shouldShowOccasionFilter/.test(wishlist), false);
+    assert.equal(/function listLead/.test(wishlist), false);
+    assert.match(wishlist, /PrettyCopy\.ownerHomeTitle/);
+    assert.match(wishlist, /PrettyCopy\.ownerSection/);
+    assert.match(wishlist, /gap: Spacing\.twoHalf/);
     assert.equal(/YOUR LIST/.test(wishlist), false);
     assert.equal(/accessibilityLabel="Your list"/.test(wishlist), false);
     assert.equal(/accessibilityLabel="Giver view"/.test(wishlist), false);
 
     const layout = source('app/(app)/_layout.tsx');
-    assert.match(layout, /Your wishlist/);
+    assert.match(layout, /PrettyCopy\.ownerHomeTitle/);
+    assert.match(layout, /Add a pick/);
+    assert.equal(/Your wishlist/.test(layout), false);
     assert.equal(/My wishlist/.test(layout), false);
 
     const add = source('app/(app)/add.tsx');

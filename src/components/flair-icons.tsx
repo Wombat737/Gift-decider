@@ -11,7 +11,9 @@ export type FlairIconName =
   | 'payid'
   | 'gift'
   | 'nudge'
-  | 'photo';
+  | 'photo'
+  | 'home'
+  | 'me';
 
 type FlairIconProps = {
   name: FlairIconName;
@@ -74,6 +76,13 @@ export function FlairIcon({ name, color, size = 24, active = false }: FlairIconP
           <Rect x="3.5" y="7" width="17" height="13" rx="2.5" {...common} />
           <Circle cx="12" cy="13.5" r="3.25" {...common} />
           <Path d="M8.5 7 L10 4.75 H14 L15.5 7" {...common} />
+        </>
+      ) : name === 'home' ? (
+        <Path d="M4 11 L12 4 L20 11 V20 H15.5 V14 H8.5 V20 H4 Z" {...common} />
+      ) : name === 'me' ? (
+        <>
+          <Circle cx="12" cy="8" r="3.25" {...common} />
+          <Path d="M5.5 19.5 V17.5 A6.5 6.5 0 0 1 18.5 17.5 V19.5" {...common} />
         </>
       ) : (
         <>

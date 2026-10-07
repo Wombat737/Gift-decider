@@ -58,9 +58,10 @@ describe('Flair pass (pretty v2) punch-list', () => {
   it('P0 microcopy table', () => {
     assert.equal(PrettyCopy.splash, 'Gifts without the guesswork.');
     assert.equal(PrettyCopy.signInSub, 'Lists for you · easy for the mates buying.');
-    assert.equal(PrettyCopy.ownerEmptyTitle, 'What are you after, legend?');
-    assert.equal(PrettyCopy.ownerEmptyCta, 'Add a gift');
-    assert.equal(PrettyCopy.giverEmptyTitle, 'Quiet list — nudge them to add a couple of bits.');
+    assert.equal(PrettyCopy.ownerEmptyTitle, 'What moves you?');
+    assert.equal(PrettyCopy.ownerEmptyCta, 'Add a pick');
+    assert.equal(PrettyCopy.giverEmptyTitle, 'Quiet picks');
+    assert.equal(PrettyCopy.giverEmptyCta, 'Nudge them');
     assert.equal(PrettyCopy.shareTitle, 'Send this to whoever’s buying.');
     assert.equal(PrettyCopy.softLock, 'You’ve got this one.');
     assert.equal(PrettyCopy.purchasedGiver, 'Bought — nice one.');
@@ -130,8 +131,14 @@ describe('Flair pass (pretty v2) punch-list', () => {
     assert.match(art, /react-native-svg/);
     assert.equal(art.includes('linearGradient') || art.includes('LinearGradient'), false);
     assert.match(empty, /EmptyIllustration/);
-    assert.match(wishlist, /emptyKind="owner"/);
-    assert.match(giverList, /emptyKind="giver"/);
+    assert.match(wishlist, /PrettyCopy\.ownerEmptyTitle/);
+    assert.match(wishlist, /PrettyCopy\.ownerHomeTitle/);
+    assert.equal(/emptyKind="owner"/.test(wishlist), false);
+    assert.equal(/HeroWash/.test(wishlist), false);
+    assert.match(giverList, /PrettyCopy\.giverEmptyTitle/);
+    assert.match(giverList, /StageGiverCard/);
+    assert.match(source('components/stage-giver-card.tsx'), /PrettyCopy\.giverChooseCta/);
+    assert.equal(/emptyKind="giver"/.test(giverList), false);
     assert.match(share, /kind="invites"/);
   });
 

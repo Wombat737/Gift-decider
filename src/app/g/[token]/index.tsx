@@ -6,10 +6,11 @@ import { Button } from '@/components/button';
 import { DeadLinkBanner } from '@/components/dead-link-banner';
 import { FlairIcon } from '@/components/flair-icons';
 import { HeaderInboxLink } from '@/components/inbox-badge';
-import { ItemGrid, ItemGridSkeleton } from '@/components/item-grid';
+import { ItemGridSkeleton } from '@/components/item-grid';
 import { LegalLinks } from '@/components/legal-links';
 import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { Screen } from '@/components/screen';
+import { StageGiverCard } from '@/components/stage-giver-card';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/context/auth-context';
@@ -19,7 +20,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
-import { giverListTitle } from '@/lib/list-title';
+import { giverListTitle, personFirstLabel } from '@/lib/list-title';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { giverListPaint, giverPaintItems, patchGiverCatalog, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
@@ -71,7 +72,7 @@ export default function GiverShareScreen() {
     loading: loading || !fetchSettled,
     unmatched: Boolean(error) && !meta && fetchSettled,
   });
-  const occasion = meta?.occasion_title;
+  const recipient = personFirstLabel(meta?.owner_display_name, meta?.owner_handle);
   const readyToBuy = items.filter((item) => groupGiftPhase(item) === 'ready_to_buy');
   const visible = useMemo(() => {
     if (!hitIds) return items;
@@ -91,6 +92,7 @@ export default function GiverShareScreen() {
     query,
     error,
   });
+  const searching = Boolean(query.trim());
 
   async function claimFromList(item: WishlistItem) {
     if (!token || item.status !== 'available' || claimingId) return;
@@ -152,9 +154,14 @@ export default function GiverShareScreen() {
     <Screen>
       <Stack.Screen
         options={{
-          title: listTitle,
+          title: !meta && !error ? listTitle : 'Gift Decider',
           headerRight: () => (
             <View style={styles.headerRow}>
+              <View style={[styles.choosing, { backgroundColor: theme.brandSoft }]}>
+                <ThemedText type="caption" style={{ color: theme.brandInk, fontWeight: 600 }}>
+                  {PrettyCopy.giverChoosing}
+                </ThemedText>
+              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={PrettyCopy.peopleCta}
@@ -173,11 +180,14 @@ export default function GiverShareScreen() {
           ),
         }}
       />
-      {occasion ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          {occasion}
+
+      <View style={styles.hero}>
+        <ThemedText themeColor="textSecondary">{recipient ? `For ${recipient}` : 'For them'}</ThemedText>
+        <ThemedText type="display" style={styles.heroTitle} accessibilityRole="header">
+          {PrettyCopy.giverHeadline}
         </ThemedText>
-      ) : null}
+        <ThemedText themeColor="textSecondary">{PrettyCopy.giverHomeIntro}</ThemedText>
+      </View>
 
       <TextField
         label="Search gifts"
@@ -217,22 +227,35 @@ export default function GiverShareScreen() {
 
       {paint === 'skeleton' ? (
         <ItemGridSkeleton />
+      ) : visible.length === 0 ? (
+        <View key={`${token ?? 'share'}:${focusGen}:${query}`} style={styles.empty}>
+          <ThemedText type="title" style={styles.emptyTitle}>
+            {searching ? 'Nothing matched' : PrettyCopy.giverEmptyTitle}
+          </ThemedText>
+          <ThemedText themeColor="textSecondary" style={styles.emptyBody}>
+            {searching ? 'Try another word — titles and notes, not a tag cloud.' : PrettyCopy.giverEmptyBody}
+          </ThemedText>
+          {!searching ? (
+            <Button label={PrettyCopy.giverEmptyCta} icon="nudge" onPress={() => void remindThem()} />
+          ) : null}
+        </View>
       ) : (
-        <ItemGrid
-          key={`${token ?? 'share'}:${focusGen}:${query}`}
-          items={visible}
-          showStatus
-          onClaim={(item) => void claimFromList(item)}
-          claimingId={claimingId}
-          hrefFor={(item) => `/g/${token}/${item.id}`}
-          emptyTitle={query.trim() ? 'Nothing matched' : PrettyCopy.giverEmptyTitle}
-          emptyBody={query.trim() ? 'Try another word — titles and notes, not a tag cloud.' : PrettyCopy.giverEmptyBody}
-          emptyActionLabel={query.trim() ? undefined : PrettyCopy.giverEmptyCta}
-          onEmptyAction={query.trim() ? undefined : () => void remindThem()}
-          emptySecondaryLabel={query.trim() ? undefined : PrettyCopy.peopleCta}
-          onEmptySecondary={query.trim() ? undefined : goAddSomeone}
-          emptyKind="giver"
-        />
+        <View key={`${token ?? 'share'}:${focusGen}:${query}`} style={styles.stack}>
+          {visible.map((item) => (
+            <StageGiverCard
+              key={`${item.id}:${item.status}:${item.reserved_at ?? ''}`}
+              item={item}
+              href={`/g/${token}/${item.id}` as Href}
+              onChoose={() => void claimFromList(item)}
+              onSoftLock={() => void claimFromList(item)}
+              onChipIn={() => {
+                if (!token) return;
+                router.push(`/g/${token}/${item.id}?chip=1` as Href);
+              }}
+              chooseBusy={claimingId === item.id}
+            />
+          ))}
+        </View>
       )}
 
       <LegalLinks />
@@ -246,9 +269,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.one,
   },
-  headerBtn: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
+  choosing: {
+    minHeight: 32,
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.twoHalf,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerAdd: {
     width: 44,
@@ -256,5 +282,26 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  hero: {
+    gap: Spacing.two,
+  },
+  heroTitle: {
+    fontSize: 32,
+    lineHeight: 38,
+    letterSpacing: -0.8,
+  },
+  stack: {
+    gap: Spacing.three,
+  },
+  empty: {
+    gap: Spacing.three,
+    paddingTop: Spacing.two,
+  },
+  emptyTitle: {
+    letterSpacing: -0.4,
+  },
+  emptyBody: {
+    maxWidth: 360,
   },
 });

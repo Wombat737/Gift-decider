@@ -1,154 +1,79 @@
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
-import { FlairIcon } from '@/components/flair-icons';
-import { HeaderInboxLink } from '@/components/inbox-badge';
-import { InboxBanner } from '@/components/inbox-banner';
-import { ItemGrid } from '@/components/item-grid';
-import { LegalLinks } from '@/components/legal-links';
-import { QuietSelect } from '@/components/quiet-select';
+import { NativePressable } from '@/components/native-pressable';
 import { Screen } from '@/components/screen';
+import { StagePickRow } from '@/components/stage-pick-row';
 import { ThemedText } from '@/components/themed-text';
-import { useInbox } from '@/context/inbox-context';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
-import { acceptBannerText, requestBannerText } from '@/lib/inbox';
-import { shouldShowOccasionFilter } from '@/lib/occasions';
+import { personFirstLabel } from '@/lib/list-title';
+import { stageGreeting } from '@/lib/stage-home';
+import { getOwnProfile } from '@/services/profile';
 
-function listLead(occasionId: string, occasions: { id: string; title: string }[], count: number) {
-  if (occasionId === 'none') return 'Unassigned';
-  const picked = occasions.find((row) => row.id === occasionId);
-  if (picked) return picked.title;
-  if (occasions.length === 1) return occasions[0].title;
-  return count === 1 ? '1 gift' : `${count} gifts`;
-}
-
-export default function WishlistGridScreen() {
+export default function OwnerHomeScreen() {
   const theme = useTheme();
-  const { items, occasions, loading, error, refresh } = useWishlist();
-  const { pendingRequests, newlyReady, requests, refreshInbox } = useInbox();
-  const [occasionId, setOccasionId] = useState('all');
-  const requestCopy = requestBannerText(requests);
-  const readyCopy = acceptBannerText(newlyReady);
+  const insets = useSafeAreaInsets();
+  const { items, loading, error, refresh } = useWishlist();
+  const [firstName, setFirstName] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       void refresh();
-      void refreshInbox();
-    }, [refresh, refreshInbox]),
+      void getOwnProfile()
+        .then((profile) => {
+          setFirstName(personFirstLabel(profile?.display_name, profile?.handle));
+        })
+        .catch(() => {
+          setFirstName(null);
+        });
+    }, [refresh]),
   );
 
-  const visible = useMemo(() => {
-    if (occasionId === 'all') return items;
-    if (occasionId === 'none') return items.filter((item) => !item.occasion_id);
-    return items.filter((item) => item.occasion_id === occasionId);
-  }, [items, occasionId]);
-
-  useEffect(() => {
-    if (!shouldShowOccasionFilter(occasions.length)) {
-      if (occasionId !== 'all') setOccasionId('all');
-      return;
-    }
-    if (occasionId !== 'all' && occasionId !== 'none' && !occasions.some((row) => row.id === occasionId)) {
-      setOccasionId('all');
-    }
-  }, [occasionId, occasions]);
-
-  const lead = listLead(occasionId, occasions, visible.length);
+  const initial = (firstName ?? 'G').slice(0, 1).toUpperCase();
 
   return (
-    <Screen style={styles.page}>
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <View style={styles.headerRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Share"
-              onPress={() => {
-                track('share_screen_opened');
-                router.push('/share');
-              }}
-              hitSlop={12}
-              style={styles.headerIcon}>
-              <FlairIcon name="share" color={theme.brand} size={22} />
-            </Pressable>
-            <HeaderInboxLink
-              label="People"
-              count={newlyReady.length}
-              accessibilityLabel={PrettyCopy.peopleTitle}
-              onPress={() => {
-                router.push('/people');
-              }}
-            />
-            <HeaderInboxLink
-              label="Requests"
-              count={pendingRequests}
-              accessibilityLabel={PrettyCopy.requestsTitle}
-              onPress={() => {
-                router.push('/requests');
-              }}
-            />
-            <Pressable
-              onPress={() => {
-                track('settings_opened', { source: 'wishlist_header' });
-                router.push('/settings');
-              }}
-              hitSlop={12}
-              style={styles.headerBtn}>
-              <ThemedText type="smallBold">
-                Settings
-              </ThemedText>
-            </Pressable>
-            </View>
-          ),
-        }}
-      />
-      {!loading && visible.length > 0 ? (
-        <View style={styles.actions}>
-          <ThemedText type="small" themeColor="textSecondary">
-            {lead}
+    <Screen style={{ paddingTop: insets.top + Spacing.two }}>
+      <Stack.Screen options={{ headerShown: false, title: PrettyCopy.ownerHomeTitle }} />
+      <View style={styles.topBar}>
+        <ThemedText type="smallBold">Gift Decider</ThemedText>
+        <NativePressable
+          accessibilityRole="button"
+          accessibilityLabel="Me"
+          onPress={() => router.replace('/settings')}
+          style={[styles.avatarHit, { backgroundColor: theme.brandSoft }]}>
+          <ThemedText style={[styles.avatarLetter, { color: theme.brandInk }]}>{initial}</ThemedText>
+        </NativePressable>
+      </View>
+
+      <View style={styles.hero}>
+        <ThemedText themeColor="textSecondary">{stageGreeting(firstName)}</ThemedText>
+        <ThemedText type="display" style={styles.heroTitle} accessibilityRole="header">
+          {PrettyCopy.ownerHomeTitle}
+        </ThemedText>
+      </View>
+
+      <View style={styles.actions}>
+        <Button label={PrettyCopy.ownerEmptyCta} onPress={() => router.push('/add')} />
+        <NativePressable
+          accessibilityRole="link"
+          accessibilityLabel={PrettyCopy.ownerShareLink}
+          onPress={() => {
+            track('share_screen_opened');
+            router.push('/share');
+          }}
+          style={styles.shareLink}>
+          <ThemedText type="bodyEm" themeColor="textSecondary" style={styles.shareLabel}>
+            {PrettyCopy.ownerShareLink}
           </ThemedText>
-          <Button label={PrettyCopy.ownerEmptyCta} icon="gift" onPress={() => router.push('/add')} />
-        </View>
-      ) : null}
-
-      {shouldShowOccasionFilter(occasions.length) ? (
-        <QuietSelect
-          label="Occasion"
-          value={occasionId}
-          onChange={setOccasionId}
-          options={[
-            { id: 'all', label: 'All gifts' },
-            ...occasions.map((row) => ({ id: row.id, label: row.title })),
-            { id: 'none', label: 'Unassigned' },
-          ]}
-        />
-      ) : null}
-
-      {requestCopy ? (
-        <InboxBanner
-          title="Someone’s waiting"
-          body={requestCopy}
-          actionLabel={PrettyCopy.requestsBannerCta}
-          onAction={() => router.push('/requests')}
-          accessibilityLabel="pending-giver-requests"
-        />
-      ) : null}
-      {readyCopy ? (
-        <InboxBanner
-          title="They’re ready"
-          body={readyCopy}
-          actionLabel={PrettyCopy.peopleTitle}
-          onAction={() => router.push('/people')}
-          accessibilityLabel="accepted-giver-pins"
-        />
-      ) : null}
+        </NativePressable>
+      </View>
 
       {error ? (
         <ThemedText type="small" themeColor="accent">
@@ -158,44 +83,83 @@ export default function WishlistGridScreen() {
 
       {loading ? <ThemedText themeColor="textSecondary">Loading…</ThemedText> : null}
 
-      {!loading ? (
-        <ItemGrid
-          items={visible}
-          hrefFor={(item) => `/item/${item.id}`}
-          emptyTitle={PrettyCopy.ownerEmptyTitle}
-          emptyBody={PrettyCopy.ownerEmptyBody}
-          emptyActionLabel={PrettyCopy.ownerEmptyCta}
-          onEmptyAction={() => router.push('/add')}
-          emptyKind="owner"
-        />
+      {!loading && items.length > 0 ? (
+        <View style={styles.list}>
+          <ThemedText type="eyebrow" themeColor="textSecondary">
+            {PrettyCopy.ownerSection}
+          </ThemedText>
+          {items.map((item) => (
+            <StagePickRow key={item.id} item={item} href={`/item/${item.id}`} />
+          ))}
+        </View>
       ) : null}
 
-      <LegalLinks includeSettings />
+      {!loading && !error && items.length === 0 ? (
+        <View style={styles.empty}>
+          <ThemedText type="title" style={styles.emptyTitle}>
+            {PrettyCopy.ownerEmptyTitle}
+          </ThemedText>
+          <ThemedText themeColor="textSecondary" style={styles.emptyBody}>
+            {PrettyCopy.ownerEmptyBody}
+          </ThemedText>
+        </View>
+      ) : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    paddingTop: Spacing.five,
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 44,
+  },
+  avatarHit: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({ web: { cursor: 'pointer' as const } }),
+  },
+  avatarLetter: {
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: 700,
+  },
+  hero: {
+    gap: Spacing.one,
+  },
+  heroTitle: {
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -1,
   },
   actions: {
     gap: Spacing.twoHalf,
-    marginTop: Spacing.two,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.one,
-  },
-  headerBtn: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.one,
-  },
-  headerIcon: {
-    width: 44,
-    height: 44,
+  shareLink: {
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: Spacing.three,
+    ...Platform.select({ web: { cursor: 'pointer' as const } }),
+  },
+  shareLabel: {
+    textAlign: 'center',
+  },
+  list: {
+    gap: Spacing.three,
+  },
+  empty: {
+    gap: Spacing.two,
+    paddingTop: Spacing.two,
+  },
+  emptyTitle: {
+    letterSpacing: -0.4,
+  },
+  emptyBody: {
+    maxWidth: 320,
   },
 });
