@@ -155,6 +155,7 @@ export default function GiverShareScreen() {
       <Stack.Screen
         options={{
           title: !meta && !error ? listTitle : 'Gift Decider',
+          gestureEnabled: false,
           headerRight: () => (
             <View style={styles.headerRow}>
               <View style={[styles.choosing, { backgroundColor: theme.brandSoft }]}>

@@ -150,16 +150,18 @@ function tidyTitle(raw: string | null) {
   return title.slice(0, 120);
 }
 
+// Keep in sync with NOTES_CAP / clipNotes in src/lib/link-preview.ts.
 function lightNotes(raw: string | null, title: string | null) {
   if (!raw) return null;
-  let text = decodeHtmlEntities(raw).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const text = decodeHtmlEntities(raw).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   if (!text || (title && text.toLowerCase() === title.toLowerCase())) return null;
-  if (text.length > 180) {
-    const cut = text.slice(0, 177);
-    const lastSpace = cut.lastIndexOf(' ');
-    text = `${(lastSpace > 80 ? cut.slice(0, lastSpace) : cut).trim()}…`;
-  }
-  return text;
+  const cap = 420;
+  if (text.length <= cap) return text;
+  const window = text.slice(0, cap);
+  const sentence = Math.max(window.lastIndexOf('. '), window.lastIndexOf('! '), window.lastIndexOf('? '));
+  const lastSpace = window.lastIndexOf(' ');
+  const end = sentence >= 80 ? sentence + 1 : lastSpace > 80 ? lastSpace : window.length;
+  return `${window.slice(0, end).trim()}…`;
 }
 
 function isDecorativeImageUrl(url: string) {

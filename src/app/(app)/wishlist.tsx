@@ -1,10 +1,11 @@
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { NativePressable } from '@/components/native-pressable';
+import { PreviewGiverLink } from '@/components/preview-giver-link';
 import { Screen } from '@/components/screen';
 import { StagePickRow } from '@/components/stage-pick-row';
 import { ThemedText } from '@/components/themed-text';
@@ -14,7 +15,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
 import { personFirstLabel } from '@/lib/list-title';
-import { stageGreeting } from '@/lib/stage-home';
+import { clearPickPulse, peekPickPulse } from '@/lib/pick-pulse';
+import { PICK_PULSE_MS, stageGreeting } from '@/lib/stage-home';
 import { getOwnProfile } from '@/services/profile';
 
 export default function OwnerHomeScreen() {
@@ -22,10 +24,14 @@ export default function OwnerHomeScreen() {
   const insets = useSafeAreaInsets();
   const { items, loading, error, refresh } = useWishlist();
   const [firstName, setFirstName] = useState<string | null>(null);
+  const [pulseId, setPulseId] = useState<string | null>(null);
+  const announcedPulse = useRef<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       void refresh();
+      const nextPulse = peekPickPulse();
+      if (nextPulse) setPulseId(nextPulse);
       void getOwnProfile()
         .then((profile) => {
           setFirstName(personFirstLabel(profile?.display_name, profile?.handle));
@@ -35,6 +41,19 @@ export default function OwnerHomeScreen() {
         });
     }, [refresh]),
   );
+
+  useEffect(() => {
+    if (!pulseId) return;
+    if (announcedPulse.current !== pulseId) {
+      announcedPulse.current = pulseId;
+      AccessibilityInfo.announceForAccessibility(PrettyCopy.pickAdded);
+    }
+    const timer = setTimeout(() => {
+      clearPickPulse(pulseId);
+      setPulseId((current) => (current === pulseId ? null : current));
+    }, PICK_PULSE_MS);
+    return () => clearTimeout(timer);
+  }, [pulseId]);
 
   const initial = (firstName ?? 'G').slice(0, 1).toUpperCase();
 
@@ -46,7 +65,7 @@ export default function OwnerHomeScreen() {
         <NativePressable
           accessibilityRole="button"
           accessibilityLabel="Me"
-          onPress={() => router.replace('/settings')}
+          onPress={() => router.navigate('/settings')}
           style={[styles.avatarHit, { backgroundColor: theme.brandSoft }]}>
           <ThemedText style={[styles.avatarLetter, { color: theme.brandInk }]}>{initial}</ThemedText>
         </NativePressable>
@@ -73,6 +92,7 @@ export default function OwnerHomeScreen() {
             {PrettyCopy.ownerShareLink}
           </ThemedText>
         </NativePressable>
+        <PreviewGiverLink />
       </View>
 
       {error ? (
@@ -89,7 +109,7 @@ export default function OwnerHomeScreen() {
             {PrettyCopy.ownerSection}
           </ThemedText>
           {items.map((item) => (
-            <StagePickRow key={item.id} item={item} href={`/item/${item.id}`} />
+            <StagePickRow key={item.id} item={item} href={`/item/${item.id}`} pulse={item.id === pulseId} />
           ))}
         </View>
       ) : null}

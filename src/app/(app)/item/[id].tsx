@@ -1,4 +1,4 @@
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -16,6 +16,8 @@ import { confirmDestructive } from '@/lib/confirm';
 import { PrettyCopy } from '@/lib/copy';
 import { parseAud } from '@/lib/format';
 import { noSubstitutionForSave } from '@/lib/item-form';
+import { leaveScreen } from '@/lib/leave-screen';
+import { presentNotes } from '@/lib/link-preview';
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -56,13 +58,14 @@ export default function ItemDetailScreen() {
   if (!item || !form) {
     return (
       <Screen>
-        <ThemedText>That item is not on this list (or still loading).</ThemedText>
+        <ThemedText>That pick isn’t here yet.</ThemedText>
       </Screen>
     );
   }
 
   const current = item;
   const currentForm = form;
+  const notes = presentNotes(item.notes);
 
   async function onRemove() {
     const ok = await confirmDestructive(PrettyCopy.removeGiftTitle, PrettyCopy.removeGiftBody, PrettyCopy.removeGift);
@@ -71,7 +74,7 @@ export default function ItemDetailScreen() {
     setError(null);
     try {
       await removeItem(current.id);
-      router.back();
+      leaveScreen();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not remove item');
       setBusy(false);
@@ -126,7 +129,7 @@ export default function ItemDetailScreen() {
             </ThemedText>
           ) : null}
           <Button
-            label={busy ? 'Saving…' : 'Save vibes'}
+            label={busy ? 'Saving…' : PrettyCopy.savePick}
             disabled={busy || photoBusy}
             onPress={() => void onSave()}
           />
@@ -152,7 +155,11 @@ export default function ItemDetailScreen() {
             </ThemedText>
           </View>
 
-          {item.notes ? <ThemedText>{item.notes}</ThemedText> : null}
+          {notes ? (
+            <View style={styles.notesWrap}>
+              <ThemedText style={styles.notes}>{notes}</ThemedText>
+            </View>
+          ) : null}
           {item.size_hint ? (
             <ThemedText type="small" themeColor="textSecondary">
               Size / fit: {item.size_hint}
@@ -176,7 +183,7 @@ export default function ItemDetailScreen() {
             </ThemedText>
           ) : null}
 
-          <Button label="Edit item / vibes" variant="secondary" onPress={() => setEditing(true)} />
+          <Button label={PrettyCopy.editPick} variant="secondary" onPress={() => setEditing(true)} />
           <Button
             label={busy ? 'Removing…' : PrettyCopy.removeGift}
             variant="ghost"
@@ -192,5 +199,15 @@ export default function ItemDetailScreen() {
 const styles = StyleSheet.create({
   block: {
     gap: Spacing.one,
+  },
+  // A definite width so the last line wraps instead of clipping mid-sentence.
+  notesWrap: {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    alignSelf: 'stretch',
+  },
+  notes: {
+    width: '100%',
   },
 });

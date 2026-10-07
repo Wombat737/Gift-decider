@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 
 import { Button } from '@/components/button';
@@ -9,6 +8,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { FieldHelp } from '@/lib/help';
+import { returnToPicks } from '@/lib/leave-screen';
 import { applyBuyLinkDraft, draftFromPreview, looksLikeCompleteBuyUrl, previewMissMessage, type BuyLinkFields } from '@/lib/link-preview';
 import { mirrorPreviewImage, previewUrl } from '@/services/preview';
 
@@ -70,7 +70,7 @@ export default function PasteInstagramScreen() {
         source_type: 'instagram',
         source_url: url.trim() || undefined,
       });
-      router.replace(`/item/${item.id}`);
+      returnToPicks(item.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not pin item');
     } finally {

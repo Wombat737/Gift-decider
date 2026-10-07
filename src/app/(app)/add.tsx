@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { parseAud } from '@/lib/format';
 import { noSubstitutionForSave } from '@/lib/item-form';
+import { returnToPicks } from '@/lib/leave-screen';
 import { isInstagramHost, sanitizeBuyUrl } from '@/lib/link-preview';
 
 const emptyFields: ItemFieldsValue = {
@@ -69,7 +70,7 @@ function AddDraft({ initialUrl }: { initialUrl: string }) {
         source_type: instagram ? 'instagram' : 'manual',
         source_url: instagram ? buyUrl : undefined,
       });
-      router.replace(`/item/${item.id}`);
+      returnToPicks(item.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add item');
     } finally {

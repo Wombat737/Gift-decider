@@ -47,7 +47,11 @@ export function StageTabBar({ pathname }: { pathname: string }) {
             onPress={() => {
               if (active) return;
               if (tab.id === 'me') track('settings_opened', { source: 'stage_tab' });
-              router.replace(tab.href);
+              if (tab.id === 'home') {
+                router.dismissTo(tab.href);
+                return;
+              }
+              router.navigate(tab.href);
             }}
             style={styles.tab}>
             <View>

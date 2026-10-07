@@ -4,6 +4,9 @@ import type { GroupGiftPhase, ItemKind, ItemStatus } from '@/lib/types';
 export const StageThumbSize = 84;
 export const StageThumbRadius = 14;
 
+/** Sunshine pulse after a pick is pinned. Inside the 400–700ms band. */
+export const PICK_PULSE_MS = 560;
+
 export function daypartLabel(date = new Date()) {
   const hour = date.getHours();
   if (hour < 12) return 'Morning';
