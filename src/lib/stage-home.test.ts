@@ -7,7 +7,10 @@ import { fileURLToPath } from 'node:url';
 import { PrettyCopy } from './copy';
 import { getDemoItem, resetDemoStore } from './demo-store';
 import { groupGiftPhase } from './pledges';
+import { clearPickPulse, peekPickPulse, queuePickPulse, resetPickPulse } from './pick-pulse';
+import { exitAction } from './stack-exit';
 import {
+  PICK_PULSE_MS,
   StageThumbRadius,
   StageThumbSize,
   giverCardSecondary,
@@ -106,5 +109,62 @@ describe('Stage home', () => {
     const appJson = readFileSync(join(repo, 'app.json'), 'utf8');
     assert.match(appJson, /"name": "Gift Decider"/);
     assert.equal(appJson.includes('Meantvo'), false);
+  });
+
+  it('returns home after a pin, keeps a back exit, and pulses the new card', () => {
+    assert.equal(PrettyCopy.removeGift, 'Remove from picks');
+    assert.equal(PrettyCopy.editPick, 'Edit pick');
+    assert.equal(PrettyCopy.previewGiverLink, 'Preview giver view');
+    assert.equal(PrettyCopy.pickAdded, 'Added to your picks');
+    assert.equal(exitAction(false, false), 'home');
+    assert.equal(exitAction(true, false), 'back');
+    assert.equal(exitAction(false, true), 'back');
+    assert.ok(PICK_PULSE_MS >= 400 && PICK_PULSE_MS <= 700);
+
+    resetPickPulse();
+    queuePickPulse('demo-mug');
+    assert.equal(peekPickPulse(), 'demo-mug');
+    clearPickPulse('demo-mug');
+    assert.equal(peekPickPulse(), null);
+
+    const add = source('app/(app)/add.tsx');
+    const paste = source('app/(app)/paste.tsx');
+    const item = source('app/(app)/item/[id].tsx');
+    const layout = source('app/(app)/_layout.tsx');
+    const root = source('app/_layout.tsx');
+    const giverLayout = source('app/g/[token]/_layout.tsx');
+    const tabs = source('components/stage-tab-bar.tsx');
+    const row = source('components/stage-pick-row.tsx');
+    const home = source('app/(app)/wishlist.tsx');
+
+    assert.match(add, /returnToPicks/);
+    assert.match(paste, /returnToPicks/);
+    assert.equal(/router\.replace\(`\/item\//.test(add), false);
+    assert.equal(/router\.replace\(`\/item\//.test(paste), false);
+    assert.match(item, /PrettyCopy\.editPick/);
+    assert.match(item, /PrettyCopy\.savePick/);
+    assert.match(item, /presentNotes/);
+    assert.match(item, /leaveScreen/);
+    assert.match(item, /notesWrap/);
+    assert.match(layout, /exitHeaderOptions/);
+    assert.match(layout, /title: 'Pick'/);
+    assert.match(source('components/stack-exit-button.tsx'), /fullScreenGestureEnabled: true/);
+    assert.match(source('components/stack-exit-button.tsx'), /gestureEnabled: true/);
+    assert.match(root, /fullScreenGestureEnabled: true/);
+    assert.match(giverLayout, /gestureEnabled: false/);
+    assert.match(giverLayout, /exitHeaderOptions/);
+    assert.match(tabs, /router\.navigate/);
+    assert.match(tabs, /router\.dismissTo/);
+    assert.equal(/router\.replace/.test(tabs), false);
+    assert.match(home, /PreviewGiverLink/);
+    assert.match(home, /peekPickPulse/);
+    assert.match(home, /PrettyCopy\.ownerShareLink/);
+    assert.match(row, /useReducedMotion/);
+    assert.match(row, /theme\.accent/);
+    assert.match(row, /pointerEvents="none"/);
+    assert.equal(row.includes('confetti'), false);
+    assert.match(source('components/preview-giver-link.tsx'), /openGiverShare/);
+    assert.match(source('components/stack-exit-button.tsx'), /accessibilityLabel="Back"/);
+    assert.match(source('components/stack-exit-button.tsx'), /chevron\.backward/);
   });
 });

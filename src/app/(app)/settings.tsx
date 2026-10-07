@@ -104,7 +104,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <ThemedText type="heading">Settings</ThemedText>
+      <ThemedText type="heading">Me</ThemedText>
       <ThemedText themeColor="textSecondary">
         Signed in as {user?.email ?? 'you'}. Store-required privacy and deletion live here.
       </ThemedText>

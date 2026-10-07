@@ -253,19 +253,43 @@ export function tidyPreviewTitle(raw: string | null | undefined): string | null 
   return title.slice(0, 120);
 }
 
+/**
+ * Keep a normal product blurb intact. The old 180 cap sliced mid-sentence
+ * (and the ellipsis could sit on a clipped last line). Stay in sync with
+ * supabase/functions/preview-url lightNotes.
+ */
+export const NOTES_CAP = 420;
+
+export function clipNotes(text: string, cap = NOTES_CAP) {
+  if (text.length <= cap) return text;
+  const window = text.slice(0, cap);
+  const sentence = Math.max(window.lastIndexOf('. '), window.lastIndexOf('! '), window.lastIndexOf('? '));
+  const lastSpace = window.lastIndexOf(' ');
+  const end = sentence >= 80 ? sentence + 1 : lastSpace > 80 ? lastSpace : window.length;
+  return `${window.slice(0, end).trim()}…`;
+}
+
 export function lightNotes(raw: string | null | undefined, title?: string | null): string | null {
   if (!raw) return null;
-  let text = decodeHtmlEntities(raw)
+  const text = decodeHtmlEntities(raw)
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   if (!text) return null;
   if (title && text.toLowerCase() === title.toLowerCase()) return null;
-  if (text.length > 180) {
-    const cut = text.slice(0, 177);
-    const lastSpace = cut.lastIndexOf(' ');
-    text = `${(lastSpace > 80 ? cut.slice(0, lastSpace) : cut).trim()}…`;
-  }
+  return clipNotes(text);
+}
+
+/**
+ * Notes already saved under the old cap sometimes end mid-thought with no ellipsis.
+ * Only that band is repaired — a short note without a full stop stays as written.
+ */
+export function presentNotes(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const text = raw.replace(/\s+/g, ' ').trim();
+  if (!text) return null;
+  if (/[.!?…]['"”’)]*$/.test(text) || text.endsWith('...')) return text;
+  if (text.length >= 140 && text.length <= 200) return `${text}…`;
   return text;
 }
 

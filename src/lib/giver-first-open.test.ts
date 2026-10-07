@@ -356,7 +356,8 @@ describe('People → list first open never commits loaded+empty before fetch set
 
     assert.match(share, /openGiverShare\(wishlist\?\.share_token, router\.push, prefetchSharedItems\)/);
     assert.match(share, /openGiverShare\(occasion\.share_token, router\.push, prefetchSharedItems\)/);
-    assert.match(share, /Open giver view/);
+    assert.match(share, /PrettyCopy\.previewGiverLink/);
+    assert.match(share, /router\.push\('\/people'\)/);
     assert.equal(/onGiverView/.test(share), false);
     assert.equal(/onGiverView/.test(owner), false);
     assert.equal(/onYourList/.test(owner), false);

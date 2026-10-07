@@ -2,6 +2,7 @@ import { Stack, usePathname } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { StageTabBar } from '@/components/stage-tab-bar';
+import { exitHeaderOptions } from '@/components/stack-exit-button';
 import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { PrettyCopy } from '@/lib/copy';
@@ -20,12 +21,13 @@ export default function AppLayout() {
           headerTintColor: theme.text,
           headerTitleStyle: { fontFamily: Fonts.sans, fontWeight: '600' },
           contentStyle: { backgroundColor: theme.background },
+          ...exitHeaderOptions(),
         }}>
         <Stack.Screen name="wishlist" options={{ title: PrettyCopy.ownerHomeTitle, headerShown: false }} />
         <Stack.Screen name="add" options={{ title: 'Add a pick' }} />
         <Stack.Screen name="paste" options={{ title: 'Paste Instagram URL' }} />
         <Stack.Screen name="share" options={{ title: PrettyCopy.shareTitle }} />
-        <Stack.Screen name="item/[id]" options={{ title: 'Item' }} />
+        <Stack.Screen name="item/[id]" options={{ title: 'Pick' }} />
         <Stack.Screen name="people" options={{ title: 'People' }} />
         <Stack.Screen name="requests" options={{ title: 'Requests' }} />
         <Stack.Screen name="settings" options={{ title: 'Me' }} />

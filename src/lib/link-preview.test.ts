@@ -15,6 +15,8 @@ import {
   isBlockedPreviewHost,
   isInstagramHost,
   lightNotes,
+  NOTES_CAP,
+  presentNotes,
   looksLikeCompleteBuyUrl,
   parseHtmlPreview,
   parsePriceAmount,
@@ -229,7 +231,17 @@ describe('Buy-link autofill', () => {
     assert.equal(tidyPreviewTitle('Robot Check'), null);
     assert.equal(isInstagramHost('www.instagram.com'), true);
     assert.equal(isInstagramHost('kmart.com.au'), false);
-    assert.match(lightNotes('A'.repeat(220)) ?? '', /…$/);
+    assert.equal(NOTES_CAP, 420);
+    const pulse =
+      "Solve in a flash or it's lights out. Pulse Cube is the ultimate thrilling solving experience – race to beat the glowing Cube, but in just 60 seconds, you're left in the dark.";
+    assert.equal(lightNotes(pulse), pulse);
+    assert.match(lightNotes(`${pulse} ${'Extra detail. '.repeat(40)}`) ?? '', /…$/);
+    assert.equal(lightNotes('A'.repeat(220)), 'A'.repeat(220));
+    assert.match(lightNotes('A'.repeat(500)) ?? '', /…$/);
+    const clipped = pulse.slice(0, pulse.indexOf(' the dark'));
+    assert.equal(presentNotes(clipped), `${clipped}…`);
+    assert.equal(presentNotes(pulse), pulse);
+    assert.equal(presentNotes('Crew height'), 'Crew height');
   });
 
   it('wires paste/blur autofill on Add item without blocking Pin or scraping Instagram', () => {
@@ -246,6 +258,7 @@ describe('Buy-link autofill', () => {
     assert.match(add, /Pin to wishlist/);
     assert.equal(/await autofillFromBuyUrl/.test(add), false);
     assert.match(preview, /preview-url/);
+    assert.match(edge, /const cap = 420/);
     assert.match(preview, /draftFromPreview/);
     assert.match(preview, /draftWithPageHtml/);
     assert.match(preview, /fetchPublicPageHtml/);

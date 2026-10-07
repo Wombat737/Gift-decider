@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { NativePressable } from '@/components/native-pressable';
 import { EmptyIllustration } from '@/components/empty-illustration';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
@@ -80,6 +81,21 @@ export default function ShareScreen() {
         onPress={() => link && wishlist && void sharePack(wishlist.share_token)}
       />
       <ThemedText themeColor="textSecondary">{PrettyCopy.shareSubtitle}</ThemedText>
+      <Button
+        label={PrettyCopy.previewGiverLink}
+        variant="secondary"
+        disabled={!link}
+        onPress={() => openGiverShare(wishlist?.share_token, router.push, prefetchSharedItems)}
+      />
+      <NativePressable
+        accessibilityRole="link"
+        accessibilityLabel={PrettyCopy.peopleTitle}
+        onPress={() => router.push('/people')}
+        style={styles.peopleLink}>
+        <ThemedText type="bodyEm" themeColor="textSecondary">
+          {PrettyCopy.peopleTitle}
+        </ThemedText>
+      </NativePressable>
       {message ? (
         <ThemedText type="small" themeColor="textSecondary">
           {message}
@@ -129,7 +145,7 @@ export default function ShareScreen() {
                       onPress={() => void sharePack(occasion.share_token, occasion.title)}
                     />
                     <Button
-                      label="Open giver view"
+                      label={PrettyCopy.previewGiverLink}
                       variant="ghost"
                       onPress={() => openGiverShare(occasion.share_token, router.push, prefetchSharedItems)}
                     />
@@ -157,11 +173,6 @@ export default function ShareScreen() {
           <Button label="Save invite" variant="secondary" onPress={() => void onInvite()} />
 
           {link ? <ThemedText type="code">{link}</ThemedText> : null}
-          <Button
-            label="Open giver view"
-            variant="ghost"
-            onPress={() => openGiverShare(wishlist?.share_token, router.push, prefetchSharedItems)}
-          />
         </View>
       ) : null}
     </Screen>
@@ -184,6 +195,12 @@ const styles = StyleSheet.create({
   advancedToggle: {
     alignSelf: 'flex-start',
     paddingVertical: Spacing.two,
+  },
+  peopleLink: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.three,
   },
   advanced: {
     gap: Spacing.three,

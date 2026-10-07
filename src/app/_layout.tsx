@@ -93,10 +93,18 @@ function RootNavigator({
       }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
-      <Stack.Screen name="g/[token]" options={{ headerShown: false, title: 'Shared wishlist' }} />
+      <Stack.Screen
+        name="g/[token]"
+        options={{
+          headerShown: false,
+          title: 'Giver view',
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+        }}
+      />
       <Stack.Screen name="auth/callback" options={{ title: 'Signing in' }} />
       <Stack.Protected guard={!!user}>
-        <Stack.Screen name="(app)" options={{ headerShown: false }} />
+        <Stack.Screen name="(app)" options={{ headerShown: false, gestureEnabled: false }} />
       </Stack.Protected>
       <Stack.Protected guard={!user}>
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
