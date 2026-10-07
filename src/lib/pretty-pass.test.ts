@@ -94,9 +94,11 @@ describe('Pretty pass punch-list', () => {
     assert.match(share, /PrettyCopy\.shareWithMates/);
     assert.match(share, /PrettyCopy\.shareSubtitle/);
     assert.match(share, /PrettyCopy\.shareAdvanced/);
-    assert.equal(PrettyCopy.ownerEmptyTitle, 'What are you after, legend?');
-    assert.equal(PrettyCopy.ownerEmptyCta, 'Add a gift');
-    assert.equal(PrettyCopy.giverEmptyTitle, 'Quiet list — nudge them to add a couple of bits.');
+    assert.equal(PrettyCopy.ownerEmptyTitle, 'What moves you?');
+    assert.equal(PrettyCopy.ownerEmptyCta, 'Add a pick');
+    assert.equal(PrettyCopy.ownerHomeTitle, 'Your picks');
+    assert.equal(PrettyCopy.giverEmptyTitle, 'Quiet picks');
+    assert.equal(PrettyCopy.giverChooseCta, 'Choose this');
     assert.equal(PrettyCopy.shareTitle, 'Send this to whoever’s buying.');
     assert.equal(PrettyCopy.shareSubtitle, 'You won’t see what they reserved.');
     assert.equal(PrettyCopy.shareWithMates, 'Share with mates');

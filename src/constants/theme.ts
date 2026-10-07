@@ -147,6 +147,28 @@ export const ChipPad = {
 /** Empty-state hero art. */
 export const IlluSize = 140;
 
+/** Stage home rows — framed thumb cards, short and soft. */
+export const StageShadow: ViewStyle = Platform.select({
+  ios: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  android: {
+    elevation: 2,
+  },
+  web: {
+    boxShadow: '0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.06)',
+  },
+  default: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+}) as ViewStyle;
+
 /** Quiet card lift — short contact shadow, soft falloff. */
 export const CardShadow: ViewStyle = Platform.select({
   ios: {

@@ -111,14 +111,20 @@ describe('Request badge and accept flip', () => {
     assert.equal(acked.newlyReady.length, 0);
   });
 
-  it('wishlist, People, and Requests surface badge + pending highlight', () => {
+  it('Me, People, and Requests surface badge + pending highlight', () => {
     const wishlist = source('src/app/(app)/wishlist.tsx');
+    const settings = source('src/app/(app)/settings.tsx');
     const people = source('src/app/(app)/people.tsx');
     const requests = source('src/app/(app)/requests.tsx');
-    assert.match(wishlist, /HeaderInboxLink/);
-    assert.match(wishlist, /pendingRequests/);
-    assert.match(wishlist, /InboxBanner/);
-    assert.match(wishlist, /pending-giver-requests/);
+    const tabs = source('src/components/stage-tab-bar.tsx');
+    assert.equal(/InboxBanner/.test(wishlist), false);
+    assert.equal(/HeaderInboxLink/.test(wishlist), false);
+    assert.match(settings, /HeaderInboxLink/);
+    assert.match(settings, /pendingRequests/);
+    assert.match(settings, /InboxBanner/);
+    assert.match(settings, /pending-giver-requests/);
+    assert.match(tabs, /pendingRequests/);
+    assert.match(tabs, /label: 'Me'/);
     assert.match(people, /accepted-giver-pins/);
     assert.match(people, /selected=\{justReady\}/);
     assert.match(people, /Waiting for them to accept/);

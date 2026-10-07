@@ -68,15 +68,15 @@ export function ItemGrid({
   );
 }
 
-/** First-open placeholder — never the giver empty hero. */
+/** First-open placeholder — airy rows, never the giver empty hero or a dense grid. */
 export function ItemGridSkeleton() {
   const theme = useTheme();
   return (
-    <View style={styles.grid} accessibilityLabel="Loading gifts" accessibilityRole="progressbar">
-      {[0, 1, 2, 3].map((key) => (
-        <View key={key} style={styles.cell}>
-          <View style={[styles.skelCard, { backgroundColor: theme.paper, borderColor: theme.border }]}>
-            <View style={[styles.skelImage, { backgroundColor: theme.backgroundSelected }]} />
+    <View style={styles.skelList} accessibilityLabel="Loading gifts" accessibilityRole="progressbar">
+      {[0, 1, 2].map((key) => (
+        <View key={key} style={[styles.skelCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+          <View style={[styles.skelThumb, { backgroundColor: theme.brandSoft }]} />
+          <View style={styles.skelCopy}>
             <View style={[styles.skelLine, { backgroundColor: theme.backgroundSelected }]} />
             <View style={[styles.skelLineShort, { backgroundColor: theme.backgroundSelected }]} />
           </View>
@@ -102,18 +102,28 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     padding: Spacing.one + 2,
   },
+  skelList: {
+    width: '100%',
+    maxWidth: '100%',
+    gap: Spacing.three,
+  },
   skelCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
     borderRadius: Radius.card,
     borderWidth: 1,
-    overflow: 'hidden',
     padding: Spacing.three,
-    paddingBottom: Spacing.two,
-    gap: Spacing.two,
   },
-  skelImage: {
-    width: '100%',
-    aspectRatio: 4 / 5,
-    borderRadius: Radius.card - 6,
+  skelThumb: {
+    width: 84,
+    height: 84,
+    borderRadius: 14,
+  },
+  skelCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: Spacing.two,
   },
   skelLine: {
     height: 12,

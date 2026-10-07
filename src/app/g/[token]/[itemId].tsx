@@ -115,10 +115,11 @@ function GiverStatusTrail({
 
 export default function GiverItemScreen() {
   const theme = useTheme();
-  const { token: paramToken, itemId: paramItemId, claim: claimParam } = useLocalSearchParams<{
+  const { token: paramToken, itemId: paramItemId, claim: claimParam, chip: chipParam } = useLocalSearchParams<{
     token: string;
     itemId: string;
     claim?: string;
+    chip?: string;
   }>();
   const { token: shareToken, items, loading: shareLoading, patchItem, meta } = useGiverShare();
   const { user } = useAuth();
@@ -133,15 +134,19 @@ export default function GiverItemScreen() {
   const [loading, setLoading] = useState(!shareItem);
   const [busy, setBusy] = useState(false);
   const [flickKey, setFlickKey] = useState(0);
-  const [groupOpen, setGroupOpen] = useState(false);
+  const chipRequested = shareTokenParam(chipParam) === '1';
+  const [groupSession, setGroupSession] = useState(() => ({ id: itemId, open: chipRequested }));
+  const groupOpen = groupSession.id === itemId ? groupSession.open : chipRequested;
+  function setGroupOpen(next: boolean | ((open: boolean) => boolean)) {
+    setGroupSession((current) => {
+      const open = current.id === itemId ? current.open : chipRequested;
+      return { id: itemId, open: typeof next === 'function' ? next(open) : next };
+    });
+  }
   const autoChecked = useRef<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const groupAnchor = useRef(0);
   const demo = Boolean(token && isDemoShareToken(token));
-
-  useEffect(() => {
-    setGroupOpen(false);
-  }, [itemId]);
 
   useEffect(() => {
     if (shareTokenParam(claimParam) === '1' && !rememberedGiverName()) setAskingName(true);
