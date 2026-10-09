@@ -165,12 +165,17 @@ language sql
 immutable
 set search_path = public
 as $$
-  select coalesce(array_agg(distinct lower(hit[1])), '{}'::text[])
-  from regexp_matches(
-    coalesce(p_body, ''),
-    '(?:^|[^[:alnum:]_])@([a-zA-Z0-9_]{3,30})',
-    'g'
-  ) as hit;
+  select coalesce(
+    (
+      select array_agg(distinct lower(hit[1]))
+      from regexp_matches(
+        coalesce(p_body, ''),
+        '(?:^|[^[:alnum:]_])@([a-zA-Z0-9_]{3,30})',
+        'g'
+      ) as hit
+    ),
+    '{}'::text[]
+  );
 $$;
 
 revoke all on function public.extract_giver_mention_handles(text) from public, anon, authenticated;
