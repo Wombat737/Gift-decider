@@ -1,4 +1,6 @@
 import type {
+  CommentMention,
+  CommentTagCandidate,
   Discoverability,
   GiftSearchHit,
   HandleSearchHit,
@@ -169,6 +171,202 @@ export function handleSearchPayloadLeaks(payload: HandleSearchHit[] | unknown): 
 export function ownerCommentPayloadLeaks(comments: ItemGiverComment[] | null | undefined) {
   if (comments && comments.length > 0) return 'comments';
   return null;
+}
+
+const MENTION_TOKEN = /@([a-zA-Z0-9_]{3,30})/g;
+
+export type CommentBodyPart = { kind: 'text' | 'tag'; text: string };
+
+export type CommentThread = {
+  comment: ItemGiverComment;
+  replies: ItemGiverComment[];
+};
+
+function asMention(entry: unknown): CommentMention | null {
+  if (!entry || typeof entry !== 'object') return null;
+  const record = entry as Record<string, unknown>;
+  if (record.user_id == null && record.id == null) return null;
+  return {
+    user_id: String(record.user_id ?? record.id),
+    handle: typeof record.handle === 'string' ? record.handle : null,
+    display_name: typeof record.display_name === 'string' ? record.display_name : null,
+  };
+}
+
+function asMentions(value: unknown): CommentMention[] {
+  let raw = value;
+  if (typeof raw === 'string') {
+    try {
+      raw = JSON.parse(raw) as unknown;
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((entry) => {
+    const mention = asMention(entry);
+    return mention ? [mention] : [];
+  });
+}
+
+/**
+ * Flat giver notes (rows from before threading) become root comments.
+ * Missing parent / mention fields default so an old RPC payload still renders.
+ */
+export function commentFromRow(row: Record<string, unknown>): ItemGiverComment | null {
+  if (row.id == null || row.body == null || row.item_id == null) return null;
+  return {
+    id: String(row.id),
+    item_id: String(row.item_id),
+    author_id: String(row.author_id ?? ''),
+    author_display_name: String(row.author_display_name ?? 'A giver'),
+    body: String(row.body),
+    created_at: String(row.created_at ?? ''),
+    edited_at: (row.edited_at as string | null) ?? null,
+    parent_id: row.parent_id ? String(row.parent_id) : null,
+    mentions: asMentions(row.mentions),
+    unread: Boolean(row.unread),
+  };
+}
+
+export function extractMentionHandles(body: string): string[] {
+  const found = new Set<string>();
+  for (const match of body.matchAll(MENTION_TOKEN)) {
+    const start = match.index ?? 0;
+    const prev = start > 0 ? body[start - 1] : '';
+    if (prev && /[a-zA-Z0-9_]/.test(prev)) continue;
+    if (match[1]) found.add(match[1].toLowerCase());
+  }
+  return [...found];
+}
+
+/** Text before the cursor ends in @query — empty string means "just typed @". */
+export function mentionQueryAt(body: string, cursor: number): string | null {
+  const safe = Math.max(0, Math.min(cursor, body.length));
+  const before = body.slice(0, safe);
+  const match = before.match(/(?:^|\s)@([a-zA-Z0-9_]*)$/);
+  if (!match) return null;
+  return match[1].toLowerCase();
+}
+
+export function mentionToken(person: CommentTagCandidate): string | null {
+  if (person.handle && /^[a-zA-Z0-9_]{3,30}$/.test(person.handle)) return person.handle.toLowerCase();
+  const slug = (person.display_name ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, '')
+    .slice(0, 30);
+  if (/^[a-z0-9_]{3,30}$/.test(slug)) return slug;
+  return null;
+}
+
+export function applyMention(body: string, cursor: number, handle: string): { body: string; cursor: number } {
+  const token = handle.replace(/^@+/, '').trim();
+  if (!token) return { body, cursor };
+  const safe = Math.max(0, Math.min(cursor, body.length));
+  const before = body.slice(0, safe);
+  const match = before.match(/(^|\s)@([a-zA-Z0-9_]*)$/);
+  const insertion = `@${token} `;
+  if (!match || match.index == null) {
+    const next = `${before}${insertion}${body.slice(safe)}`;
+    return { body: next, cursor: before.length + insertion.length };
+  }
+  const at = match.index + match[1].length;
+  const next = `${body.slice(0, at)}${insertion}${body.slice(safe)}`;
+  return { body: next, cursor: at + insertion.length };
+}
+
+export function filterTagCandidates(candidates: CommentTagCandidate[], query: string): CommentTagCandidate[] {
+  const q = query.trim().toLowerCase().replace(/^@+/, '');
+  return candidates
+    .filter((person) => {
+      if (!mentionToken(person)) return false;
+      if (!q) return true;
+      const handle = person.handle?.toLowerCase() ?? '';
+      const name = person.display_name?.toLowerCase() ?? '';
+      return handle.startsWith(q) || name.startsWith(q) || name.split(/\s+/).some((part) => part.startsWith(q));
+    })
+    .slice(0, 6);
+}
+
+export function mentionIdsForBody(body: string, candidates: CommentTagCandidate[], extraIds: string[] = []) {
+  const handles = new Set(extractMentionHandles(body));
+  const ids = new Set(extraIds);
+  for (const person of candidates) {
+    const token = mentionToken(person);
+    if (token && handles.has(token)) ids.add(person.id);
+  }
+  return [...ids];
+}
+
+export function commentBodyParts(body: string): CommentBodyPart[] {
+  const parts: CommentBodyPart[] = [];
+  let last = 0;
+  for (const match of body.matchAll(MENTION_TOKEN)) {
+    const start = match.index ?? 0;
+    const prev = start > 0 ? body[start - 1] : '';
+    if (prev && /[a-zA-Z0-9_]/.test(prev)) continue;
+    if (start > last) parts.push({ kind: 'text', text: body.slice(last, start) });
+    parts.push({ kind: 'tag', text: match[0] });
+    last = start + match[0].length;
+  }
+  if (last < body.length) parts.push({ kind: 'text', text: body.slice(last) });
+  if (!parts.length) parts.push({ kind: 'text', text: body });
+  return parts;
+}
+
+/** One level. A reply whose parent is missing stays visible as its own root so nothing is dropped. */
+export function threadComments(comments: ItemGiverComment[]): CommentThread[] {
+  const byId = new Map(comments.map((comment) => [comment.id, comment]));
+  const replyBuckets = new Map<string, ItemGiverComment[]>();
+  const roots: ItemGiverComment[] = [];
+
+  for (const comment of comments) {
+    const parent = comment.parent_id ? byId.get(comment.parent_id) : undefined;
+    if (!parent) {
+      roots.push(comment);
+      continue;
+    }
+    const rootId = parent.parent_id && byId.has(parent.parent_id) ? parent.parent_id : parent.id;
+    const bucket = replyBuckets.get(rootId) ?? [];
+    bucket.push(comment);
+    replyBuckets.set(rootId, bucket);
+  }
+
+  return roots.map((comment) => ({
+    comment,
+    replies: replyBuckets.get(comment.id) ?? [],
+  }));
+}
+
+export function unreadMentionCount(comments: ItemGiverComment[]) {
+  return comments.reduce((count, comment) => count + (comment.unread ? 1 : 0), 0);
+}
+
+export function removeCommentThread(comments: ItemGiverComment[], commentId: string) {
+  const drop = new Set([commentId]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const row of comments) {
+      if (row.parent_id && drop.has(row.parent_id) && !drop.has(row.id)) {
+        drop.add(row.id);
+        grew = true;
+      }
+    }
+  }
+  return comments.filter((row) => !drop.has(row.id));
+}
+
+/** PostgREST / Postgres "function or argument not migrated yet". Real denials are not a miss. */
+export function isCommentSchemaMiss(
+  error: { message?: string; code?: string; details?: string } | null | undefined,
+) {
+  if (!error) return false;
+  const blob = `${error.code ?? ''} ${error.message ?? ''} ${error.details ?? ''}`;
+  if (/not allowed/i.test(blob)) return false;
+  return /PGRST202|PGRST204|42883|could not find the function|schema cache|could not find the [\w. ]*column|function [\w.]+ does not exist/i.test(
+    blob,
+  );
 }
 
 export function shareTokenFromInput(raw: string) {
