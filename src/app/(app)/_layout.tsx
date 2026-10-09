@@ -31,6 +31,7 @@ export default function AppLayout() {
         <Stack.Screen name="people" options={{ title: 'People' }} />
         <Stack.Screen name="requests" options={{ title: 'Requests' }} />
         <Stack.Screen name="settings" options={{ title: 'Me' }} />
+        <Stack.Screen name="blocked" options={{ title: 'Blocked people' }} />
       </Stack>
       {stageTabVisible(pathname) ? <StageTabBar pathname={pathname} /> : null}
     </View>

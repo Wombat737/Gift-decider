@@ -93,6 +93,7 @@ function RootNavigator({
       }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
+      <Stack.Screen name="terms" options={{ title: 'Terms' }} />
       <Stack.Screen
         name="g/[token]"
         options={{

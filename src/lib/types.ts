@@ -16,6 +16,11 @@ export type Profile = {
   discoverability: Discoverability;
   /** Owner-only. Never send this array to a giver-facing payload. */
   taste_tags: string[];
+  /**
+   * Set when this person agreed to the Terms. Null means the column exists and
+   * they have not agreed. Undefined means an older server without the column.
+   */
+  terms_accepted_at?: string | null;
 };
 
 export type Wishlist = {
@@ -159,6 +164,14 @@ export type CommentTagCandidate = {
   id: string;
   handle: string | null;
   display_name: string | null;
+};
+
+/** A giver this person has blocked. No comment text. */
+export type BlockedGiver = {
+  id: string;
+  handle: string | null;
+  display_name: string | null;
+  blocked_at: string;
 };
 
 export type ItemGiverComment = {

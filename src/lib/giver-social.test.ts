@@ -4,9 +4,18 @@ import { dirname, join } from 'node:path';
 import { beforeEach, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import {
+  BANNED_COMMENT_WORDS,
+  COMMENT_REPORT_REASONS,
+  commentBodyIsObjectionable,
+} from './comment-safety';
 import { listDemoItems, resetDemoStore } from './demo-store';
 import {
+  acceptDemoTerms,
+  blockDemoGiver,
+  editDemoItemGiverComment,
   inviteDemoGiverByEmail,
+  listDemoBlockedGivers,
   listDemoCommentTagCandidates,
   listDemoGiverAccessRequests,
   listDemoGiverPeople,
@@ -14,9 +23,11 @@ import {
   lookupDemoProfileByEmail,
   markDemoItemGiverMentionsRead,
   postDemoItemGiverComment,
+  reportDemoItemGiverComment,
   respondDemoGiverAccess,
   searchDemoProfilesByHandle,
   searchDemoWishlistItems,
+  unblockDemoGiver,
 } from './demo-social';
 import {
   applyMention,
@@ -259,6 +270,7 @@ describe('Giver social B — comments surprise-safe', () => {
   });
 
   it('demo giver persona can post; owner route still empty', () => {
+    acceptDemoTerms();
     const posted = postDemoItemGiverComment('demo-mug', 'Size 12 if they have it', { demoGiverPersona: true });
     assert.equal(posted.body.includes('Size 12'), true);
     assert.equal(posted.parent_id, null);
@@ -299,6 +311,7 @@ describe('Giver social B — comments surprise-safe', () => {
   });
 
   it('replies once, @tags list members, and clears the unread mention', () => {
+    acceptDemoTerms();
     const tags = listDemoCommentTagCandidates();
     assert.deepEqual(
       tags.map((person) => person.handle),
@@ -370,6 +383,145 @@ describe('Giver social B — comments surprise-safe', () => {
     assert.equal(isCommentSchemaMiss({ code: 'PGRST202', message: 'Could not find the function in the schema cache' }), true);
     assert.equal(isCommentSchemaMiss({ message: 'Not allowed' }), false);
     assert.equal(isCommentSchemaMiss({ message: 'Replies are one level deep' }), false);
+  });
+});
+
+describe('Guideline 1.2 — report, block, filter, terms', () => {
+  beforeEach(() => {
+    resetDemoStore();
+  });
+
+  it('rejects objectionable language and keeps ordinary gift notes', () => {
+    assert.equal(commentBodyIsObjectionable('A classic cocktail book'), false);
+    assert.equal(commentBodyIsObjectionable("I'll grab the oatmeal glaze"), false);
+    assert.equal(commentBodyIsObjectionable('class photo'), false);
+    for (const word of BANNED_COMMENT_WORDS) {
+      assert.equal(commentBodyIsObjectionable(`please ${word} now`), true, word);
+    }
+    assert.equal(commentBodyIsObjectionable('f u c k'), true);
+    assert.equal(commentBodyIsObjectionable('f*ck'), true);
+    assert.equal(commentBodyIsObjectionable('sh1t'), true);
+
+    assert.throws(
+      () => postDemoItemGiverComment('demo-mug', 'Size 12', { demoGiverPersona: true }),
+      /Agree to the Terms/,
+    );
+    acceptDemoTerms();
+    assert.throws(
+      () => postDemoItemGiverComment('demo-mug', 'this is shit', { demoGiverPersona: true }),
+      /rephrase/i,
+    );
+    const posted = postDemoItemGiverComment('demo-mug', 'A classic cocktail book', { demoGiverPersona: true });
+    assert.match(posted.body, /classic/);
+    assert.throws(() => editDemoItemGiverComment(posted.id, 'what the fuck'), /rephrase/i);
+    assert.equal(
+      listDemoItemGiverComments('demo-mug', { isOwnerRoute: false, loggedIn: true }).some((row) =>
+        /shit|fuck/i.test(row.body),
+      ),
+      false,
+    );
+    assert.equal(listDemoItemGiverComments('demo-mug', { isOwnerRoute: true, loggedIn: true }).length, 0);
+  });
+
+  it('hides a reported comment for the reporter and refuses their own', () => {
+    reportDemoItemGiverComment('demo-comment-mug-1', 'harassment', 'Too sharp');
+    const rows = listDemoItemGiverComments('demo-mug', { isOwnerRoute: false, loggedIn: true });
+    assert.equal(rows.some((row) => row.id === 'demo-comment-mug-1'), false);
+    assert.equal(rows.some((row) => row.id === 'demo-comment-mug-2'), true);
+    assert.equal(listDemoItemGiverComments('demo-mug', { isOwnerRoute: true, loggedIn: true }).length, 0);
+
+    acceptDemoTerms();
+    const mine = postDemoItemGiverComment('demo-mug', 'I can carry this', { demoGiverPersona: true });
+    assert.throws(
+      () => reportDemoItemGiverComment(mine.id, 'spam'),
+      /someone else's comment/,
+    );
+    assert.throws(() => reportDemoItemGiverComment('demo-comment-mug-2', 'nope'), /Choose a report reason/);
+  });
+
+  it('hides a blocked giver everywhere and drops them from @tag candidates', () => {
+    blockDemoGiver('demo-person-alex');
+    const rows = listDemoItemGiverComments('demo-mug', { isOwnerRoute: false, loggedIn: true });
+    assert.equal(rows.some((row) => row.author_id === 'demo-person-alex'), false);
+    assert.equal(rows.some((row) => row.id === 'demo-comment-mug-2'), true);
+    assert.equal(listDemoCommentTagCandidates().some((person) => person.handle === 'alex'), false);
+    assert.equal(listDemoBlockedGivers().some((person) => person.id === 'demo-person-alex'), true);
+    assert.equal(listDemoItemGiverComments('demo-mug', { isOwnerRoute: true, loggedIn: true }).length, 0);
+
+    acceptDemoTerms();
+    assert.throws(
+      () =>
+        postDemoItemGiverComment('demo-mug', 'hey @alex', {
+          demoGiverPersona: true,
+          mentionIds: ['demo-person-alex'],
+        }),
+      /can't mention/,
+    );
+
+    unblockDemoGiver('demo-person-alex');
+    assert.equal(
+      listDemoItemGiverComments('demo-mug', { isOwnerRoute: false, loggedIn: true }).some(
+        (row) => row.author_id === 'demo-person-alex',
+      ),
+      true,
+    );
+    assert.equal(listDemoCommentTagCandidates().some((person) => person.handle === 'alex'), true);
+    assert.equal(listDemoBlockedGivers().length, 0);
+    assert.throws(() => blockDemoGiver('demo-user'), /can't block yourself/);
+  });
+
+  it('SQL keeps reports and blocks giver-only, filters language, and preserves the parent alias', () => {
+    const sql = migration('20261009200000_giver_comment_safety.sql');
+    assert.match(sql, /item_giver_comment_reports/);
+    assert.match(sql, /item_giver_comment_reports_deny_owner/);
+    assert.match(sql, /as restrictive/);
+    assert.match(sql, /not public\.is_wishlist_owner/);
+    assert.match(sql, /user_blocks/);
+    assert.match(sql, /terms_accepted_at/);
+    assert.match(sql, /accept_terms/);
+    assert.match(sql, /from public\.item_giver_comments pc/);
+    assert.match(sql, /where pc\.id = p_parent_id/);
+    assert.equal(/where id =/.test(sql), false);
+    assert.match(sql, /comment_body_is_objectionable/);
+    assert.match(sql, /Please rephrase that/);
+    assert.match(sql, /Agree to the Terms before commenting/);
+    assert.match(sql, /list_blocked_users/);
+    assert.match(sql, /report_item_giver_comment/);
+    assert.match(sql, /block_user/);
+    assert.match(sql, /unblock_user/);
+    assert.match(sql, /revoke all on public\.item_giver_comment_reports from public, anon/);
+    assert.match(sql, /revoke all on public\.user_blocks from public, anon/);
+    assert.match(sql, /revoke all on function public\.report_item_giver_comment\(uuid, text, text\) from anon/);
+    assert.match(sql, /revoke all on function public\.block_user\(uuid\) from anon/);
+    assert.match(sql, /revoke all on function public\.list_item_giver_comments\(uuid\) from anon/);
+    assert.equal(/grant select on public\.item_giver_comment_reports to anon/.test(sql), false);
+    assert.equal(/grant execute on function public\.report_item_giver_comment\(uuid, text, text\) to anon/.test(sql), false);
+    assert.equal(/net\.http|pg_net|resend/i.test(sql), false);
+    assert.equal(/create view/i.test(sql), false);
+    assert.equal(/comment_count/.test(sql), false);
+    assert.equal(/delete from public\.item_giver_comments\b/i.test(sql), false);
+    for (const word of BANNED_COMMENT_WORDS) {
+      assert.equal(sql.includes(`'${word}'`), true, word);
+    }
+    for (const reason of COMMENT_REPORT_REASONS) {
+      assert.equal(sql.includes(`'${reason.id}'`), true, reason.id);
+    }
+
+    const ui = source('src/components/giver-comments.tsx');
+    assert.match(ui, /Report/);
+    assert.match(ui, /Block/);
+    assert.match(ui, /I agree to the Terms/);
+    assert.match(ui, /Submit report/);
+    const terms = source('src/app/terms.tsx');
+    assert.match(terms, /within 24 hours/);
+    assert.match(terms, /I agree to the Terms/);
+    assert.match(terms, /No tolerance for objectionable content or abusive users/);
+    assert.match(terms, /Contact: TODO/);
+    const settings = source('src/app/(app)/settings.tsx');
+    assert.match(settings, /Blocked people/);
+    assert.match(source('src/app/(app)/blocked.tsx'), /Unblock/);
+    assert.equal(/GiverComments/.test(source('src/app/(app)/item/[id].tsx')), false);
+    assert.equal(/comment/i.test(source('src/app/(app)/item/[id].tsx')), false);
   });
 });
 
