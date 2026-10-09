@@ -6,6 +6,8 @@ import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { InboxBanner } from '@/components/inbox-banner';
 import { Screen } from '@/components/screen';
+import { StageStickyHeader } from '@/components/stage-sticky-header';
+import { PrettyCopy } from '@/lib/copy';
 import { ThemedText } from '@/components/themed-text';
 import { useInbox } from '@/context/inbox-context';
 import { requestBannerText } from '@/lib/inbox';
@@ -48,7 +50,7 @@ export default function RequestsScreen() {
   }
 
   return (
-    <Screen>
+    <Screen sticky={<StageStickyHeader title={PrettyCopy.ownerHomeTitle} />}>
       <Stack.Screen options={{ title: 'Requests' }} />
 
       {message ? (

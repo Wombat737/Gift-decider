@@ -15,11 +15,13 @@ import {
   StageThumbSize,
   giverCardSecondary,
   pickKindLabel,
+  stageBarActive,
   stageGreeting,
   stageTabSelected,
   stageTabVisible,
   thumbInitials,
 } from './stage-home';
+import { recipientPicksTitle } from './list-title';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const repo = join(root, '..');
@@ -49,7 +51,7 @@ describe('Stage home', () => {
     assert.equal(PrettyCopy.ownerHomeTitle.includes('Signature'), false);
   });
 
-  it('greets with a daypart and frames initials instead of a photo', () => {
+  it('greets with a daypart and frames a photo, or initials when there is none', () => {
     assert.equal(stageGreeting('Sam Lee', new Date(2026, 9, 7, 9, 41)), 'Morning, Sam');
     assert.equal(stageGreeting('Sam Lee', new Date(2026, 9, 7, 15, 0)), 'Afternoon, Sam');
     assert.equal(stageGreeting(null, new Date(2026, 9, 7, 20, 0)), 'Evening');
@@ -58,6 +60,13 @@ describe('Stage home', () => {
     assert.equal(thumbInitials('Mug'), 'MU');
     assert.ok(StageThumbSize >= 72 && StageThumbSize <= 96);
     assert.ok(StageThumbRadius >= 12 && StageThumbRadius <= 16);
+    const thumb = source('components/stage-thumb.tsx');
+    assert.match(thumb, /imageUrl/);
+    assert.match(thumb, /#FFE8E4/);
+    assert.match(thumb, /#FFF3D1/);
+    assert.match(thumb, /borderRadius: StageThumbRadius/);
+    assert.match(source('components/stage-pick-row.tsx'), /imageUrl=\{item\.image_url\}/);
+    assert.match(source('components/stage-giver-card.tsx'), /imageUrl=\{item\.image_url\}/);
   });
 
   it('shows Chip in only on a collecting group pick, and soft-lock on a solo open pick', () => {
@@ -158,11 +167,44 @@ describe('Stage home', () => {
     assert.equal(/router\.replace/.test(tabs), false);
     assert.match(home, /PreviewGiverLink/);
     assert.match(home, /peekPickPulse/);
+    assert.match(home, /scrollTo/);
+    assert.match(home, /rowReady/);
     assert.match(home, /PrettyCopy\.ownerShareLink/);
-    assert.match(row, /useReducedMotion/);
-    assert.match(row, /theme\.accent/);
-    assert.match(row, /pointerEvents="none"/);
+    assert.match(source('lib/leave-screen.ts'), /params: \{ fresh: itemId \}/);
+    const thumb = source('components/stage-thumb.tsx');
+    assert.match(thumb, /useReducedMotion/);
+    assert.match(thumb, /theme\.accent/);
+    assert.match(thumb, /pointerEvents="none"/);
+    assert.match(thumb, /1\.08/);
+    assert.match(thumb, /rotate/);
+    assert.equal(thumb.includes('confetti'), false);
     assert.equal(row.includes('confetti'), false);
+    const header = source('components/stage-sticky-header.tsx');
+    assert.match(header, /stageGreeting/);
+    assert.match(header, /People/);
+    assert.match(header, /Requests/);
+    assert.match(header, /Settings/);
+    assert.match(header, /minHeight: 44/);
+    assert.equal(stageBarActive('/people'), 'people');
+    assert.equal(stageBarActive('/requests'), 'requests');
+    assert.equal(stageBarActive('/settings'), 'settings');
+    assert.equal(stageBarActive('/wishlist'), null);
+    assert.equal(stageBarActive('/g/demo'), null);
+    assert.equal(recipientPicksTitle('Sam Lee'), "Sam's picks");
+    assert.equal(recipientPicksTitle('Chris'), "Chris' picks");
+    assert.equal(recipientPicksTitle(null, null), 'Their picks');
+    for (const file of [
+      'app/(app)/wishlist.tsx',
+      'app/(app)/people.tsx',
+      'app/(app)/requests.tsx',
+      'app/(app)/settings.tsx',
+      'app/g/[token]/index.tsx',
+    ]) {
+      assert.match(source(file), /StageStickyHeader/);
+      assert.match(source(file), /sticky=/);
+    }
+    assert.match(source('components/screen.tsx'), /sticky\?: ReactNode/);
+
     assert.match(source('components/preview-giver-link.tsx'), /openGiverShare/);
     assert.match(source('components/stack-exit-button.tsx'), /accessibilityLabel="Back"/);
     assert.match(source('components/stack-exit-button.tsx'), /chevron\.backward/);

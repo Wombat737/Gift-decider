@@ -127,6 +127,24 @@ export function looksLikeCompleteBuyUrl(raw: string) {
   return sanitizeBuyUrl(raw) !== null;
 }
 
+/**
+ * A URL is ready to fetch when it is a public buy link we have not already
+ * filled, and no request for it is in flight. A cancelled attempt must be
+ * allowed to run again — marking it fetched before the draft arrives stuck
+ * paste autofill after a remount.
+ */
+export function claimAutofillUrl(raw: string, filled: string, inflight: string) {
+  const trimmed = raw.trim();
+  if (!looksLikeCompleteBuyUrl(trimmed)) return null;
+  if (trimmed === filled || trimmed === inflight) return null;
+  return trimmed;
+}
+
+/** Page HTML is still useful when the edge function missed the photo or the price. */
+export function buyDraftNeedsPage(draft: BuyLinkDraft) {
+  return !draft.imageUrl || draft.priceAmount == null;
+}
+
 export function sanitizeImageUrl(raw: string | null | undefined, pageUrl?: string | null): string | null {
   const value = (raw ?? '').trim();
   if (!value) return null;

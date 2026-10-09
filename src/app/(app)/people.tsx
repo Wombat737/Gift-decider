@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/empty-state';
 import { FlairIcon } from '@/components/flair-icons';
 import { InboxBanner } from '@/components/inbox-banner';
 import { Screen } from '@/components/screen';
+import { StageStickyHeader } from '@/components/stage-sticky-header';
 import { StatusChip } from '@/components/status-chip';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -193,6 +194,7 @@ export default function PeopleScreen() {
 
   return (
     <Screen
+      sticky={<StageStickyHeader title={PrettyCopy.ownerHomeTitle} />}
       footer={
         !adding && people.length > 0 ? (
           <Button nativePress icon="add" label={PrettyCopy.peopleCta} onPress={openAdd} />

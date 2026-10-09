@@ -1,6 +1,6 @@
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -8,42 +8,44 @@ import { NativePressable } from '@/components/native-pressable';
 import { PreviewGiverLink } from '@/components/preview-giver-link';
 import { Screen } from '@/components/screen';
 import { StagePickRow } from '@/components/stage-pick-row';
+import { StageStickyHeader } from '@/components/stage-sticky-header';
 import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
-import { personFirstLabel } from '@/lib/list-title';
 import { clearPickPulse, peekPickPulse } from '@/lib/pick-pulse';
-import { PICK_PULSE_MS, stageGreeting } from '@/lib/stage-home';
-import { getOwnProfile } from '@/services/profile';
+import { PICK_PULSE_MS } from '@/lib/stage-home';
+
+function oneParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] ?? '';
+  return value ?? '';
+}
 
 export default function OwnerHomeScreen() {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ fresh?: string | string[] }>();
   const { items, loading, error, refresh } = useWishlist();
-  const [firstName, setFirstName] = useState<string | null>(null);
   const [pulseId, setPulseId] = useState<string | null>(null);
   const announcedPulse = useRef<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const listTop = useRef(0);
+  const pulseY = useRef<number | null>(null);
+  const scrolledPulse = useRef('');
+  const fresh = oneParam(params.fresh).trim();
 
   useFocusEffect(
     useCallback(() => {
-      void refresh();
-      const nextPulse = peekPickPulse();
+      const nextPulse = peekPickPulse() || fresh || null;
       if (nextPulse) setPulseId(nextPulse);
-      void getOwnProfile()
-        .then((profile) => {
-          setFirstName(personFirstLabel(profile?.display_name, profile?.handle));
-        })
-        .catch(() => {
-          setFirstName(null);
-        });
-    }, [refresh]),
+      void refresh();
+    }, [fresh, refresh]),
   );
 
+  const rowReady = Boolean(pulseId && items.some((item) => item.id === pulseId));
+
   useEffect(() => {
-    if (!pulseId) return;
+    if (!pulseId || !rowReady) return;
     if (announcedPulse.current !== pulseId) {
       announcedPulse.current = pulseId;
       AccessibilityInfo.announceForAccessibility(PrettyCopy.pickAdded);
@@ -51,32 +53,29 @@ export default function OwnerHomeScreen() {
     const timer = setTimeout(() => {
       clearPickPulse(pulseId);
       setPulseId((current) => (current === pulseId ? null : current));
-    }, PICK_PULSE_MS);
+    }, PICK_PULSE_MS + 80);
     return () => clearTimeout(timer);
-  }, [pulseId]);
+  }, [pulseId, rowReady]);
 
-  const initial = (firstName ?? 'G').slice(0, 1).toUpperCase();
+  function scrollPulse(yInList = pulseY.current) {
+    if (!pulseId || yInList == null) return;
+    pulseY.current = yInList;
+    const target = Math.max(0, listTop.current + yInList - Spacing.three);
+    const key = `${pulseId}:${Math.round(target)}`;
+    if (scrolledPulse.current === key) return;
+    scrolledPulse.current = key;
+    scrollRef.current?.scrollTo({ y: target, animated: true });
+  }
 
   return (
-    <Screen style={{ paddingTop: insets.top + Spacing.two }}>
+    <Screen
+      scrollRef={scrollRef}
+      sticky={
+        <View style={{ paddingTop: insets.top }}>
+          <StageStickyHeader title={PrettyCopy.ownerHomeTitle} />
+        </View>
+      }>
       <Stack.Screen options={{ headerShown: false, title: PrettyCopy.ownerHomeTitle }} />
-      <View style={styles.topBar}>
-        <ThemedText type="smallBold">Gift Decider</ThemedText>
-        <NativePressable
-          accessibilityRole="button"
-          accessibilityLabel="Me"
-          onPress={() => router.navigate('/settings')}
-          style={[styles.avatarHit, { backgroundColor: theme.brandSoft }]}>
-          <ThemedText style={[styles.avatarLetter, { color: theme.brandInk }]}>{initial}</ThemedText>
-        </NativePressable>
-      </View>
-
-      <View style={styles.hero}>
-        <ThemedText themeColor="textSecondary">{stageGreeting(firstName)}</ThemedText>
-        <ThemedText type="display" style={styles.heroTitle} accessibilityRole="header">
-          {PrettyCopy.ownerHomeTitle}
-        </ThemedText>
-      </View>
 
       <View style={styles.actions}>
         <Button label={PrettyCopy.ownerEmptyCta} onPress={() => router.push('/add')} />
@@ -101,15 +100,26 @@ export default function OwnerHomeScreen() {
         </ThemedText>
       ) : null}
 
-      {loading ? <ThemedText themeColor="textSecondary">Loading…</ThemedText> : null}
+      {loading && items.length === 0 ? <ThemedText themeColor="textSecondary">Loading…</ThemedText> : null}
 
-      {!loading && items.length > 0 ? (
-        <View style={styles.list}>
+      {items.length > 0 ? (
+        <View
+          style={styles.list}
+          onLayout={(event) => {
+            listTop.current = event.nativeEvent.layout.y;
+            scrollPulse();
+          }}>
           <ThemedText type="eyebrow" themeColor="textSecondary">
             {PrettyCopy.ownerSection}
           </ThemedText>
           {items.map((item) => (
-            <StagePickRow key={item.id} item={item} href={`/item/${item.id}`} pulse={item.id === pulseId} />
+            <StagePickRow
+              key={item.id}
+              item={item}
+              href={`/item/${item.id}`}
+              pulse={item.id === pulseId}
+              onPulseLayout={item.id === pulseId ? scrollPulse : undefined}
+            />
           ))}
         </View>
       ) : null}
@@ -129,33 +139,6 @@ export default function OwnerHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 44,
-  },
-  avatarHit: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({ web: { cursor: 'pointer' as const } }),
-  },
-  avatarLetter: {
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: 700,
-  },
-  hero: {
-    gap: Spacing.one,
-  },
-  heroTitle: {
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: -1,
-  },
   actions: {
     gap: Spacing.twoHalf,
   },

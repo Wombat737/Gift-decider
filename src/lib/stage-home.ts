@@ -21,7 +21,7 @@ export function stageGreeting(name?: string | null, date = new Date()) {
   return first ? `${part}, ${first}` : part;
 }
 
-/** Two letters from the title. Home thumbs are initials, not product photos. */
+/** Two letters from the title. Used when a pick has no photo yet. */
 export function thumbInitials(title?: string | null) {
   const words = (title ?? '')
     .replace(/[—–-]/g, ' ')
@@ -60,6 +60,14 @@ export function giverCardSecondary(
 export function stageTabVisible(pathname: string) {
   const path = pathname.replace(/\/$/, '') || '/';
   return path === '/wishlist' || path === '/add' || path === '/settings';
+}
+
+export function stageBarActive(pathname: string): 'people' | 'requests' | 'settings' | null {
+  const path = (pathname.split('?')[0] ?? '').replace(/\/$/, '') || '/';
+  if (path === '/people') return 'people';
+  if (path === '/requests') return 'requests';
+  if (path === '/settings') return 'settings';
+  return null;
 }
 
 export function stageTabSelected(pathname: string): 'home' | 'add' | 'me' {

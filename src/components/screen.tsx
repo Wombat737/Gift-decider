@@ -32,6 +32,10 @@ type ScreenProps = ViewProps & {
   footerKey?: string;
   /** Scroll the page body. Used to bring an expanded section into view. */
   scrollRef?: Ref<ScrollView>;
+  /** Pinned above the scrolling body. Greeting, list title, and the main bar. */
+  sticky?: ReactNode;
+  /** Full-bleed wash behind the page. Pointer events pass through. */
+  wash?: ReactNode;
 };
 
 function useKeyboardVerticalOffset() {
@@ -49,6 +53,8 @@ export function Screen({
   footerTrail,
   footerKey,
   scrollRef,
+  sticky,
+  wash,
   ...rest
 }: ScreenProps) {
   const theme = useTheme();
@@ -87,12 +93,30 @@ export function Screen({
 
   return (
     <ThemedView style={styles.root}>
+      {wash ? (
+        <View pointerEvents="none" style={styles.wash}>
+          {wash}
+        </View>
+      ) : null}
       <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <KeyboardAvoidingView
           style={styles.avoid}
           enabled={Platform.OS === 'ios'}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={keyboardVerticalOffset}>
+          {sticky ? (
+            <View
+              collapsable={false}
+              style={[
+                styles.sticky,
+                {
+                  backgroundColor: wash ? 'transparent' : theme.background,
+                  borderBottomColor: theme.border,
+                },
+              ]}>
+              <View style={[styles.stickyInner, padded && styles.stickyPadded]}>{sticky}</View>
+            </View>
+          ) : null}
           {scroll ? (footer ? <View collapsable={false} style={styles.scrollSlot}>{scrollView}</View> : scrollView) : body}
           {footer ? (
             <View
@@ -132,10 +156,34 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: '100%',
   },
+  wash: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 0,
+  },
   safe: {
     flex: 1,
     width: '100%',
     maxWidth: '100%',
+    zIndex: 1,
+  },
+  sticky: {
+    width: '100%',
+    maxWidth: '100%',
+    flexGrow: 0,
+    flexShrink: 0,
+    zIndex: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  stickyInner: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    minWidth: 0,
+    alignSelf: 'center',
+  },
+  stickyPadded: {
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.three,
   },
   avoid: {
     flex: 1,

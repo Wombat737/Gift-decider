@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Switch, View } from 'react-native';
 
+import { AddSection } from '@/components/add-section';
 import { LabelWithHelp } from '@/components/help-tip';
 import { PhotoField } from '@/components/photo-field';
 import { FilterChips, SUGGESTED_VIBES, VibeChips } from '@/components/vibe-chips';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { FieldHelp } from '@/lib/help';
-import { applyBuyLinkDraft, BUY_LINK_AUTOFILL_FAIL, isWishlistImagesUrl, looksLikeCompleteBuyUrl, sanitizeBuyUrl, type BuyLinkFields } from '@/lib/link-preview';
+import { applyBuyLinkDraft, BUY_LINK_AUTOFILL_FAIL, claimAutofillUrl, isWishlistImagesUrl, looksLikeCompleteBuyUrl, sanitizeBuyUrl, type BuyLinkFields } from '@/lib/link-preview';
 import { useTheme } from '@/hooks/use-theme';
 import type { ItemKind, Occasion } from '@/lib/types';
 import { autofillFromBuyUrl, mirrorPreviewImage } from '@/services/preview';
@@ -33,6 +34,8 @@ type ItemFieldsProps = {
   onPhotoBusy?: (busy: boolean) => void;
   /** Fetch a draft as soon as Add opens with a buy URL already filled in. */
   autofillBuyUrl?: boolean;
+  /** Soft cards for the Add a pick page. Edit stays a plain stack. */
+  cards?: boolean;
 };
 
 export function ItemFields({
@@ -42,11 +45,13 @@ export function ItemFields({
   showImageUrl = true,
   onPhotoBusy,
   autofillBuyUrl = false,
+  cards = false,
 }: ItemFieldsProps) {
   const theme = useTheme();
   const valueRef = useRef(value);
   const buyUrlRef = useRef(value.buyUrl);
-  const lastFetched = useRef('');
+  const filledUrl = useRef('');
+  const inflightUrl = useRef('');
   const lastDraft = useRef<BuyLinkFields>({ title: '', notes: '', imageUrl: '', targetAmount: '' });
   const tasteLock = useRef(value.itemKind === 'vibe' ? value.noSubstitution : false);
   const requestId = useRef(0);
@@ -63,6 +68,7 @@ export function ItemFields({
     if (autofillBuyUrl) void maybeAutofill(valueRef.current.buyUrl);
     return () => {
       requestId.current += 1;
+      inflightUrl.current = '';
     };
     // Mount-only: a prefilled buy URL should draft once, not on every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,21 +77,26 @@ export function ItemFields({
   async function maybeAutofill(raw: string) {
     const trimmed = raw.trim();
     if (!trimmed) {
-      lastFetched.current = '';
+      filledUrl.current = '';
+      inflightUrl.current = '';
       setPreviewHint(null);
       return;
     }
-    if (!looksLikeCompleteBuyUrl(trimmed) || trimmed === lastFetched.current) return;
+    const next = claimAutofillUrl(trimmed, filledUrl.current, inflightUrl.current);
+    if (!next) return;
 
-    lastFetched.current = trimmed;
+    inflightUrl.current = next;
     const id = ++requestId.current;
     setPreviewing(true);
     setPreviewHint(null);
     fallbackRef.current = null;
     setImageFallback(null);
     try {
-      const result = await autofillFromBuyUrl(trimmed);
+      const result = await autofillFromBuyUrl(next);
       if (id !== requestId.current) return;
+      if (result.draft.imageUrl || result.draft.priceAmount != null || result.draft.title) {
+        filledUrl.current = next;
+      }
       const patch = applyBuyLinkDraft(valueRef.current, result.draft, lastDraft.current);
       if (patch.title) lastDraft.current.title = patch.title;
       if (patch.notes) lastDraft.current.notes = patch.notes;
@@ -101,6 +112,7 @@ export function ItemFields({
       if (id !== requestId.current) return;
       setPreviewHint(BUY_LINK_AUTOFILL_FAIL);
     } finally {
+      if (id === requestId.current && inflightUrl.current === next) inflightUrl.current = '';
       if (id === requestId.current) setPreviewing(false);
     }
   }
@@ -148,128 +160,152 @@ export function ItemFields({
     onChange({ itemKind: 'exact', noSubstitution: true });
   }
 
+  function frame(label: string, body: ReactNode) {
+    if (!cards) return body;
+    return <AddSection label={label}>{body}</AddSection>;
+  }
+
   return (
     <>
-      <TextField
-        label="Buy link (optional)"
-        placeholder="https://www.amazon.com.au/…"
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="url"
-        value={value.buyUrl}
-        loading={previewing}
-        hint={previewHint ?? undefined}
-        help={FieldHelp.buyLink}
-        onChangeText={(buyUrl) => {
-          buyUrlRef.current = buyUrl;
-          onChange({ buyUrl });
-          if (looksLikeCompleteBuyUrl(buyUrl)) void maybeAutofill(buyUrl);
-        }}
-        onBlur={() => void maybeAutofill(buyUrlRef.current)}
-      />
-      {showImageUrl ? (
-        <PhotoField
-          value={value.imageUrl}
-          fallbackUrl={imageFallback}
-          referrer={looksLikeCompleteBuyUrl(value.buyUrl) ? value.buyUrl : undefined}
-          onChange={(imageUrl) => {
-            if (imageUrl.trim()) setPreviewHint(null);
-            onChange({ imageUrl });
+      {frame(
+        'Link',
+        <TextField
+          label="Buy link (optional)"
+          placeholder="https://www.amazon.com.au/…"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          value={value.buyUrl}
+          loading={previewing}
+          hint={previewHint ?? undefined}
+          help={FieldHelp.buyLink}
+          onChangeText={(buyUrl) => {
+            buyUrlRef.current = buyUrl;
+            onChange({ buyUrl });
+            if (looksLikeCompleteBuyUrl(buyUrl)) void maybeAutofill(buyUrl);
           }}
-          onRemoteError={() => {
-            void mirrorCurrent();
-          }}
-          onBusyChange={onPhotoBusy}
-        />
-      ) : null}
-      <TextField
-        label="Title"
-        placeholder="The exact thing, or the vibe"
-        value={value.title}
-        loading={previewing}
-        onChangeText={(title) => onChange({ title })}
-      />
-      <TextField
-        label="Notes"
-        placeholder="Size, colour, where you saw it"
-        multiline
-        value={value.notes}
-        loading={previewing}
-        onChangeText={(notes) => onChange({ notes })}
-      />
-      <TextField
-        label="Size / fit (optional)"
-        placeholder="EU 42, crew, 12oz"
-        value={value.sizeHint}
-        onChangeText={(sizeHint) => onChange({ sizeHint })}
-      />
-      <TextField
-        label="Target amount AUD (optional)"
-        keyboardType="decimal-pad"
-        placeholder="80"
-        value={value.targetAmount}
-        onChangeText={(targetAmount) => onChange({ targetAmount })}
-        help={FieldHelp.chipIn}
-      />
-
-      <View style={{ gap: 8 }}>
-        <LabelWithHelp label="Exact item or taste / vibe" help={FieldHelp.exactVsTaste} />
-        <FilterChips
-          options={[
-            { id: 'exact', label: 'Exact item' },
-            { id: 'vibe', label: 'Taste / vibe' },
-          ]}
-          value={value.itemKind}
-          onChange={selectKind}
-        />
-      </View>
-
-      {value.itemKind === 'vibe' ? (
-        <View style={{ gap: 8 }}>
-          <LabelWithHelp label="Vibes" help={FieldHelp.vibe} />
-          <VibeChips tags={SUGGESTED_VIBES} selected={value.tags} onToggle={toggleTag} />
+          onBlur={() => void maybeAutofill(buyUrlRef.current)}
+          onEndEditing={() => void maybeAutofill(buyUrlRef.current)}
+        />,
+      )}
+      {showImageUrl
+        ? frame(
+            'Photo',
+            <PhotoField
+              value={value.imageUrl}
+              fallbackUrl={imageFallback}
+              referrer={looksLikeCompleteBuyUrl(value.buyUrl) ? value.buyUrl : undefined}
+              onChange={(imageUrl) => {
+                if (imageUrl.trim()) setPreviewHint(null);
+                onChange({ imageUrl });
+              }}
+              onRemoteError={() => {
+                void mirrorCurrent();
+              }}
+              onBusyChange={onPhotoBusy}
+            />,
+          )
+        : null}
+      {frame(
+        'Name',
+        <TextField
+          label="Title"
+          placeholder="The exact thing, or the vibe"
+          value={value.title}
+          loading={previewing}
+          onChangeText={(title) => onChange({ title })}
+        />,
+      )}
+      {frame(
+        'Amount',
+        <TextField
+          label="Target amount AUD (optional)"
+          keyboardType="decimal-pad"
+          placeholder="80"
+          value={value.targetAmount}
+          loading={previewing}
+          onChangeText={(targetAmount) => onChange({ targetAmount })}
+          help={FieldHelp.chipIn}
+        />,
+      )}
+      {frame(
+        'Notes',
+        <>
           <TextField
-            label="More vibes"
-            placeholder="quiet luxury, market stall"
-            value={value.tags.filter((tag) => !SUGGESTED_VIBES.includes(tag)).join(', ')}
-            onChangeText={(text) => {
-              const extra = text
-                .split(',')
-                .map((tag) => tag.trim().toLowerCase())
-                .filter(Boolean);
-              const suggested = value.tags.filter((tag) => SUGGESTED_VIBES.includes(tag));
-              onChange({ tags: [...suggested, ...extra] });
-            }}
+            label="Notes"
+            placeholder="Size, colour, where you saw it"
+            multiline
+            value={value.notes}
+            loading={previewing}
+            onChangeText={(notes) => onChange({ notes })}
           />
-        </View>
-      ) : null}
-
-      {occasions.length > 0 ? (
-        <View style={{ gap: 8 }}>
-          <ThemedText type="smallBold">Occasion</ThemedText>
-          <FilterChips
-            options={[{ id: '', label: 'Unassigned' }, ...occasions.map((row) => ({ id: row.id, label: row.title }))]}
-            value={value.occasionId ?? ''}
-            onChange={(id) => onChange({ occasionId: id || null })}
+          <TextField
+            label="Size / fit (optional)"
+            placeholder="EU 42, crew, 12oz"
+            value={value.sizeHint}
+            onChangeText={(sizeHint) => onChange({ sizeHint })}
           />
-        </View>
-      ) : null}
 
-      {value.itemKind === 'vibe' ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: '100%' }}>
-          <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
-            <LabelWithHelp label="No substitutions" help={FieldHelp.noSubs} />
+          <View style={{ gap: 8 }}>
+            <LabelWithHelp label="Exact item or taste / vibe" help={FieldHelp.exactVsTaste} />
+            <FilterChips
+              options={[
+                { id: 'exact', label: 'Exact item' },
+                { id: 'vibe', label: 'Taste / vibe' },
+              ]}
+              value={value.itemKind}
+              onChange={selectKind}
+            />
           </View>
-          <Switch
-            value={value.noSubstitution}
-            onValueChange={(noSubstitution) => {
-              tasteLock.current = noSubstitution;
-              onChange({ noSubstitution });
-            }}
-            trackColor={{ true: theme.brand }}
-          />
-        </View>
-      ) : null}
+
+          {value.itemKind === 'vibe' ? (
+            <View style={{ gap: 8 }}>
+              <LabelWithHelp label="Vibes" help={FieldHelp.vibe} />
+              <VibeChips tags={SUGGESTED_VIBES} selected={value.tags} onToggle={toggleTag} />
+              <TextField
+                label="More vibes"
+                placeholder="quiet luxury, market stall"
+                value={value.tags.filter((tag) => !SUGGESTED_VIBES.includes(tag)).join(', ')}
+                onChangeText={(text) => {
+                  const extra = text
+                    .split(',')
+                    .map((tag) => tag.trim().toLowerCase())
+                    .filter(Boolean);
+                  const suggested = value.tags.filter((tag) => SUGGESTED_VIBES.includes(tag));
+                  onChange({ tags: [...suggested, ...extra] });
+                }}
+              />
+            </View>
+          ) : null}
+
+          {occasions.length > 0 ? (
+            <View style={{ gap: 8 }}>
+              <ThemedText type="smallBold">Occasion</ThemedText>
+              <FilterChips
+                options={[{ id: '', label: 'Unassigned' }, ...occasions.map((row) => ({ id: row.id, label: row.title }))]}
+                value={value.occasionId ?? ''}
+                onChange={(id) => onChange({ occasionId: id || null })}
+              />
+            </View>
+          ) : null}
+
+          {value.itemKind === 'vibe' ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', maxWidth: '100%' }}>
+              <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                <LabelWithHelp label="No substitutions" help={FieldHelp.noSubs} />
+              </View>
+              <Switch
+                value={value.noSubstitution}
+                onValueChange={(noSubstitution) => {
+                  tasteLock.current = noSubstitution;
+                  onChange({ noSubstitution });
+                }}
+                trackColor={{ true: theme.brand }}
+              />
+            </View>
+          ) : null}
+        </>,
+      )}
     </>
   );
 }
