@@ -17,6 +17,12 @@ import {
   shareTokenFromInput,
   type GiverSocialRateKind,
 } from '@/lib/giver-social';
+import {
+  OBJECTIONABLE_COMMENT_MESSAGE,
+  TERMS_REQUIRED_MESSAGE,
+  commentBodyIsObjectionable,
+  isCommentReportReason,
+} from '@/lib/comment-safety';
 import { DEMO_SHARE_TOKEN, getDemoItem, listDemoItems, registerDemoReset } from '@/lib/demo-store';
 import type {
   CommentMention,
@@ -25,6 +31,7 @@ import type {
   GiverAccessRequest,
   GiverPerson,
   HandleSearchHit,
+  BlockedGiver,
   ItemGiverComment,
   MemberAccessStatus,
   Profile,
@@ -77,6 +84,10 @@ type DemoSocialBundle = {
   invites: DemoInvite[];
   rate: { kind: GiverSocialRateKind; at: number }[];
   blocks: string[];
+  /** Giver-to-giver blocks. Separate from recipient `blocks`. */
+  giverBlocks: BlockedGiver[];
+  reportedCommentIds: string[];
+  termsAcceptedAt: string | null;
 };
 
 const directory: DemoDirectoryPerson[] = [
@@ -216,6 +227,9 @@ function seedBundle(): DemoSocialBundle {
     invites: [],
     rate: [],
     blocks: [],
+    giverBlocks: [],
+    reportedCommentIds: [],
+    termsAcceptedAt: null,
   };
 }
 
@@ -303,6 +317,9 @@ function adopt() {
       invites: Array.isArray(parsed.invites) ? parsed.invites : [],
       rate: Array.isArray(parsed.rate) ? parsed.rate : [],
       blocks: Array.isArray(parsed.blocks) ? parsed.blocks : [],
+      giverBlocks: Array.isArray(parsed.giverBlocks) ? parsed.giverBlocks : [],
+      reportedCommentIds: Array.isArray(parsed.reportedCommentIds) ? parsed.reportedCommentIds : [],
+      termsAcceptedAt: typeof parsed.termsAcceptedAt === 'string' ? parsed.termsAcceptedAt : null,
     };
   } catch {
     bundle = seedBundle();
@@ -377,7 +394,16 @@ export function getDemoOwnSocialProfile(base: Profile): Profile {
     ...base,
     discoverability: bundle.discoverability,
     taste_tags: [...bundle.taste_tags],
+    terms_accepted_at: bundle.termsAcceptedAt,
   };
+}
+
+export function acceptDemoTerms() {
+  adopt();
+  if (bundle.termsAcceptedAt) return bundle.termsAcceptedAt;
+  const acceptedAt = nowIso();
+  write({ ...bundle, termsAcceptedAt: acceptedAt });
+  return acceptedAt;
 }
 
 export function updateDemoOwnSocialProfile(patch: {
@@ -579,15 +605,62 @@ export function listDemoItemGiverComments(itemId: string, opts: { isOwnerRoute: 
   ) {
     return [];
   }
+  const blocked = new Set(bundle.giverBlocks.map((row) => row.id));
+  const reported = new Set(bundle.reportedCommentIds);
   return bundle.comments
     .filter((row) => row.item_id === itemId)
+    .filter((row) => !blocked.has(row.author_id) && !reported.has(row.id))
     .slice()
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
     .map((row) => ({ ...row, mentions: row.mentions.map((mention) => ({ ...mention })) }));
 }
 
 export function listDemoCommentTagCandidates(): CommentTagCandidate[] {
-  return DEMO_COMMENT_TAGS.map((person) => ({ ...person }));
+  adopt();
+  const blocked = new Set(bundle.giverBlocks.map((row) => row.id));
+  return DEMO_COMMENT_TAGS.filter((person) => !blocked.has(person.id)).map((person) => ({ ...person }));
+}
+
+export function listDemoBlockedGivers(): BlockedGiver[] {
+  adopt();
+  return bundle.giverBlocks.map((row) => ({ ...row }));
+}
+
+export function blockDemoGiver(userId: string) {
+  adopt();
+  if (userId === DEMO_USER_ID) throw new Error("You can't block yourself.");
+  if (bundle.giverBlocks.some((row) => row.id === userId)) return;
+  const person = demoTagPeople().find((row) => row.id === userId);
+  const comment = bundle.comments.find((row) => row.author_id === userId);
+  write({
+    ...bundle,
+    giverBlocks: [
+      ...bundle.giverBlocks,
+      {
+        id: userId,
+        handle: person?.handle ?? null,
+        display_name: person?.display_name ?? comment?.author_display_name ?? null,
+        blocked_at: nowIso(),
+      },
+    ],
+  });
+}
+
+export function unblockDemoGiver(userId: string) {
+  adopt();
+  write({ ...bundle, giverBlocks: bundle.giverBlocks.filter((row) => row.id !== userId) });
+}
+
+export function reportDemoItemGiverComment(commentId: string, reason: string, details?: string) {
+  adopt();
+  if (!isCommentReportReason(reason)) throw new Error('Choose a report reason');
+  const note = details?.trim() ?? '';
+  if (note.length > 500) throw new Error('Keep the report note under 500 characters');
+  const existing = bundle.comments.find((row) => row.id === commentId);
+  if (!existing) throw new Error('Comment not found');
+  if (existing.author_id === DEMO_USER_ID) throw new Error("You can only report someone else's comment.");
+  if (bundle.reportedCommentIds.includes(commentId)) return;
+  write({ ...bundle, reportedCommentIds: [...bundle.reportedCommentIds, commentId] });
 }
 
 export function markDemoItemGiverMentionsRead(itemId: string) {
@@ -596,6 +669,16 @@ export function markDemoItemGiverMentionsRead(itemId: string) {
     ...bundle,
     comments: bundle.comments.map((row) => (row.item_id === itemId && row.unread ? { ...row, unread: false } : row)),
   });
+}
+
+function assertDemoCommentAllowed(body: string, mentionIds: string[]) {
+  if (!bundle.termsAcceptedAt) throw new Error(TERMS_REQUIRED_MESSAGE);
+  if (commentBodyIsObjectionable(body)) throw new Error(OBJECTIONABLE_COMMENT_MESSAGE);
+  const blocked = new Set(bundle.giverBlocks.map((row) => row.id));
+  const tagged = mentionsFor(body, mentionIds, DEMO_USER_ID);
+  if (tagged.mentions.some((mention) => blocked.has(mention.user_id))) {
+    throw new Error("You can't mention that person.");
+  }
 }
 
 export function postDemoItemGiverComment(
@@ -612,6 +695,7 @@ export function postDemoItemGiverComment(
   }
   if (!getDemoItem(itemId)) throw new Error('Gift not found');
   adopt();
+  assertDemoCommentAllowed(cleaned, opts.mentionIds ?? []);
   const parentId = opts.parentId ?? null;
   if (parentId) {
     const parent = bundle.comments.find((row) => row.id === parentId && row.item_id === itemId);
@@ -641,6 +725,7 @@ export function editDemoItemGiverComment(commentId: string, body: string, mentio
     throw new Error('Keep comments between 1 and 2000 characters');
   }
   adopt();
+  assertDemoCommentAllowed(cleaned, mentionIds);
   const existing = bundle.comments.find((row) => row.id === commentId);
   if (!existing) throw new Error('Comment not found');
   if (existing.author_id !== DEMO_USER_ID) throw new Error('You can only edit your own comment');

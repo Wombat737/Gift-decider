@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { usesDemoData } from '@/lib/app-mode';
-import { getDemoOwnSocialProfile, updateDemoOwnSocialProfile } from '@/lib/demo-social';
-import { normalizeTasteTags } from '@/lib/giver-social';
+import { acceptDemoTerms, getDemoOwnSocialProfile, updateDemoOwnSocialProfile } from '@/lib/demo-social';
+import { isCommentSchemaMiss, normalizeTasteTags } from '@/lib/giver-social';
 import type { Discoverability, Profile } from '@/lib/types';
 
 const DEMO_PROFILE: Profile = {
@@ -25,10 +25,19 @@ function asProfile(row: Record<string, unknown>): Profile {
     locale: typeof row.locale === 'string' && row.locale ? row.locale : 'en-AU',
     discoverability: asDiscoverability(row.discoverability),
     taste_tags: Array.isArray(row.taste_tags) ? (row.taste_tags as string[]) : [],
+    terms_accepted_at: Object.prototype.hasOwnProperty.call(row, 'terms_accepted_at')
+      ? ((row.terms_accepted_at as string | null) ?? null)
+      : undefined,
   };
 }
 
+function missingColumn(error: { message?: string; code?: string } | null) {
+  const blob = `${error?.code ?? ''} ${error?.message ?? ''}`;
+  return /42703|PGRST204|could not find the [\w. ]*column/i.test(blob);
+}
+
 const PROFILE_SELECT = 'id, handle, display_name, locale, discoverability, taste_tags';
+const PROFILE_SELECT_WITH_TERMS = `${PROFILE_SELECT}, terms_accepted_at`;
 
 export async function getOwnProfile(): Promise<Profile | null> {
   if (usesDemoData() || !supabase) return getDemoOwnSocialProfile(DEMO_PROFILE);
@@ -37,15 +46,31 @@ export async function getOwnProfile(): Promise<Profile | null> {
   const userId = userData.user?.id;
   if (!userId) return null;
 
-  const { data, error } = await supabase.from('profiles').select(PROFILE_SELECT).eq('id', userId).maybeSingle();
+  const { data, error } = await supabase.from('profiles').select(PROFILE_SELECT_WITH_TERMS).eq('id', userId).maybeSingle();
 
-  if (error) {
-    // Pre-giver-social projects: fall back to the original columns.
-    const fallback = await supabase.from('profiles').select('id, handle, display_name, locale').eq('id', userId).maybeSingle();
-    if (fallback.error) throw fallback.error;
-    return fallback.data ? asProfile(fallback.data as Record<string, unknown>) : null;
+  if (!error) return data ? asProfile(data as Record<string, unknown>) : null;
+
+  if (missingColumn(error)) {
+    const social = await supabase.from('profiles').select(PROFILE_SELECT).eq('id', userId).maybeSingle();
+    if (!social.error) return social.data ? asProfile(social.data as Record<string, unknown>) : null;
   }
-  return data ? asProfile(data as Record<string, unknown>) : null;
+
+  // Pre-giver-social projects: fall back to the original columns.
+  const fallback = await supabase.from('profiles').select('id, handle, display_name, locale').eq('id', userId).maybeSingle();
+  if (fallback.error) throw fallback.error;
+  return fallback.data ? asProfile(fallback.data as Record<string, unknown>) : null;
+}
+
+/** Records Terms acceptance. Null means the server does not have accept_terms yet. */
+export async function acceptTerms(): Promise<string | null> {
+  if (usesDemoData() || !supabase) return acceptDemoTerms();
+
+  const { data, error } = await supabase.rpc('accept_terms');
+  if (error) {
+    if (isCommentSchemaMiss(error)) return null;
+    throw error;
+  }
+  return typeof data === 'string' ? data : new Date().toISOString();
 }
 
 export async function updateOwnProfile(patch: {

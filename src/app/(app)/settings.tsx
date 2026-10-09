@@ -131,6 +131,18 @@ export default function SettingsScreen() {
           onPress={() => router.push('/requests')}
         />
       </Card>
+
+      <Card>
+        <ThemedText type="eyebrow" themeColor="brand">
+          Blocked people
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          Comments from people you block stay hidden, and they leave your @tag list.
+        </ThemedText>
+        <Button label="Blocked people" variant="secondary" onPress={() => router.push('/blocked')} />
+        <Button label="Terms of use" variant="ghost" onPress={() => router.push('/terms')} />
+      </Card>
+
       {requestCopy ? (
         <InboxBanner
           title="Someone’s waiting"

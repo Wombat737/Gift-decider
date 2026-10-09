@@ -6,6 +6,8 @@ import {
   demoOwnerHasTasteTags,
   editDemoItemGiverComment,
   inviteDemoGiverByEmail,
+  blockDemoGiver,
+  listDemoBlockedGivers,
   listDemoCommentTagCandidates,
   listDemoGiverAccessRequests,
   listDemoGiverPeople,
@@ -13,10 +15,12 @@ import {
   lookupDemoProfileByEmail,
   markDemoItemGiverMentionsRead,
   postDemoItemGiverComment,
+  reportDemoItemGiverComment,
   requestDemoGiverAccess,
   respondDemoGiverAccess,
   searchDemoProfilesByHandle,
   searchDemoWishlistItems,
+  unblockDemoGiver,
   unlistDemoGiverPerson,
 } from '@/lib/demo-social';
 import { shouldUseDemoShare } from '@/lib/giver-catalog';
@@ -26,6 +30,7 @@ import type {
   CommentTagCandidate,
   GiverAccessRequest,
   GiverPerson,
+  BlockedGiver,
   GiftSearchHit,
   HandleSearchHit,
   ItemGiverComment,
@@ -281,6 +286,65 @@ export async function deleteItemGiverComment(commentId: string) {
   }
   const { error } = await supabase.rpc('delete_item_giver_comment', { p_comment_id: commentId });
   if (error) throw rpcError(error);
+}
+
+function asBlocked(row: Record<string, unknown>): BlockedGiver {
+  return {
+    id: String(row.id),
+    handle: (row.handle as string | null) ?? null,
+    display_name: (row.display_name as string | null) ?? null,
+    blocked_at: String(row.blocked_at ?? ''),
+  };
+}
+
+export async function reportItemGiverComment(commentId: string, reason: string, details: string) {
+  if (usesDemoData() || !supabase) {
+    reportDemoItemGiverComment(commentId, reason, details);
+    return;
+  }
+  const { error } = await supabase.rpc('report_item_giver_comment', {
+    p_comment_id: commentId,
+    p_reason: reason,
+    p_details: details.trim() || null,
+  });
+  if (error) {
+    if (isCommentSchemaMiss(error)) throw new Error('Reporting is not available yet.');
+    throw rpcError(error);
+  }
+}
+
+export async function blockGiver(userId: string) {
+  if (usesDemoData() || !supabase) {
+    blockDemoGiver(userId);
+    return;
+  }
+  const { error } = await supabase.rpc('block_user', { p_user_id: userId });
+  if (error) {
+    if (isCommentSchemaMiss(error)) throw new Error('Blocking is not available yet.');
+    throw rpcError(error);
+  }
+}
+
+export async function unblockGiver(userId: string) {
+  if (usesDemoData() || !supabase) {
+    unblockDemoGiver(userId);
+    return;
+  }
+  const { error } = await supabase.rpc('unblock_user', { p_user_id: userId });
+  if (error) {
+    if (isCommentSchemaMiss(error)) throw new Error('Unblocking is not available yet.');
+    throw rpcError(error);
+  }
+}
+
+export async function listBlockedGivers(): Promise<BlockedGiver[]> {
+  if (usesDemoData() || !supabase) return listDemoBlockedGivers();
+  const { data, error } = await supabase.rpc('list_blocked_users');
+  if (error) {
+    if (isCommentSchemaMiss(error)) throw new Error('Blocked people are not available yet.');
+    throw rpcError(error);
+  }
+  return ((data ?? []) as Record<string, unknown>[]).map(asBlocked);
 }
 
 export async function searchSharedWishlistItems(token: string, query: string): Promise<GiftSearchHit[]> {
