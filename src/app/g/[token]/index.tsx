@@ -18,6 +18,7 @@ import { useAuth } from '@/context/auth-context';
 import { useInbox } from '@/context/inbox-context';
 import { useGiverShare } from '@/context/giver-share-context';
 import { Radius, Spacing } from '@/constants/theme';
+import { useOwnerPreview } from '@/hooks/use-owner-preview';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
@@ -27,6 +28,7 @@ import { isDemoShareToken } from '@/lib/demo-store';
 import { giverListPaint, giverPaintItems, patchGiverCatalog, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
 import { applyItemStatus, rememberedGiverName, rememberGiverName } from '@/lib/giver-status';
 import { hapticLight } from '@/lib/haptics';
+import { ownerPreviewItem } from '@/lib/owner-preview';
 import { groupGiftPhase } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
 import { ownerTasteTagsHint, searchSharedWishlistItems } from '@/services/giver-social';
@@ -37,8 +39,10 @@ export default function GiverShareScreen() {
   const { user } = useAuth();
   const { newlyReady, refreshInbox } = useInbox();
   const { token, meta, error, loading, fetchSettled, refresh, items: shareItems, patchItem } = useGiverShare();
+  const ownerPreview = useOwnerPreview(token);
   const { items: catalogItems, hydrated } = useGiverCatalogState(token);
-  const items = giverPaintItems(catalogItems, shareItems);
+  const painted = giverPaintItems(catalogItems, shareItems);
+  const items = ownerPreview ? painted.map(ownerPreviewItem) : painted;
   const [focusGen, setFocusGen] = useState(0);
   const [query, setQuery] = useState('');
   const [hitIds, setHitIds] = useState<string[] | null>(null);
@@ -96,7 +100,7 @@ export default function GiverShareScreen() {
   const searching = Boolean(query.trim());
 
   async function claimFromList(item: WishlistItem) {
-    if (!token || item.status !== 'available' || claimingId) return;
+    if (ownerPreview || !token || item.status !== 'available' || claimingId) return;
     const known = rememberedGiverName();
     if (!known) {
       router.push(`/g/${token}/${item.id}?claim=1` as Href);
@@ -161,7 +165,7 @@ export default function GiverShareScreen() {
             <View style={styles.headerRow}>
               <View style={[styles.choosing, { backgroundColor: theme.brandSoft }]}>
                 <ThemedText type="caption" style={{ color: theme.brandInk, fontWeight: 600 }}>
-                  {PrettyCopy.giverChoosing}
+                  {ownerPreview ? 'Preview' : PrettyCopy.giverChoosing}
                 </ThemedText>
               </View>
               <Pressable
@@ -185,9 +189,13 @@ export default function GiverShareScreen() {
 
       <View style={styles.hero}>
         <ThemedText type="title" accessibilityRole="header">
-          {PrettyCopy.giverHeadline}
+          {ownerPreview ? 'Preview' : PrettyCopy.giverHeadline}
         </ThemedText>
-        <ThemedText themeColor="textSecondary">{PrettyCopy.giverHomeIntro}</ThemedText>
+        <ThemedText themeColor="textSecondary">
+          {ownerPreview
+            ? 'Gifts show as available. Reservations, pledges, and giver notes stay hidden.'
+            : PrettyCopy.giverHomeIntro}
+        </ThemedText>
       </View>
 
       <TextField
@@ -223,8 +231,8 @@ export default function GiverShareScreen() {
         </>
       ) : null}
 
-      {readyToBuy.length > 0 ? <ReadyToBuyBanner items={readyToBuy} /> : null}
-      <DeadLinkBanner items={items} />
+      {!ownerPreview && readyToBuy.length > 0 ? <ReadyToBuyBanner items={readyToBuy} /> : null}
+      {ownerPreview ? null : <DeadLinkBanner items={items} />}
 
       {paint === 'skeleton' ? (
         <ItemGridSkeleton />
@@ -246,11 +254,16 @@ export default function GiverShareScreen() {
             <StageGiverCard
               key={`${item.id}:${item.status}:${item.reserved_at ?? ''}`}
               item={item}
-              href={`/g/${token}/${item.id}` as Href}
+              readOnly={ownerPreview}
+              href={
+                ownerPreview && token
+                  ? { pathname: '/g/[token]/[itemId]', params: { token, itemId: item.id, preview: '1' } }
+                  : (`/g/${token}/${item.id}` as Href)
+              }
               onChoose={() => void claimFromList(item)}
               onSoftLock={() => void claimFromList(item)}
               onChipIn={() => {
-                if (!token) return;
+                if (!token || ownerPreview) return;
                 router.push(`/g/${token}/${item.id}?chip=1` as Href);
               }}
               chooseBusy={claimingId === item.id}

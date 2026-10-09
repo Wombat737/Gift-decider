@@ -20,6 +20,8 @@ type StageGiverCardProps = {
   onSoftLock: () => void;
   onChipIn: () => void;
   chooseBusy?: boolean;
+  /** Owner preview: the gift only. No reserve, chip-in, or status. */
+  readOnly?: boolean;
 };
 
 /** Stacked giver card. Coral Choose this, quiet soft-lock, sunshine Chip in on a group pick. */
@@ -30,6 +32,7 @@ export function StageGiverCard({
   onSoftLock,
   onChipIn,
   chooseBusy = false,
+  readOnly = false,
 }: StageGiverCardProps) {
   const theme = useTheme();
   const title = item.title || 'Untitled gift';
@@ -53,7 +56,7 @@ export function StageGiverCard({
           </View>
         </NativePressable>
       </Link>
-      {canChoose ? (
+      {readOnly ? null : canChoose ? (
         <Button
           label={chooseBusy ? 'Saving…' : PrettyCopy.giverChooseCta}
           disabled={chooseBusy}
@@ -65,7 +68,7 @@ export function StageGiverCard({
           {giverStatusLabel(item.status)}
         </ThemedText>
       )}
-      {secondary === 'soft-lock' ? (
+      {!readOnly && secondary === 'soft-lock' ? (
         <NativePressable
           accessibilityRole="button"
           accessibilityLabel={`${PrettyCopy.giverSoftLockCta}, ${title}`}
@@ -77,7 +80,7 @@ export function StageGiverCard({
           </ThemedText>
         </NativePressable>
       ) : null}
-      {secondary === 'chip-in' ? (
+      {!readOnly && secondary === 'chip-in' ? (
         <NativePressable
           accessibilityRole="button"
           accessibilityLabel={`${PrettyCopy.chipInCta}, ${title}`}

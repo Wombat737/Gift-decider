@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { setAnalyticsHandler, track } from './analytics';
 import { mateInviteMessage } from './invite';
-import { accountDeletionMailto, privacyPolicyUrl, supportEmail } from './legal';
+import { accountDeletionMailto, resolvePrivacyDestination, supportEmail } from './legal';
 import { getDemoItem, resetDemoStore } from './demo-store';
 import { ownerPayloadLeaksGiftProgress, ownerSafeItem } from './surprise-safe';
 
@@ -15,15 +15,22 @@ describe('Phase 4 soft-launch stubs', () => {
     assert.match(text, /Gift-decider\/g\/demo-birthday/);
   });
 
-  it('privacy policy falls back to the in-app /privacy route', () => {
-    assert.equal(privacyPolicyUrl().endsWith('/privacy'), true);
+  it('privacy policy stays in-app unless a public URL is set', () => {
+    assert.deepEqual(resolvePrivacyDestination(''), { type: 'in-app' });
+    assert.deepEqual(resolvePrivacyDestination('http://localhost:8081/privacy'), { type: 'in-app' });
+    assert.deepEqual(resolvePrivacyDestination('http://127.0.0.1:8081/privacy'), { type: 'in-app' });
+    assert.deepEqual(resolvePrivacyDestination('https://giftdecider.example/privacy'), {
+      type: 'external',
+      url: 'https://giftdecider.example/privacy',
+    });
   });
 
-  it('account deletion is a mailto stub', () => {
+  it('account deletion email is only a policy fallback', () => {
     assert.equal(supportEmail().includes('@'), true);
     const mail = accountDeletionMailto();
     assert.match(mail, /^mailto:/);
     assert.match(mail, /deletion/i);
+    assert.equal(mail.includes('No automated backend'), false);
   });
 
   it('analytics stub does not throw without a paid product', () => {

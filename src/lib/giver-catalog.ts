@@ -93,6 +93,11 @@ export function giverShareRoute(token: string) {
   return { pathname: '/g/[token]' as const, params: { token } };
 }
 
+/** Owner preview. `preview=1` forces a spoiler-free render of this token. */
+export function ownerPreviewRoute(token: string) {
+  return { pathname: '/g/[token]' as const, params: { token, preview: '1' as const } };
+}
+
 export function rememberGiverShare(token: string | undefined) {
   const normalized = shareTokenParam(token);
   if (!normalized) return;
@@ -130,6 +135,22 @@ export function openLastGiverShare(
   }
   openGiverShare(token, push, prefetch);
   return true;
+}
+
+/**
+ * Owner home → giver list, sanitized. Does not open the live giver catalog as-is.
+ * Reservations, pledges, and comments stay hidden even if the share RPCs return them.
+ */
+export function openOwnerPreview(
+  token: string | null | undefined,
+  push: (href: ReturnType<typeof ownerPreviewRoute>) => void,
+  prefetch?: (token: string) => void | Promise<unknown>,
+) {
+  if (!token) return;
+  rememberGiverShare(token);
+  invalidateGiverCatalog(token);
+  void prefetch?.(token);
+  push(ownerPreviewRoute(token));
 }
 
 /** List paints catalog first so chips stay aligned; fall back to the in-flight provider rows. */

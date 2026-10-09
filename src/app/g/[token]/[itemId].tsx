@@ -20,6 +20,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useGiverShare } from '@/context/giver-share-context';
 import { useAuth } from '@/context/auth-context';
+import { useOwnerPreview } from '@/hooks/use-owner-preview';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
@@ -28,6 +29,7 @@ import { tryStartDelight } from '@/lib/delight';
 import { hapticLight } from '@/lib/haptics';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { linkNeedsHeal } from '@/lib/link-health';
+import { ownerPreviewItem } from '@/lib/owner-preview';
 import { patchGiverCatalog, pickSharedItem, shareTokenParam, useGiverCatalog } from '@/lib/giver-catalog';
 import { applyItemStatus, giverHoldsClaim, giverStatusActions, preferLocalGiverItem, rememberGiverName, rememberedGiverName } from '@/lib/giver-status';
 import type { DeliveryMethod, ItemStatus, WishlistItem } from '@/lib/types';
@@ -124,6 +126,7 @@ export default function GiverItemScreen() {
   const { token: shareToken, items, loading: shareLoading, patchItem, meta } = useGiverShare();
   const { user } = useAuth();
   const token = shareToken ?? shareTokenParam(paramToken);
+  const ownerPreview = useOwnerPreview(token);
   const itemId = shareTokenParam(paramItemId);
   const catalogItems = useGiverCatalog(token);
   const shareItem = pickSharedItem(itemId, catalogItems, items);
@@ -136,7 +139,7 @@ export default function GiverItemScreen() {
   const [flickKey, setFlickKey] = useState(0);
   const chipRequested = shareTokenParam(chipParam) === '1';
   const [groupSession, setGroupSession] = useState(() => ({ id: itemId, open: chipRequested }));
-  const groupOpen = groupSession.id === itemId ? groupSession.open : chipRequested;
+  const groupOpen = !ownerPreview && (groupSession.id === itemId ? groupSession.open : chipRequested);
   function setGroupOpen(next: boolean | ((open: boolean) => boolean)) {
     setGroupSession((current) => {
       const open = current.id === itemId ? current.open : chipRequested;
@@ -367,7 +370,7 @@ export default function GiverItemScreen() {
   }
 
   useEffect(() => {
-    if (!demo || !token || !current?.buy_url || autoChecked.current === current.id) return;
+    if (ownerPreview || !demo || !token || !current?.buy_url || autoChecked.current === current.id) return;
     autoChecked.current = current.id;
     void onCheckLink();
     // Demo auto-check once per item so a known-bad buy URL is clickable without a live HEAD.
@@ -390,50 +393,57 @@ export default function GiverItemScreen() {
     );
   }
 
-  const actions = giverStatusActions(current, busy);
+  const view = ownerPreview ? ownerPreviewItem(current) : current;
+  const actions = giverStatusActions(view, busy);
 
   return (
     <Screen
       scrollRef={scrollRef}
-      footerKey={`${current.id}:${current.status}:${busy ? 'busy' : 'idle'}`}
+      footerKey={`${view.id}:${view.status}:${busy ? 'busy' : 'idle'}`}
       footer={
-        <GiverStatusLead
-          item={current}
-          busy={busy}
-          error={error}
-          name={name}
-          askingName={askingName}
-          onName={(value) => {
-            setName(value);
-            if (value.trim()) setError(null);
-          }}
-          onLock={() => void updateStatus('reserved')}
-        />
+        ownerPreview ? undefined : (
+          <GiverStatusLead
+            item={view}
+            busy={busy}
+            error={error}
+            name={name}
+            askingName={askingName}
+            onName={(value) => {
+              setName(value);
+              if (value.trim()) setError(null);
+            }}
+            onLock={() => void updateStatus('reserved')}
+          />
+        )
       }
       footerMiddle={
-        <Button
-          nativePress
-          variant="secondary"
-          icon={current.is_group_gift ? 'chip-in' : undefined}
-          label={current.is_group_gift ? PrettyCopy.chipInCta : 'Mark as a group gift'}
-          disabled={busy}
-          onPress={() => setGroupOpen((open) => !open)}
-        />
+        ownerPreview ? undefined : (
+          <Button
+            nativePress
+            variant="secondary"
+            icon={view.is_group_gift ? 'chip-in' : undefined}
+            label={view.is_group_gift ? PrettyCopy.chipInCta : 'Mark as a group gift'}
+            disabled={busy}
+            onPress={() => setGroupOpen((open) => !open)}
+          />
+        )
       }
       footerTrail={
-        <GiverStatusTrail
-          item={current}
-          busy={busy}
-          onPurchase={() => void updateStatus('purchased')}
-          onRelease={() => void updateStatus('available')}
-        />
+        ownerPreview ? undefined : (
+          <GiverStatusTrail
+            item={view}
+            busy={busy}
+            onPurchase={() => void updateStatus('purchased')}
+            onRelease={() => void updateStatus('available')}
+          />
+        )
       }>
       <View
         collapsable={false}
         pointerEvents="none"
         style={[styles.imageFrame, { backgroundColor: theme.paper }]}>
         <Image
-          source={{ uri: current.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
+          source={{ uri: view.image_url ?? 'https://picsum.photos/seed/giftdecider-empty/800/800' }}
           style={styles.image}
           contentFit="cover"
           pointerEvents="none"
@@ -441,17 +451,22 @@ export default function GiverItemScreen() {
       </View>
       <View style={styles.block}>
         <ThemedText type="eyebrow" themeColor="brand">
-          They won’t see this
+          {ownerPreview ? 'Preview' : 'They won’t see this'}
         </ThemedText>
-        <ThemedText type="heading">{current.title || 'Untitled gift'}</ThemedText>
-        {current.buy_url?.trim() ? (
+        <ThemedText type="heading">{view.title || 'Untitled gift'}</ThemedText>
+        {ownerPreview ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            Available. Who reserved it, and what they pledged, stays hidden.
+          </ThemedText>
+        ) : null}
+        {view.buy_url?.trim() ? (
           <View style={styles.buyRow}>
             <NativePressable
               accessibilityRole="link"
               accessibilityLabel="Buy online"
               hitSlop={8}
               onPress={() => {
-                const url = current.buy_url?.trim();
+                const url = view.buy_url?.trim();
                 if (!url) return;
                 void Linking.openURL(url).catch(() => {
                   setError('Could not open that buy link.');
@@ -461,32 +476,34 @@ export default function GiverItemScreen() {
                 Buy online
               </ThemedText>
             </NativePressable>
-            {linkNeedsHeal(current) ? (
+            {!ownerPreview && linkNeedsHeal(view) ? (
               <ThemedText type="small" themeColor="textSecondary" accessibilityLabel="link-dead-inline">
                 (link’s dead)
               </ThemedText>
             ) : null}
           </View>
         ) : null}
-        <View style={styles.chipRow}>
-          <View style={styles.chipWithTip}>
-            <StatusChip label={actions.chipLabel} tone={actions.chipTone} />
-            <HelpTip title={actions.chipLabel} body={giverStatusHint(current)} />
+        {ownerPreview ? null : (
+          <View style={styles.chipRow}>
+            <View style={styles.chipWithTip}>
+              <StatusChip label={actions.chipLabel} tone={actions.chipTone} />
+              <HelpTip title={actions.chipLabel} body={giverStatusHint(view)} />
+            </View>
+            <DollarFlick playKey={flickKey} />
           </View>
-          <DollarFlick playKey={flickKey} />
-        </View>
+        )}
       </View>
 
-      <ConfidenceBadge item={current} />
-      {current.no_substitution ? <NoSubLock /> : null}
-      {current.size_hint ? (
+      <ConfidenceBadge item={view} />
+      {view.no_substitution ? <NoSubLock /> : null}
+      {view.size_hint ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Size / fit: {current.size_hint}
+          Size / fit: {view.size_hint}
         </ThemedText>
       ) : null}
-      {current.notes ? <ThemedText>{current.notes}</ThemedText> : null}
+      {view.notes ? <ThemedText>{view.notes}</ThemedText> : null}
 
-      {groupOpen ? (
+      {!ownerPreview && groupOpen ? (
         <View
           onLayout={(event) => {
             const y = event.nativeEvent.layout.y;
@@ -515,14 +532,16 @@ export default function GiverItemScreen() {
         </View>
       ) : null}
 
-      <GiverComments
-        itemId={current.id}
-        ownerName={meta?.owner_display_name || meta?.owner_handle || 'them'}
-        loggedIn={Boolean(user)}
-        userId={user?.id ?? null}
-        demoGiverPersona={demo}
-      />
-      <AuBuyLinks item={current} />
+      {ownerPreview ? null : (
+        <GiverComments
+          itemId={view.id}
+          ownerName={meta?.owner_display_name || meta?.owner_handle || 'them'}
+          loggedIn={Boolean(user)}
+          userId={user?.id ?? null}
+          demoGiverPersona={demo}
+        />
+      )}
+      <AuBuyLinks item={view} />
     </Screen>
   );
 }
