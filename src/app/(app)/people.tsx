@@ -127,7 +127,7 @@ export default function PeopleScreen() {
       setEmail('');
       await refresh();
       if ('kind' in result && result.kind === 'stub') {
-        setMessage(`Invite stubbed for ${result.email}. No email was sent.`);
+        setMessage(`Saved ${result.email}. We’ll connect you when they join.`);
       } else {
         setMessage('Requested — waiting for them to accept, or they can share a link back.');
       }

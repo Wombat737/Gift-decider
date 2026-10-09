@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { BrandMark } from '@/components/brand-mark';
 import { Button } from '@/components/button';
@@ -16,7 +16,7 @@ import { PrettyCopy } from '@/lib/copy';
 import { env } from '@/lib/env';
 
 export default function SignInScreen() {
-  const { signInWithMagicLink, signInDemo, signInWithApple, signInWithGoogle } = useAuth();
+  const { signInWithMagicLink, signInDemo } = useAuth();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -33,15 +33,6 @@ export default function SignInScreen() {
       setMessage(error instanceof Error ? error.message : 'Could not send magic link');
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function onPlaceholder(action: () => Promise<void>) {
-    setMessage(null);
-    try {
-      await action();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Not available yet');
     }
   }
 
@@ -72,7 +63,7 @@ export default function SignInScreen() {
             placeholder="you@example.com"
             value={email}
             onChangeText={setEmail}
-            hint="Sends a Supabase magic link. Add the redirect URL from README to Authentication → URL Configuration."
+            hint="We’ll email you a one-time sign-in link. It expires soon."
           />
           <Button
             label={busy ? 'Sending…' : 'Email me a magic link'}
@@ -101,7 +92,7 @@ export default function SignInScreen() {
             placeholder="you@example.com"
             value={email}
             onChangeText={setEmail}
-            hint="Magic link needs EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY. Explore demo works without them."
+            hint="We’ll email you a one-time sign-in link. Explore the demo if email sign-in isn’t available."
           />
           <Button
             label={busy ? 'Sending…' : 'Email me a magic link'}
@@ -111,19 +102,6 @@ export default function SignInScreen() {
           />
         </>
       )}
-
-      <View style={styles.oauth}>
-        <Button
-          label={env.appleAuthEnabled ? 'Sign in with Apple' : 'Sign in with Apple (soon)'}
-          variant="ghost"
-          onPress={() => void onPlaceholder(signInWithApple)}
-        />
-        <Button
-          label={env.googleAuthEnabled ? 'Sign in with Google' : 'Sign in with Google (soon)'}
-          variant="ghost"
-          onPress={() => void onPlaceholder(signInWithGoogle)}
-        />
-      </View>
 
       {message ? (
         <ThemedText type="small" themeColor="textSecondary">
@@ -140,8 +118,5 @@ const styles = StyleSheet.create({
   hero: {
     gap: Spacing.two,
     alignItems: 'flex-start',
-  },
-  oauth: {
-    gap: Spacing.one,
   },
 });

@@ -58,8 +58,8 @@ describe('Declutter / noise-reduction', () => {
     const badge = source('components/confidence-badge.tsx');
     const notes = source('components/giver-comments.tsx');
     assert.match(giverItem, /HelpTip/);
-    assert.match(giverItem, /body=\{giverStatusHint\(current\)\}/);
-    assert.equal(/<ThemedText[^>]*>\s*\{giverStatusHint\(current\)\}/.test(giverItem), false);
+    assert.match(giverItem, /body=\{giverStatusHint\(view\)\}/);
+    assert.equal(/<ThemedText[^>]*>\s*\{giverStatusHint\(/.test(giverItem), false);
     assert.match(badge, /HelpTip/);
     assert.match(badge, /body=\{confidence\.reason\}/);
     assert.equal(/themeColor="textSecondary"/.test(badge), false);

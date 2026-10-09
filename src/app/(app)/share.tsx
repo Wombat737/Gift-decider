@@ -11,7 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
 import { PrettyCopy } from '@/lib/copy';
-import { openGiverShare } from '@/lib/giver-catalog';
+import { openOwnerPreview } from '@/lib/giver-catalog';
 import { track } from '@/lib/analytics';
 import { shareLink } from '@/lib/env';
 import { mateInviteMessage } from '@/lib/invite';
@@ -40,9 +40,9 @@ export default function ShareScreen() {
     try {
       const result = await inviteByEmail(email);
       if ('stub' in result && result.stub) {
-        setMessage(`Invite stubbed for ${result.email}. No email was sent.`);
+        setMessage(`Saved ${result.email}. We’ll connect you when they join.`);
       } else {
-        setMessage(`Invite saved for ${email}. Email delivery is not wired yet.`);
+        setMessage(`Saved ${email.trim()}. We’ll connect you when they join.`);
       }
       setEmail('');
     } catch (error) {
@@ -85,7 +85,7 @@ export default function ShareScreen() {
         label={PrettyCopy.previewGiverLink}
         variant="secondary"
         disabled={!link}
-        onPress={() => openGiverShare(wishlist?.share_token, router.push, prefetchSharedItems)}
+        onPress={() => openOwnerPreview(wishlist?.share_token, router.push, prefetchSharedItems)}
       />
       <NativePressable
         accessibilityRole="link"
@@ -147,7 +147,7 @@ export default function ShareScreen() {
                     <Button
                       label={PrettyCopy.previewGiverLink}
                       variant="ghost"
-                      onPress={() => openGiverShare(occasion.share_token, router.push, prefetchSharedItems)}
+                      onPress={() => openOwnerPreview(occasion.share_token, router.push, prefetchSharedItems)}
                     />
                   </View>
                 </View>

@@ -54,8 +54,7 @@ export function ReadyToBuyBanner({
             </ThemedText>
           ))}
           <ThemedText type="caption" themeColor="textSecondary">
-            The recipient stays unspoiled until the reveal date. Push notifications are next — this banner is
-            the in-app alert.
+            The recipient stays unspoiled until the reveal date.
           </ThemedText>
         </>
       ) : (
@@ -64,12 +63,11 @@ export function ReadyToBuyBanner({
             {organiser} is the organiser. Buy it, then mark purchased and pick delivery.
           </ThemedText>
           <ThemedText type="caption" themeColor="textSecondary">
-            They still won’t see who chipped in until {when}. Push notifications are next — this in-app banner
-            is the alert for now.
+            They still won’t see who chipped in until {when}.
           </ThemedText>
-          {notice?.email_preview ? (
-            <ThemedText type="caption" themeColor="textSecondary" accessibilityLabel="ready-to-buy-email-stub">
-              Email stub (no key required): {notice.email_preview.split('\n')[0]}
+          {__DEV__ && notice?.email_preview ? (
+            <ThemedText type="caption" themeColor="textSecondary" accessibilityLabel="ready-to-buy-email">
+              {notice.email_preview.split('\n')[0]}
             </ThemedText>
           ) : null}
         </>
