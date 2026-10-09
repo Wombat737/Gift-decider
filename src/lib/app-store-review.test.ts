@@ -108,6 +108,10 @@ describe('Owner preview never shows giver state', () => {
     assert.match(sql, /revoke all on function public\.caller_owns_share_token\(text\) from public, anon, authenticated/);
     assert.match(sql, /grant execute on function public\.get_shared_wishlist_items\(text\) to anon, authenticated/);
     assert.match(sql, /item_pledges_reject_owner/);
+    assert.match(sql, /wishlist_item_to_shared/);
+    assert.match(sql, /\)::public\.shared_gift_item/);
+    assert.equal(/i::public\.shared_gift_item/.test(sql), false);
+    assert.equal(/result::public\.shared_gift_item/.test(sql), false);
   });
 });
 

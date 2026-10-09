@@ -54,6 +54,48 @@ $$;
 
 revoke all on function public.mask_shared_gift_item(public.shared_gift_item) from public, anon, authenticated;
 
+-- Named columns, not wishlist_items::shared_gift_item. A whole-row cast fails
+-- once the table has extra or dropped columns (live schema).
+create or replace function public.wishlist_item_to_shared(src public.wishlist_items)
+returns public.shared_gift_item
+language sql
+immutable
+as $$
+  select (
+    src.id,
+    src.wishlist_id,
+    src.image_path,
+    src.image_url,
+    src.title,
+    src.notes,
+    src.source_type,
+    src.source_url,
+    src.buy_url,
+    src.tags,
+    src.no_substitution,
+    src.status,
+    src.reserved_by,
+    src.reserved_at,
+    src.created_at,
+    src.updated_at,
+    src.item_kind,
+    src.size_hint,
+    src.target_amount,
+    src.occasion_id,
+    src.is_group_gift,
+    src.funded_at,
+    src.buy_url_dead,
+    src.reveal_at,
+    src.organiser_name,
+    src.pay_instructions,
+    src.delivery_method,
+    src.delivery_note,
+    src.ready_to_buy_notified_at
+  )::public.shared_gift_item;
+$$;
+
+revoke all on function public.wishlist_item_to_shared(public.wishlist_items) from public, anon, authenticated;
+
 create or replace function public.get_shared_wishlist_items(p_token text)
 returns setof public.shared_gift_item
 language sql
@@ -63,8 +105,8 @@ set search_path = public
 as $$
   select case
     when public.caller_owns_share_token(p_token)
-      then public.mask_shared_gift_item(i::public.shared_gift_item)
-    else i::public.shared_gift_item
+      then public.mask_shared_gift_item(public.wishlist_item_to_shared(i))
+    else public.wishlist_item_to_shared(i)
   end
   from public.wishlist_items i
   join public.resolve_share_token(p_token) r on r.wishlist_id = i.wishlist_id
@@ -167,7 +209,7 @@ begin
     raise exception 'Wishlist item not found for that share link';
   end if;
 
-  return result::public.shared_gift_item;
+  return public.wishlist_item_to_shared(result);
 end;
 $$;
 
