@@ -6,21 +6,24 @@ import {
   demoOwnerHasTasteTags,
   editDemoItemGiverComment,
   inviteDemoGiverByEmail,
+  listDemoCommentTagCandidates,
   listDemoGiverAccessRequests,
   listDemoGiverPeople,
   listDemoItemGiverComments,
+  lookupDemoProfileByEmail,
+  markDemoItemGiverMentionsRead,
   postDemoItemGiverComment,
   requestDemoGiverAccess,
   respondDemoGiverAccess,
-  lookupDemoProfileByEmail,
   searchDemoProfilesByHandle,
   searchDemoWishlistItems,
   unlistDemoGiverPerson,
 } from '@/lib/demo-social';
 import { shouldUseDemoShare } from '@/lib/giver-catalog';
 import { supabase } from '@/lib/supabase';
-import { searchPayloadLeaksTags, strictSearchPayload } from '@/lib/giver-social';
+import { commentFromRow, isCommentSchemaMiss, searchPayloadLeaksTags, strictSearchPayload } from '@/lib/giver-social';
 import type {
+  CommentTagCandidate,
   GiverAccessRequest,
   GiverPerson,
   GiftSearchHit,
@@ -83,16 +86,19 @@ function asRequest(row: Record<string, unknown>): GiverAccessRequest {
   };
 }
 
-function asComment(row: Record<string, unknown>): ItemGiverComment {
-  return {
-    id: String(row.id),
-    item_id: String(row.item_id),
-    author_id: String(row.author_id),
-    author_display_name: String(row.author_display_name ?? 'A giver'),
-    body: String(row.body ?? ''),
-    created_at: String(row.created_at),
-    edited_at: (row.edited_at as string | null) ?? null,
-  };
+export type PostedGiverComment = {
+  comment: ItemGiverComment;
+  /** Reply was saved as a root comment because the thread migration is not applied yet. */
+  postedWithoutThread: boolean;
+  /** @tags stayed in the text; mention rows are not stored until the migration is applied. */
+  mentionsDeferred: boolean;
+};
+
+function commentRow(data: unknown): ItemGiverComment {
+  const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
+  const comment = row ? commentFromRow(row) : null;
+  if (!comment) throw new Error('Could not read that comment');
+  return comment;
 }
 
 export async function listGiverPeople(): Promise<GiverPerson[]> {
@@ -178,27 +184,94 @@ export async function listItemGiverComments(
     if (/not allowed/i.test(error.message ?? '')) return [];
     throw rpcError(error);
   }
-  return ((data ?? []) as Record<string, unknown>[]).map(asComment);
+  return ((data ?? []) as Record<string, unknown>[]).flatMap((row) => {
+    const comment = commentFromRow(row);
+    return comment ? [comment] : [];
+  });
+}
+
+export async function listCommentTagCandidates(
+  itemId: string,
+  opts: { loggedIn: boolean; demoGiverPersona: boolean },
+): Promise<CommentTagCandidate[]> {
+  if (!opts.loggedIn && !opts.demoGiverPersona) return [];
+  if (usesDemoData() || !supabase) return listDemoCommentTagCandidates();
+  const { data, error } = await supabase.rpc('list_comment_tag_candidates', { p_item_id: itemId });
+  if (error) {
+    if (isCommentSchemaMiss(error) || /not allowed/i.test(error.message ?? '')) return [];
+    throw rpcError(error);
+  }
+  return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+    id: String(row.id),
+    handle: (row.handle as string | null) ?? null,
+    display_name: (row.display_name as string | null) ?? null,
+  }));
+}
+
+export async function markItemGiverCommentMentionsRead(itemId: string) {
+  if (usesDemoData() || !supabase) {
+    markDemoItemGiverMentionsRead(itemId);
+    return;
+  }
+  const { error } = await supabase.rpc('mark_item_giver_comment_mentions_read', { p_item_id: itemId });
+  if (error) {
+    // Unread dots are best-effort. A missing migration must not block the thread.
+    return;
+  }
 }
 
 export async function postItemGiverComment(
   itemId: string,
   body: string,
-  opts: { demoGiverPersona: boolean },
-): Promise<ItemGiverComment> {
-  if (usesDemoData() || !supabase) return postDemoItemGiverComment(itemId, body, opts);
-  const { data, error } = await supabase.rpc('post_item_giver_comment', { p_item_id: itemId, p_body: body });
-  if (error) throw rpcError(error);
-  const row = Array.isArray(data) ? data[0] : data;
-  return asComment(row as Record<string, unknown>);
+  opts: { demoGiverPersona: boolean; parentId?: string | null; mentionIds?: string[] },
+): Promise<PostedGiverComment> {
+  if (usesDemoData() || !supabase) {
+    return {
+      comment: postDemoItemGiverComment(itemId, body, opts),
+      postedWithoutThread: false,
+      mentionsDeferred: false,
+    };
+  }
+  const parentId = opts.parentId ?? null;
+  const mentionIds = opts.mentionIds ?? [];
+  const extended = await supabase.rpc('post_item_giver_comment', {
+    p_item_id: itemId,
+    p_body: body,
+    p_parent_id: parentId,
+    p_mention_ids: mentionIds,
+  });
+  if (!extended.error) {
+    return { comment: commentRow(extended.data), postedWithoutThread: false, mentionsDeferred: false };
+  }
+  if (!isCommentSchemaMiss(extended.error)) throw rpcError(extended.error);
+
+  const fallback = await supabase.rpc('post_item_giver_comment', { p_item_id: itemId, p_body: body });
+  if (fallback.error) throw rpcError(fallback.error);
+  return {
+    comment: commentRow(fallback.data),
+    postedWithoutThread: Boolean(parentId),
+    mentionsDeferred: mentionIds.length > 0,
+  };
 }
 
-export async function editItemGiverComment(commentId: string, body: string): Promise<ItemGiverComment> {
-  if (usesDemoData() || !supabase) return editDemoItemGiverComment(commentId, body);
-  const { data, error } = await supabase.rpc('edit_item_giver_comment', { p_comment_id: commentId, p_body: body });
-  if (error) throw rpcError(error);
-  const row = Array.isArray(data) ? data[0] : data;
-  return asComment(row as Record<string, unknown>);
+export async function editItemGiverComment(
+  commentId: string,
+  body: string,
+  mentionIds: string[] = [],
+): Promise<ItemGiverComment> {
+  if (usesDemoData() || !supabase) return editDemoItemGiverComment(commentId, body, mentionIds);
+  const extended = await supabase.rpc('edit_item_giver_comment', {
+    p_comment_id: commentId,
+    p_body: body,
+    p_mention_ids: mentionIds,
+  });
+  if (extended.error && isCommentSchemaMiss(extended.error)) {
+    const fallback = await supabase.rpc('edit_item_giver_comment', { p_comment_id: commentId, p_body: body });
+    if (fallback.error) throw rpcError(fallback.error);
+    return commentRow(fallback.data);
+  }
+  if (extended.error) throw rpcError(extended.error);
+  return commentRow(extended.data);
 }
 
 export async function deleteItemGiverComment(commentId: string) {

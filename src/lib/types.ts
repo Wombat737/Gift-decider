@@ -148,6 +148,19 @@ export type GiverAccessRequest = {
   created_at: string;
 };
 
+export type CommentMention = {
+  user_id: string;
+  handle: string | null;
+  display_name: string | null;
+};
+
+/** Someone on the list a giver can @tag. Never the list owner. */
+export type CommentTagCandidate = {
+  id: string;
+  handle: string | null;
+  display_name: string | null;
+};
+
 export type ItemGiverComment = {
   id: string;
   item_id: string;
@@ -156,6 +169,11 @@ export type ItemGiverComment = {
   body: string;
   created_at: string;
   edited_at: string | null;
+  /** Null for a root comment, including giver notes migrated from the flat thread. */
+  parent_id: string | null;
+  mentions: CommentMention[];
+  /** True when the signed-in giver was @tagged and has not opened this thread since. */
+  unread: boolean;
 };
 
 export type GiftSearchHit = {

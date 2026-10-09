@@ -4,17 +4,23 @@ import {
   HANDLE_SEARCH_WINDOW_MS,
   assertRateLimit,
   canGiverOpenWishlist,
+  commentFromRow,
+  extractMentionHandles,
   giverCanUseComments,
   matchesHandleSearch,
+  mentionToken,
   normalizeHandleQuery,
   normalizeTasteTags,
   pendingRequestExpired,
+  removeCommentThread,
   searchWishlistItemsStrict,
   shareTokenFromInput,
   type GiverSocialRateKind,
 } from '@/lib/giver-social';
 import { DEMO_SHARE_TOKEN, getDemoItem, listDemoItems, registerDemoReset } from '@/lib/demo-store';
 import type {
+  CommentMention,
+  CommentTagCandidate,
   Discoverability,
   GiverAccessRequest,
   GiverPerson,
@@ -26,6 +32,12 @@ import type {
 
 const STORAGE_KEY = 'giftdecider.demo.social.v1';
 const DEMO_USER_ID = 'demo-user';
+
+/** Co-givers on the demo list. The list owner (jordan) is never a tag target. */
+const DEMO_COMMENT_TAGS: CommentTagCandidate[] = [
+  { id: 'demo-person-alex', handle: 'alex', display_name: 'Alex' },
+  { id: 'demo-person-sam', handle: 'sam', display_name: 'Sam' },
+];
 
 type DemoDirectoryPerson = {
   id: string;
@@ -184,6 +196,21 @@ function seedBundle(): DemoSocialBundle {
         body: 'I’ll grab this unless someone else is already on it.',
         created_at: '2026-09-08T00:00:00.000Z',
         edited_at: null,
+        parent_id: null,
+        mentions: [],
+        unread: false,
+      },
+      {
+        id: 'demo-comment-mug-2',
+        item_id: 'demo-mug',
+        author_id: 'demo-person-sam',
+        author_display_name: 'Sam',
+        body: '@jordan the glaze is the matte oatmeal one.',
+        created_at: '2026-09-09T00:00:00.000Z',
+        edited_at: null,
+        parent_id: 'demo-comment-mug-1',
+        mentions: [{ user_id: DEMO_USER_ID, handle: 'jordan', display_name: 'Jordan' }],
+        unread: true,
       },
     ],
     invites: [],
@@ -213,6 +240,42 @@ function persist() {
   }
 }
 
+function normalizeStoredComments(value: unknown, fallback: ItemGiverComment[]): ItemGiverComment[] {
+  if (!Array.isArray(value)) return fallback;
+  const notes = value.flatMap((row) => {
+    if (!row || typeof row !== 'object') return [];
+    const comment = commentFromRow(row as Record<string, unknown>);
+    return comment ? [comment] : [];
+  });
+  return notes;
+}
+
+function demoTagPeople(): CommentTagCandidate[] {
+  return [
+    ...DEMO_COMMENT_TAGS,
+    { id: DEMO_USER_ID, handle: 'jordan', display_name: 'Jordan' },
+  ];
+}
+
+function mentionsFor(body: string, mentionIds: string[], authorId: string): { mentions: CommentMention[]; unread: boolean } {
+  const handles = new Set(extractMentionHandles(body));
+  const mentions = demoTagPeople()
+    .filter((person) => person.id !== authorId)
+    .filter((person) => {
+      const token = mentionToken(person);
+      return mentionIds.includes(person.id) || (token != null && handles.has(token));
+    })
+    .map((person) => ({
+      user_id: person.id,
+      handle: person.handle,
+      display_name: person.display_name,
+    }));
+  return {
+    mentions,
+    unread: mentions.some((mention) => mention.user_id === DEMO_USER_ID),
+  };
+}
+
 function adopt() {
   if (loaded) return;
   loaded = true;
@@ -236,7 +299,7 @@ function adopt() {
       pins: Array.isArray(parsed.pins) && parsed.pins.length ? parsed.pins : fallback.pins,
       members: Array.isArray(parsed.members) && parsed.members.length ? parsed.members : fallback.members,
       requests: Array.isArray(parsed.requests) && parsed.requests.length ? parsed.requests : fallback.requests,
-      comments: Array.isArray(parsed.comments) ? parsed.comments : fallback.comments,
+      comments: normalizeStoredComments(parsed.comments, fallback.comments),
       invites: Array.isArray(parsed.invites) ? parsed.invites : [],
       rate: Array.isArray(parsed.rate) ? parsed.rate : [],
       blocks: Array.isArray(parsed.blocks) ? parsed.blocks : [],
@@ -516,19 +579,46 @@ export function listDemoItemGiverComments(itemId: string, opts: { isOwnerRoute: 
   ) {
     return [];
   }
-  return bundle.comments.filter((row) => row.item_id === itemId).map((row) => ({ ...row }));
+  return bundle.comments
+    .filter((row) => row.item_id === itemId)
+    .slice()
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map((row) => ({ ...row, mentions: row.mentions.map((mention) => ({ ...mention })) }));
 }
 
-export function postDemoItemGiverComment(itemId: string, body: string, opts: { demoGiverPersona: boolean }) {
+export function listDemoCommentTagCandidates(): CommentTagCandidate[] {
+  return DEMO_COMMENT_TAGS.map((person) => ({ ...person }));
+}
+
+export function markDemoItemGiverMentionsRead(itemId: string) {
+  adopt();
+  write({
+    ...bundle,
+    comments: bundle.comments.map((row) => (row.item_id === itemId && row.unread ? { ...row, unread: false } : row)),
+  });
+}
+
+export function postDemoItemGiverComment(
+  itemId: string,
+  body: string,
+  opts: { demoGiverPersona: boolean; parentId?: string | null; mentionIds?: string[] },
+) {
   const cleaned = body.trim();
   if (cleaned.length < 1 || cleaned.length > 2000) {
-    throw new Error('Keep notes between 1 and 2000 characters');
+    throw new Error('Keep comments between 1 and 2000 characters');
   }
   if (!opts.demoGiverPersona) {
     throw new Error('Not allowed');
   }
   if (!getDemoItem(itemId)) throw new Error('Gift not found');
   adopt();
+  const parentId = opts.parentId ?? null;
+  if (parentId) {
+    const parent = bundle.comments.find((row) => row.id === parentId && row.item_id === itemId);
+    if (!parent) throw new Error('Reply target not found');
+    if (parent.parent_id) throw new Error('Replies are one level deep');
+  }
+  const tagged = mentionsFor(cleaned, opts.mentionIds ?? [], DEMO_USER_ID);
   const row: ItemGiverComment = {
     id: id('comment'),
     item_id: itemId,
@@ -537,21 +627,25 @@ export function postDemoItemGiverComment(itemId: string, body: string, opts: { d
     body: cleaned,
     created_at: nowIso(),
     edited_at: null,
+    parent_id: parentId,
+    mentions: tagged.mentions,
+    unread: tagged.unread,
   };
   write({ ...bundle, comments: [...bundle.comments, row] });
   return row;
 }
 
-export function editDemoItemGiverComment(commentId: string, body: string) {
+export function editDemoItemGiverComment(commentId: string, body: string, mentionIds: string[] = []) {
   const cleaned = body.trim();
   if (cleaned.length < 1 || cleaned.length > 2000) {
-    throw new Error('Keep notes between 1 and 2000 characters');
+    throw new Error('Keep comments between 1 and 2000 characters');
   }
   adopt();
   const existing = bundle.comments.find((row) => row.id === commentId);
-  if (!existing) throw new Error('Note not found');
-  if (existing.author_id !== DEMO_USER_ID) throw new Error('You can only edit your own note');
-  const next = { ...existing, body: cleaned, edited_at: nowIso() };
+  if (!existing) throw new Error('Comment not found');
+  if (existing.author_id !== DEMO_USER_ID) throw new Error('You can only edit your own comment');
+  const tagged = mentionsFor(cleaned, mentionIds, existing.author_id);
+  const next = { ...existing, body: cleaned, edited_at: nowIso(), mentions: tagged.mentions, unread: tagged.unread };
   write({
     ...bundle,
     comments: bundle.comments.map((row) => (row.id === commentId ? next : row)),
@@ -563,8 +657,8 @@ export function deleteDemoItemGiverComment(commentId: string) {
   adopt();
   const existing = bundle.comments.find((row) => row.id === commentId);
   if (!existing) return;
-  if (existing.author_id !== DEMO_USER_ID) throw new Error('You can only delete your own note');
-  write({ ...bundle, comments: bundle.comments.filter((row) => row.id !== commentId) });
+  if (existing.author_id !== DEMO_USER_ID) throw new Error('You can only delete your own comment');
+  write({ ...bundle, comments: removeCommentThread(bundle.comments, commentId) });
 }
 
 export function searchDemoWishlistItems(query: string) {

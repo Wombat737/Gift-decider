@@ -24,7 +24,7 @@ export default function PrivacyScreen() {
           random token. Optional Coral Coast handle search only matches your handle if you set discoverability to
           Anyone with handle — never your display name. Givers may leave a name when they take a gift or chip in —
           other givers see Reserved or Bought, not names. Recipients never see in-flight reservations, pledge amounts, or
-          giver-only item notes.
+          giver-only comments.
         </ThemedText>
       </Card>
 

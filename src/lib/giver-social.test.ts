@@ -7,29 +7,40 @@ import { fileURLToPath } from 'node:url';
 import { listDemoItems, resetDemoStore } from './demo-store';
 import {
   inviteDemoGiverByEmail,
+  listDemoCommentTagCandidates,
   listDemoGiverAccessRequests,
   listDemoGiverPeople,
   listDemoItemGiverComments,
   lookupDemoProfileByEmail,
+  markDemoItemGiverMentionsRead,
   postDemoItemGiverComment,
   respondDemoGiverAccess,
   searchDemoProfilesByHandle,
   searchDemoWishlistItems,
 } from './demo-social';
 import {
+  applyMention,
   canGiverOpenWishlist,
   classifyPeopleSearchQuery,
+  commentBodyParts,
+  commentFromRow,
   commentVisibleOnOwnerItem,
+  extractMentionHandles,
+  filterTagCandidates,
   giverCanUseComments,
   handleSearchPayloadLeaks,
+  isCommentSchemaMiss,
   looksLikeEmailQuery,
   matchesHandleSearch,
+  mentionQueryAt,
   normalizeTasteTags,
   ownerMayReadGiverComments,
   searchPayloadLeaksTags,
   searchWishlistItemsStrict,
   shareTokenFromInput,
   strictSearchPayload,
+  threadComments,
+  unreadMentionCount,
 } from './giver-social';
 import { ownerPayloadLeaksGiftProgress, ownerSafeItem } from './surprise-safe';
 
@@ -250,8 +261,115 @@ describe('Giver social B — comments surprise-safe', () => {
   it('demo giver persona can post; owner route still empty', () => {
     const posted = postDemoItemGiverComment('demo-mug', 'Size 12 if they have it', { demoGiverPersona: true });
     assert.equal(posted.body.includes('Size 12'), true);
+    assert.equal(posted.parent_id, null);
     assert.equal(listDemoItemGiverComments('demo-mug', { isOwnerRoute: true, loggedIn: true }).length, 0);
     assert.throws(() => postDemoItemGiverComment('demo-mug', 'nope', { demoGiverPersona: false }));
+  });
+
+  it('keeps existing giver notes as root comments and threads one reply', () => {
+    const giverRoute = listDemoItemGiverComments('demo-mug', { isOwnerRoute: false, loggedIn: true });
+    const alex = giverRoute.find((row) => row.id === 'demo-comment-mug-1');
+    const sam = giverRoute.find((row) => row.id === 'demo-comment-mug-2');
+    assert.equal(alex?.body, 'I’ll grab this unless someone else is already on it.');
+    assert.equal(alex?.parent_id, null);
+    assert.equal(sam?.parent_id, 'demo-comment-mug-1');
+    assert.equal(sam?.unread, true);
+    assert.equal(sam?.mentions[0]?.handle, 'jordan');
+    assert.equal(unreadMentionCount(giverRoute), 1);
+
+    const threads = threadComments(giverRoute);
+    assert.equal(threads[0]?.comment.id, 'demo-comment-mug-1');
+    assert.equal(threads[0]?.replies[0]?.id, 'demo-comment-mug-2');
+    assert.equal(listDemoItemGiverComments('demo-mug', { isOwnerRoute: true, loggedIn: true }).length, 0);
+
+    const legacy = commentFromRow({
+      id: 'note-1',
+      item_id: 'demo-mug',
+      author_id: 'demo-person-alex',
+      author_display_name: 'Alex',
+      body: 'old giver note',
+      created_at: '2026-09-01T00:00:00.000Z',
+      edited_at: null,
+    });
+    assert.equal(legacy?.body, 'old giver note');
+    assert.equal(legacy?.parent_id, null);
+    assert.deepEqual(legacy?.mentions, []);
+    assert.equal(legacy?.unread, false);
+    assert.equal(threadComments(legacy ? [legacy] : []).length, 1);
+  });
+
+  it('replies once, @tags list members, and clears the unread mention', () => {
+    const tags = listDemoCommentTagCandidates();
+    assert.deepEqual(
+      tags.map((person) => person.handle),
+      ['alex', 'sam'],
+    );
+    assert.equal(tags.some((person) => person.id === 'demo-user'), false);
+    assert.equal(filterTagCandidates(tags, 'al').map((person) => person.handle).join(','), 'alex');
+    assert.equal(mentionQueryAt('leaving this @al', 'leaving this @al'.length), 'al');
+    const inserted = applyMention('leaving this @al', 'leaving this @al'.length, 'alex');
+    assert.equal(inserted.body, 'leaving this @alex ');
+    assert.deepEqual(extractMentionHandles('email@alex.com ping @alex'), ['alex']);
+    assert.equal(commentBodyParts('ping @alex').some((part) => part.kind === 'tag' && part.text === '@alex'), true);
+    assert.equal(commentBodyParts('email@alex.com').every((part) => part.kind === 'text'), true);
+
+    const reply = postDemoItemGiverComment('demo-mug', '@alex I’ll leave the mug', {
+      demoGiverPersona: true,
+      parentId: 'demo-comment-mug-1',
+      mentionIds: ['demo-person-alex'],
+    });
+    assert.equal(reply.parent_id, 'demo-comment-mug-1');
+    assert.equal(reply.mentions.some((mention) => mention.handle === 'alex'), true);
+    assert.throws(
+      () =>
+        postDemoItemGiverComment('demo-mug', 'too deep', {
+          demoGiverPersona: true,
+          parentId: reply.id,
+        }),
+      /one level/,
+    );
+
+    assert.equal(unreadMentionCount(listDemoItemGiverComments('demo-mug', { isOwnerRoute: false, loggedIn: true })), 1);
+    markDemoItemGiverMentionsRead('demo-mug');
+    const after = listDemoItemGiverComments('demo-mug', { isOwnerRoute: false, loggedIn: true });
+    assert.equal(unreadMentionCount(after), 0);
+    assert.equal(after.find((row) => row.id === 'demo-comment-mug-2')?.body.includes('@jordan'), true);
+    assert.equal(listDemoItemGiverComments('demo-mug', { isOwnerRoute: true, loggedIn: true }).length, 0);
+  });
+
+  it('SQL threads stay giver-only and a missing migration is detectable', () => {
+    const sql = migration('20261009120000_giver_comment_threads.sql');
+    assert.match(sql, /existing giver notes/i);
+    assert.match(sql, /parent_id/);
+    assert.match(sql, /item_giver_comment_mentions_deny_owner/);
+    assert.match(sql, /item_giver_comments_deny_owner/);
+    assert.match(sql, /as restrictive/);
+    assert.match(sql, /not public\.is_wishlist_owner/);
+    assert.match(sql, /list_comment_tag_candidates/);
+    assert.match(sql, /mark_item_giver_comment_mentions_read/);
+    assert.match(sql, /Replies are one level deep/);
+    assert.match(sql, /owner_id/);
+    assert.match(sql, /revoke all on function public\.list_comment_tag_candidates\(uuid\) from anon/);
+    assert.match(sql, /grant execute on function public\.post_item_giver_comment\(uuid, text, uuid, uuid\[\]\) to authenticated/);
+    assert.equal(/delete from public\.item_giver_comments\b/i.test(sql), false);
+    assert.equal(/\btruncate\s+(table\s+)?public\./i.test(sql), false);
+    assert.equal(/comment_count/.test(sql), false);
+    assert.equal(/grant execute on function public\.list_item_giver_comments\(uuid\) to anon/.test(sql), false);
+    assert.equal(/grant select on public\.item_giver_comment_mentions to anon/.test(sql), false);
+
+    const ui = source('src/components/giver-comments.tsx');
+    assert.match(ui, /Comments/);
+    assert.match(ui, /Post comment/);
+    assert.match(ui, /Post reply/);
+    assert.match(ui, /filterTagCandidates/);
+    assert.match(ui, /commentBodyParts/);
+    assert.equal(/Giver notes/.test(ui), false);
+    assert.equal(/Post note/.test(ui), false);
+    assert.equal(/GiverComments/.test(source('src/app/(app)/item/[id].tsx')), false);
+
+    assert.equal(isCommentSchemaMiss({ code: 'PGRST202', message: 'Could not find the function in the schema cache' }), true);
+    assert.equal(isCommentSchemaMiss({ message: 'Not allowed' }), false);
+    assert.equal(isCommentSchemaMiss({ message: 'Replies are one level deep' }), false);
   });
 });
 
