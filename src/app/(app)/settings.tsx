@@ -9,6 +9,7 @@ import { Card } from '@/components/card';
 import { HeaderInboxLink } from '@/components/inbox-badge';
 import { InboxBanner } from '@/components/inbox-banner';
 import { Screen } from '@/components/screen';
+import { StageStickyHeader } from '@/components/stage-sticky-header';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/context/auth-context';
@@ -103,7 +104,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <Screen>
+    <Screen sticky={<StageStickyHeader title={PrettyCopy.ownerHomeTitle} />}>
       <ThemedText type="heading">Me</ThemedText>
       <ThemedText themeColor="textSecondary">
         Signed in as {user?.email ?? 'you'}. Store-required privacy and deletion live here.

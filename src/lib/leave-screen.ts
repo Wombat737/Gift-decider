@@ -18,5 +18,5 @@ export function leaveScreen(fallback: Href = picksHref) {
  */
 export function returnToPicks(itemId: string) {
   queuePickPulse(itemId);
-  router.dismissTo(picksHref);
+  router.dismissTo({ pathname: picksHref, params: { fresh: itemId } });
 }

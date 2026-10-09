@@ -8,6 +8,8 @@ import {
   BUY_LINK_AUTOFILL_FAIL,
   applyBuyLinkDraft,
   autofillHint,
+  buyDraftNeedsPage,
+  claimAutofillUrl,
   choosePreviewImage,
   draftFromPreview,
   draftWithPageHtml,
@@ -179,6 +181,20 @@ describe('Buy-link autofill', () => {
     );
     assert.equal(replaced.targetAmount, '42.50');
 
+    assert.equal(
+      buyDraftNeedsPage({ title: 'Mug', notes: null, imageUrl: 'https://cdn.example/mug.jpg', priceAmount: 29 }),
+      false,
+    );
+    assert.equal(buyDraftNeedsPage({ title: 'Mug', notes: null, imageUrl: 'https://cdn.example/mug.jpg' }), true);
+    const keptPhoto = draftWithPageHtml(
+      { title: 'Mug', notes: null, imageUrl: 'https://cdn.example/mug.jpg' },
+      `<meta property="product:price:amount" content="29.00" />
+       <meta property="product:price:currency" content="AUD" />`,
+      'https://www.kmart.com.au/product/mug',
+    );
+    assert.equal(keptPhoto.imageUrl, 'https://cdn.example/mug.jpg');
+    assert.equal(keptPhoto.priceAmount, 29);
+
     const fromEdge = draftFromPreview({
       url: 'https://www.kmart.com.au/product/throw',
       title: 'Linen throw',
@@ -252,7 +268,31 @@ describe('Buy-link autofill', () => {
     const help = source('lib/help.ts');
 
     assert.match(fields, /autofillFromBuyUrl/);
+    assert.match(fields, /claimAutofillUrl/);
+    assert.match(fields, /inflightUrl\.current = ''/);
     assert.match(fields, /onBlur/);
+    assert.match(fields, /onEndEditing/);
+    assert.equal(claimAutofillUrl('https://www.kmart.com.au/product/throw/1', '', ''), 'https://www.kmart.com.au/product/throw/1');
+    assert.equal(
+      claimAutofillUrl('https://www.kmart.com.au/product/throw/1', 'https://www.kmart.com.au/product/throw/1', ''),
+      null,
+    );
+    assert.equal(
+      claimAutofillUrl('https://www.kmart.com.au/product/throw/1', '', 'https://www.kmart.com.au/product/throw/1'),
+      null,
+    );
+    assert.equal(claimAutofillUrl('not a url', '', ''), null);
+    assert.match(preview, /buyDraftNeedsPage/);
+    assert.equal(/Take a price only if the page HTML finished/.test(preview), false);
+    assert.match(source('components/text-field.tsx'), /PlaceholderColor/);
+    assert.match(source('components/text-field.tsx'), /fontStyle: 'italic'/);
+    assert.match(source('app/(app)/add.tsx'), /cards/);
+    assert.match(fields, /'Link'/);
+    assert.match(fields, /'Photo'/);
+    assert.match(fields, /'Name'/);
+    assert.match(fields, /'Amount'/);
+    assert.match(fields, /'Notes'/);
+    assert.match(source('components/add-section.tsx'), /#FFF9F6/);
     assert.match(fields, /BUY_LINK_AUTOFILL_FAIL|Couldn’t grab a photo/);
     assert.match(fields, /previewing/);
     assert.match(add, /Pin to wishlist/);

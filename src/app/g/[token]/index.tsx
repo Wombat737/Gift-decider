@@ -10,6 +10,7 @@ import { ItemGridSkeleton } from '@/components/item-grid';
 import { LegalLinks } from '@/components/legal-links';
 import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { Screen } from '@/components/screen';
+import { StageStickyHeader } from '@/components/stage-sticky-header';
 import { StageGiverCard } from '@/components/stage-giver-card';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -20,7 +21,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
-import { giverListTitle, personFirstLabel } from '@/lib/list-title';
+import { giverListTitle, recipientPicksTitle } from '@/lib/list-title';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { giverListPaint, giverPaintItems, patchGiverCatalog, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
@@ -72,7 +73,7 @@ export default function GiverShareScreen() {
     loading: loading || !fetchSettled,
     unmatched: Boolean(error) && !meta && fetchSettled,
   });
-  const recipient = personFirstLabel(meta?.owner_display_name, meta?.owner_handle);
+  const picksTitle = meta ? recipientPicksTitle(meta.owner_display_name, meta.owner_handle) : listTitle;
   const readyToBuy = items.filter((item) => groupGiftPhase(item) === 'ready_to_buy');
   const visible = useMemo(() => {
     if (!hitIds) return items;
@@ -151,7 +152,7 @@ export default function GiverShareScreen() {
   }
 
   return (
-    <Screen>
+    <Screen sticky={<StageStickyHeader title={picksTitle} />}>
       <Stack.Screen
         options={{
           title: !meta && !error ? listTitle : 'Gift Decider',
@@ -183,8 +184,7 @@ export default function GiverShareScreen() {
       />
 
       <View style={styles.hero}>
-        <ThemedText themeColor="textSecondary">{recipient ? `For ${recipient}` : 'For them'}</ThemedText>
-        <ThemedText type="display" style={styles.heroTitle} accessibilityRole="header">
+        <ThemedText type="title" accessibilityRole="header">
           {PrettyCopy.giverHeadline}
         </ThemedText>
         <ThemedText themeColor="textSecondary">{PrettyCopy.giverHomeIntro}</ThemedText>
@@ -286,11 +286,6 @@ const styles = StyleSheet.create({
   },
   hero: {
     gap: Spacing.two,
-  },
-  heroTitle: {
-    fontSize: 32,
-    lineHeight: 38,
-    letterSpacing: -0.8,
   },
   stack: {
     gap: Spacing.three,

@@ -138,6 +138,9 @@ export const Washes = {
 /** Selected / press ring — coral at 40%. */
 export const RingSelected = 'rgba(232, 93, 76, 0.4)';
 
+/** Empty-field hint. Lighter than ink-muted so a placeholder does not read as a filled value. */
+export const PlaceholderColor = '#A3A3A3';
+
 /** Sticker chips — taller than pretty v1. */
 export const ChipPad = {
   vertical: 10,

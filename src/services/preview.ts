@@ -2,6 +2,7 @@ import { usesDemoData } from '@/lib/app-mode';
 import { env } from '@/lib/env';
 import {
   BUY_LINK_AUTOFILL_FAIL,
+  buyDraftNeedsPage,
   draftFromPreview,
   draftWithPageHtml,
   isInstagramHost,
@@ -57,11 +58,19 @@ function withTimeout<T>(promise: Promise<T>, ms: number) {
 }
 
 function asPreview(data: unknown): LinkPreview | null {
-  if (!data || typeof data !== 'object') return null;
-  if (!('url' in data) && !('image_url' in data) && !('title' in data) && !('stored_image_url' in data)) {
+  let value = data;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  if (!value || typeof value !== 'object') return null;
+  if (!('url' in value) && !('image_url' in value) && !('title' in value) && !('stored_image_url' in value)) {
     return null;
   }
-  const preview = data as LinkPreview;
+  const preview = value as LinkPreview;
   if (previewLooksLikeStub(preview)) return null;
   return preview;
 }
@@ -118,24 +127,20 @@ async function fetchEdgePreview(url: string): Promise<LinkPreview | null> {
  * public page from the device and take the same Open Graph image. No Instagram scrape.
  */
 async function loadBuyDraft(safe: string): Promise<{ draft: BuyLinkDraft; preview: LinkPreview }> {
-  let pageHtml: string | null | undefined;
-  const htmlPromise = fetchPublicPageHtml(safe).then((html) => {
-    pageHtml = html;
-    return html;
-  });
+  const htmlPromise = fetchPublicPageHtml(safe);
   const edge = await fetchEdgePreview(safe);
   let draft: BuyLinkDraft = edge ? draftFromPreview(edge) : { title: null, notes: null, imageUrl: null };
-  if (!draft.imageUrl) {
-    // Amazon's catalog image does not need the page. Don't sit on a slow shop response.
-    const htmlWait = productImageGuess(safe) ? 2500 : PAGE_MS + 400;
+  if (buyDraftNeedsPage(draft)) {
+    // A photo from preview-url used to skip the page unless the HTML had already
+    // finished, so the chip-in target stayed blank. Wait for the in-flight page
+    // when the photo or the price is still missing. Amazon's catalog image does
+    // not need a full shop response.
+    const htmlWait = !draft.imageUrl && productImageGuess(safe) ? 2500 : draft.imageUrl ? 2000 : PAGE_MS + 400;
     const html = await Promise.race([
       htmlPromise,
       new Promise<string | null>((resolve) => setTimeout(() => resolve(null), htmlWait)),
     ]);
     draft = draftWithPageHtml(draft, html, safe);
-  } else if (draft.priceAmount == null && pageHtml) {
-    // Photo is already in. Take a price only if the page HTML finished during the edge call.
-    draft = draftWithPageHtml(draft, pageHtml, safe);
   }
 
   const host = safeHost(safe);

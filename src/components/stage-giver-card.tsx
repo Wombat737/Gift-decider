@@ -44,7 +44,7 @@ export function StageGiverCard({
           accessibilityRole="link"
           accessibilityLabel={`${title}, ${kind}`}
           style={styles.top}>
-          <StageThumb title={title} seed={item.id} />
+          <StageThumb title={title} seed={item.id} imageUrl={item.image_url} />
           <View style={styles.copy}>
             <ThemedText type="titleSm" numberOfLines={2}>
               {title}

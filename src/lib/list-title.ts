@@ -15,6 +15,12 @@ export function possessiveName(name: string) {
   return /s$/i.test(name) ? `${name}'` : `${name}'s`;
 }
 
+/** Pinned giver title: “Kiri’s picks”. */
+export function recipientPicksTitle(displayName?: string | null, handle?: string | null) {
+  const label = personFirstLabel(displayName, handle);
+  return label ? `${possessiveName(label)} picks` : 'Their picks';
+}
+
 /** Giver chrome: “Kiri’s list” / “jordan’s list”. */
 export function personListTitle(displayName?: string | null, handle?: string | null) {
   const label = personFirstLabel(displayName, handle);

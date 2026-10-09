@@ -1,5 +1,7 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
 import { ItemFields, type ItemFieldsValue } from '@/components/item-fields';
@@ -79,13 +81,23 @@ function AddDraft({ initialUrl }: { initialUrl: string }) {
   }
 
   return (
-    <Screen>
+    <Screen
+      wash={
+        <LinearGradient
+          colors={['#FFF1EE', '#FFF6EC', '#FAFAFA'] as const}
+          locations={[0, 0.42, 1] as const}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      }>
       <ItemFields
         value={fields}
         occasions={occasions}
         onChange={(patch) => setFields((current) => ({ ...current, ...patch }))}
         onPhotoBusy={setPhotoBusy}
         autofillBuyUrl
+        cards
       />
 
       {error ? (

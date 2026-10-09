@@ -1,84 +1,47 @@
 import { Link, type Href } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  interpolateColor,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 
 import { KindPill, StageThumb } from '@/components/stage-thumb';
 import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, StageShadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { PICK_PULSE_MS, pickKindLabel } from '@/lib/stage-home';
+import { pickKindLabel } from '@/lib/stage-home';
 import type { WishlistItem } from '@/lib/types';
 
 type StagePickRowProps = {
   item: WishlistItem;
   href: Href;
   pulse?: boolean;
+  /** Y of this row inside the list, so home can scroll a new pick into view. */
+  onPulseLayout?: (y: number) => void;
 };
 
 /** Owner home row. Title + Exact/Taste only — no reserve, purchase, or pledge chrome. */
-export function StagePickRow({ item, href, pulse = false }: StagePickRowProps) {
+export function StagePickRow({ item, href, pulse = false, onPulseLayout }: StagePickRowProps) {
   const theme = useTheme();
   const title = item.title || 'Untitled gift';
   const kind = pickKindLabel(item.item_kind);
-  const reduceMotion = useReducedMotion();
-  const glow = useSharedValue(0);
-  const resting = theme.border;
-  const sunshine = theme.accent;
+  const yRef = useRef(0);
 
   useEffect(() => {
-    if (!pulse) {
-      glow.value = 0;
-      return;
-    }
-    if (reduceMotion) {
-      glow.value = 1;
-      const timer = setTimeout(() => {
-        glow.value = 0;
-      }, PICK_PULSE_MS);
-      return () => clearTimeout(timer);
-    }
-    glow.value = 0;
-    glow.value = withSequence(
-      withTiming(1, { duration: 220, easing: Easing.out(Easing.quad) }),
-      withTiming(0, { duration: PICK_PULSE_MS - 220, easing: Easing.in(Easing.quad) }),
-    );
-  }, [glow, pulse, reduceMotion]);
-
-  const frameStyle = useAnimatedStyle(() => ({
-    borderColor: interpolateColor(glow.value, [0, 1], [resting, sunshine]),
-  }));
-  const washStyle = useAnimatedStyle(() => ({
-    opacity: glow.value * 0.22,
-  }));
+    if (pulse) onPulseLayout?.(yRef.current);
+  }, [onPulseLayout, pulse]);
 
   return (
-    <Animated.View
-      style={[
-        styles.card,
-        StageShadow,
-        { backgroundColor: theme.backgroundElement, borderColor: theme.border },
-        frameStyle,
-      ]}>
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.wash, { backgroundColor: theme.accent }, washStyle]}
-      />
+    <View
+      onLayout={(event) => {
+        yRef.current = event.nativeEvent.layout.y;
+        if (pulse) onPulseLayout?.(event.nativeEvent.layout.y);
+      }}
+      style={[styles.card, StageShadow, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
       <Link href={href} asChild>
         <NativePressable
           accessibilityRole="link"
           accessibilityLabel={`${title}, ${kind}`}
           style={styles.row}>
-          <StageThumb title={title} seed={item.id} />
+          <StageThumb title={title} seed={item.id} imageUrl={item.image_url} pop={pulse} />
           <View style={styles.copy}>
             <ThemedText type="titleSm" numberOfLines={2}>
               {title}
@@ -87,7 +50,7 @@ export function StagePickRow({ item, href, pulse = false }: StagePickRowProps) {
           </View>
         </NativePressable>
       </Link>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -111,9 +74,5 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     gap: Spacing.two,
-  },
-  wash: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: Radius.card,
   },
 });

@@ -2,7 +2,7 @@ import { ActivityIndicator, Keyboard, StyleSheet, TextInput, type TextInputProps
 
 import { HelpTip } from '@/components/help-tip';
 import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing } from '@/constants/theme';
+import { PlaceholderColor, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type TextFieldProps = TextInputProps & {
@@ -22,9 +22,11 @@ export function TextField({
   returnKeyType,
   blurOnSubmit,
   onSubmitEditing,
+  value,
   ...rest
 }: TextFieldProps) {
   const theme = useTheme();
+  const empty = value == null || value === '';
 
   return (
     <View style={styles.wrap}>
@@ -36,7 +38,8 @@ export function TextField({
       </View>
       <View style={styles.inputWrap}>
         <TextInput
-          placeholderTextColor={theme.textSecondary}
+          placeholderTextColor={PlaceholderColor}
+          value={value}
           multiline={multiline}
           returnKeyType={returnKeyType ?? (multiline ? 'default' : 'done')}
           blurOnSubmit={blurOnSubmit ?? !multiline}
@@ -52,6 +55,7 @@ export function TextField({
               borderColor: theme.border,
             },
             multiline && styles.multiline,
+            empty && styles.hint,
             loading && styles.inputLoading,
             style,
           ]}
@@ -111,6 +115,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     fontSize: 16,
     borderWidth: 1,
+  },
+  hint: {
+    fontStyle: 'italic',
   },
   multiline: {
     minHeight: 104,

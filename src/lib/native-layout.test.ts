@@ -91,7 +91,7 @@ describe('Native screen layout keeps width bound without clipping giver buttons'
     const field = source('components/text-field.tsx');
     const add = source('app/(app)/add.tsx');
     const share = source('app/(app)/share.tsx');
-    assert.match(add, /<Screen>/);
+    assert.match(add, /<Screen[\s>]/);
     assert.match(share, /<Screen>/);
     assert.equal(/footer=/.test(add), false);
     assert.equal(/footer=/.test(share), false);
