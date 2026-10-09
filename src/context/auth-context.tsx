@@ -96,9 +96,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const trimmed = email.trim();
         if (!trimmed) throw new Error('Enter your email');
         if (!supabase) {
-          throw new Error(
-            'Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to send a real magic link. Use Explore demo until then.',
-          );
+          throw new Error('Email sign-in isn’t available right now. Explore the demo to look around.');
         }
 
         const redirectTo = Linking.createURL('auth/callback');
@@ -110,7 +108,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           },
         });
         if (error) throw error;
-        return `Check ${trimmed} for a magic link. It returns to ${redirectTo}`;
+        return `Check ${trimmed} for a sign-in link.`;
       },
       signInDemo() {
         writeDemoSession(true);
@@ -118,22 +116,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
       },
       async signOut() {
         writeDemoSession(false);
-        if (supabase && !user?.demo) {
-          await supabase.auth.signOut();
+        try {
+          if (supabase && !user?.demo) {
+            await supabase.auth.signOut();
+          }
+        } finally {
+          setUser(null);
         }
-        setUser(null);
       },
       async signInWithApple() {
         if (!env.appleAuthEnabled) {
-          throw new Error('Sign in with Apple is a placeholder. See README → Apple / Google.');
+          throw new Error('Sign in with Apple isn’t available.');
         }
-        throw new Error('Apple Sign-In is not wired in this scaffold.');
+        throw new Error('Sign in with Apple isn’t available.');
       },
       async signInWithGoogle() {
         if (!env.googleAuthEnabled) {
-          throw new Error('Sign in with Google is a placeholder. See README → Apple / Google.');
+          throw new Error('Sign in with Google isn’t available.');
         }
-        throw new Error('Google Sign-In is not wired in this scaffold.');
+        throw new Error('Sign in with Google isn’t available.');
       },
     }),
     [isLoading, user],

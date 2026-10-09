@@ -205,7 +205,7 @@ describe('Stage home', () => {
     }
     assert.match(source('components/screen.tsx'), /sticky\?: ReactNode/);
 
-    assert.match(source('components/preview-giver-link.tsx'), /openGiverShare/);
+    assert.match(source('components/preview-giver-link.tsx'), /openOwnerPreview/);
     assert.match(source('components/stack-exit-button.tsx'), /accessibilityLabel="Back"/);
     assert.match(source('components/stack-exit-button.tsx'), /chevron\.backward/);
   });

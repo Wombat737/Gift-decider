@@ -10,7 +10,7 @@ volatile
 security definer
 set search_path = public
 as $$
-  select i::public.shared_gift_item
+  select public.wishlist_item_to_shared(i)
   from public.wishlist_items i
   join public.resolve_share_token(p_token) r on r.wishlist_id = i.wishlist_id
   where r.occasion_id is null or i.occasion_id = r.occasion_id

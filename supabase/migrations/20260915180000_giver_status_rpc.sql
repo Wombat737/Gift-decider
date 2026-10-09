@@ -9,7 +9,8 @@
 -- Authenticated roles have no SELECT on status, so the JSON omitted it and the
 -- giver list/item badge stayed Open. Return a dedicated composite instead.
 
--- Column order matches public.wishlist_items so we can cast i::shared_gift_item.
+-- Project columns by name. wishlist_items.target_amount is numeric(12,2);
+-- a whole-row cast to this type fails (numeric typmod, and any later column drift).
 create type public.shared_gift_item as (
   id uuid,
   wishlist_id uuid,
@@ -44,6 +45,46 @@ create type public.shared_gift_item as (
 
 grant usage on type public.shared_gift_item to anon, authenticated;
 
+create or replace function public.wishlist_item_to_shared(src public.wishlist_items)
+returns public.shared_gift_item
+language sql
+immutable
+as $$
+  select (
+    src.id,
+    src.wishlist_id,
+    src.image_path,
+    src.image_url,
+    src.title,
+    src.notes,
+    src.source_type,
+    src.source_url,
+    src.buy_url,
+    src.tags,
+    src.no_substitution,
+    src.status,
+    src.reserved_by,
+    src.reserved_at,
+    src.created_at,
+    src.updated_at,
+    src.item_kind,
+    src.size_hint,
+    src.target_amount,
+    src.occasion_id,
+    src.is_group_gift,
+    src.funded_at,
+    src.buy_url_dead,
+    src.reveal_at,
+    src.organiser_name,
+    src.pay_instructions,
+    src.delivery_method,
+    src.delivery_note,
+    src.ready_to_buy_notified_at
+  )::public.shared_gift_item;
+$$;
+
+revoke all on function public.wishlist_item_to_shared(public.wishlist_items) from public, anon, authenticated;
+
 drop function if exists public.get_shared_wishlist_items(text);
 
 create function public.get_shared_wishlist_items(p_token text)
@@ -53,7 +94,7 @@ stable
 security definer
 set search_path = public
 as $$
-  select i::public.shared_gift_item
+  select public.wishlist_item_to_shared(i)
   from public.wishlist_items i
   join public.resolve_share_token(p_token) r on r.wishlist_id = i.wishlist_id
   where r.occasion_id is null or i.occasion_id = r.occasion_id
@@ -104,7 +145,7 @@ begin
     raise exception 'Wishlist item not found for that share link';
   end if;
 
-  return result::public.shared_gift_item;
+  return public.wishlist_item_to_shared(result);
 end;
 $$;
 

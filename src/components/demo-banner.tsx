@@ -18,9 +18,7 @@ export function DemoBanner() {
         Demo for mates
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        {env.isSupabaseConfigured
-          ? 'Explore demo on this device — it does not write to your live Supabase project. Owner screens stay unspoiled.'
-          : 'No Supabase needed. Owner screens never show who reserved or chipped in until the group-gift reveal date.'}
+        {user?.demo ? 'Explore demo stays on this device.' : 'Sample lists stay on this device.'}
       </ThemedText>
     </ThemedView>
   );

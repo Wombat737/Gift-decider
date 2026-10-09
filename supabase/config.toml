@@ -44,3 +44,8 @@ verify_jwt = false
 [functions.notify-organiser-ready-to-buy]
 # Stub returns the would-be email. Sends only if Resend/Postmark env is set.
 verify_jwt = false
+
+[functions.delete-account]
+# Caller JWT is required. The function checks it again, then uses the service role
+# to remove wishlist-images/<uid> and delete the auth user.
+verify_jwt = true

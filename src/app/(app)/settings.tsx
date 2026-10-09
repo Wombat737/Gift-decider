@@ -1,9 +1,9 @@
-import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, View } from 'react-native';
+import { View } from 'react-native';
 
+import { openPrivacyPolicy } from '@/components/legal-links';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { HeaderInboxLink } from '@/components/inbox-badge';
@@ -18,7 +18,7 @@ import { PrettyCopy } from '@/lib/copy';
 import { acceptBannerText, requestBannerText } from '@/lib/inbox';
 import { track } from '@/lib/analytics';
 import { env } from '@/lib/env';
-import { accountDeletionMailto, privacyPolicyUrl, supportEmail } from '@/lib/legal';
+import { deleteOwnAccount } from '@/services/account';
 import { getOwnProfile, updateOwnProfile } from '@/services/profile';
 import { TasteTagEditor } from '@/components/taste-tag-editor';
 import { FilterChips } from '@/components/vibe-chips';
@@ -38,6 +38,10 @@ export default function SettingsScreen() {
   const [tasteTags, setTasteTags] = useState<string[]>([]);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteText, setDeleteText] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -55,7 +59,7 @@ export default function SettingsScreen() {
         setTasteTags(profile.taste_tags ?? []);
       })
       .catch(() => {
-        setProfileMessage('Could not load profile. Apply supabase/migrations if this is a new project.');
+        setProfileMessage('Could not load your profile. Try again in a moment.');
       });
   }, []);
 
@@ -82,33 +86,33 @@ export default function SettingsScreen() {
   }
 
   async function onDelete() {
+    if (deleteText.trim().toUpperCase() !== 'DELETE') return;
+    setDeleting(true);
+    setDeleteError(null);
     track('deletion_requested');
-    const url = accountDeletionMailto();
-    if (Platform.OS === 'web') {
-      await Linking.openURL(url);
-      return;
+    try {
+      if (!live) {
+        setDeleteError('Explore demo stays on this device. Sign out to leave it. There’s no saved account to delete.');
+        return;
+      }
+      await deleteOwnAccount();
+      try {
+        await signOut();
+      } catch {
+        // The account is already gone. signOut still clears the local session.
+      }
+      router.replace('/sign-in');
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Couldn’t delete your account. Try again.');
+    } finally {
+      setDeleting(false);
     }
-    Alert.alert(
-      'Request account deletion',
-      `This opens an email to ${supportEmail()}. There is no automated backend yet — we’ll process the request manually.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Open mail',
-          onPress: () => {
-            void Linking.openURL(url);
-          },
-        },
-      ],
-    );
   }
 
   return (
     <Screen sticky={<StageStickyHeader title={PrettyCopy.ownerHomeTitle} />}>
       <ThemedText type="heading">Me</ThemedText>
-      <ThemedText themeColor="textSecondary">
-        Signed in as {user?.email ?? 'you'}. Store-required privacy and deletion live here.
-      </ThemedText>
+      <ThemedText themeColor="textSecondary">Signed in as {user?.email ?? 'you'}.</ThemedText>
 
       <Card>
         <ThemedText type="eyebrow" themeColor="brand">
@@ -221,39 +225,59 @@ export default function SettingsScreen() {
         </ThemedText>
         <ThemedText type="smallBold">Privacy policy</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          How wishlists, share links, and surprise-safe reservations are handled. Override the URL with
-          EXPO_PUBLIC_PRIVACY_POLICY_URL when you host a production page.
+          How wishlists, share links, and surprise-safe reservations are handled.
         </ThemedText>
-        <ThemedText type="code">{privacyPolicyUrl()}</ThemedText>
-        <Button
-          label="Open privacy policy"
-          onPress={() => {
-            track('privacy_opened', { source: 'settings' });
-            router.push('/privacy');
-          }}
-        />
+        <Button label="Open privacy policy" onPress={() => openPrivacyPolicy('settings')} />
       </Card>
 
       <Card>
         <ThemedText type="eyebrow" themeColor="brand">
           Your account
         </ThemedText>
-        <ThemedText type="smallBold">Delete my account</ThemedText>
+        <ThemedText type="smallBold">Delete account</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          App Store / Play requirement. Sends a mailto stub to {supportEmail()} until a backend mailer exists.
-          Demo mode has nothing hosted to delete.
+          Permanently deletes your sign-in, profile, wishlists, photos, and comments. This can’t be undone.
         </ThemedText>
-        <Button label="Request account deletion" variant="secondary" onPress={() => void onDelete()} />
+        {confirmingDelete ? (
+          <>
+            <TextField
+              label="Type DELETE to confirm"
+              autoCapitalize="characters"
+              autoCorrect={false}
+              value={deleteText}
+              onChangeText={setDeleteText}
+              placeholder="DELETE"
+            />
+            <Button
+              label={deleting ? 'Deleting…' : 'Delete account'}
+              disabled={deleting || deleteText.trim().toUpperCase() !== 'DELETE'}
+              onPress={() => void onDelete()}
+            />
+            <Button
+              label="Cancel"
+              variant="ghost"
+              disabled={deleting}
+              onPress={() => {
+                setConfirmingDelete(false);
+                setDeleteText('');
+                setDeleteError(null);
+              }}
+            />
+          </>
+        ) : (
+          <Button label="Delete account" variant="secondary" onPress={() => setConfirmingDelete(true)} />
+        )}
+        {deleteError ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            {deleteError}
+          </ThemedText>
+        ) : null}
       </Card>
 
       <Card>
-        <ThemedText type="eyebrow" themeColor="brand">
-          Soft launch
-        </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           Version {version}
-          {user?.demo ? ' · demo session' : env.isSupabaseConfigured ? ' · live Supabase' : ' · local demo'}. Analytics{' '}
-          {env.analyticsEnabled ? 'console stub on' : 'off'} — no paid product required.
+          {user?.demo ? ' · Explore demo' : ''}
         </ThemedText>
         <Button
           label="Sign out"
