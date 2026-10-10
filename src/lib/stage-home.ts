@@ -1,3 +1,4 @@
+import { greetingFirstName } from '@/lib/given-name';
 import type { GroupGiftPhase, ItemKind, ItemStatus } from '@/lib/types';
 
 /** Framed home thumb — inside the 72–96px / 12–16 radius band. */
@@ -15,9 +16,9 @@ export function daypartLabel(date = new Date()) {
 }
 
 /** “Morning, Sam” — first name only. Bare daypart when we don’t have one yet. */
-export function stageGreeting(name?: string | null, date = new Date()) {
+export function stageGreeting(name?: string | null, date = new Date(), email?: string | null) {
   const part = daypartLabel(date);
-  const first = (name ?? '').trim().split(/\s+/).filter(Boolean)[0];
+  const first = greetingFirstName({ displayName: name, email });
   return first ? `${part}, ${first}` : part;
 }
 

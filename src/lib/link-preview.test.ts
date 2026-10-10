@@ -25,11 +25,13 @@ import {
   previewLooksLikeStub,
   previewMissMessage,
   previewProviderForHost,
+  responseHasPreviewMetadata,
   sanitizeBuyUrl,
   sanitizeImageUrl,
   tidyPreviewTitle,
   titleFromBuyUrl,
   usableProductImage,
+  isBlockedPageTitle,
   INSTAGRAM_PASTE_MISS,
 } from './link-preview';
 
@@ -418,5 +420,118 @@ describe('Buy-link autofill', () => {
     );
     assert.equal(guessed.title, null);
     assert.equal(guessed.imageUrl, productImageGuess(asin));
+  });
+
+  it('treats block and error pages as no metadata and keeps a typed title', () => {
+    assert.equal(responseHasPreviewMetadata(200), true);
+    assert.equal(responseHasPreviewMetadata(204), true);
+    assert.equal(responseHasPreviewMetadata(429), false);
+    assert.equal(responseHasPreviewMetadata(403), false);
+    assert.equal(responseHasPreviewMetadata(503), false);
+    assert.equal(responseHasPreviewMetadata(404), false);
+    assert.equal(responseHasPreviewMetadata(500), false);
+
+    const blockedTitles = [
+      'Too Many Requests',
+      'too many requests',
+      'Access Denied',
+      'Forbidden',
+      '403 Forbidden',
+      'Robot Check',
+      'Are you a robot?',
+      'Captcha',
+      'Just a moment...',
+      'Attention Required! | Cloudflare',
+      'Page not found',
+      '404',
+      '404 Not Found',
+      'Error',
+      'Service Unavailable',
+      '503 Service Unavailable',
+      'Request blocked',
+      'Amazon.com',
+      'Amazon.com.au',
+      'Sorry! Something went wrong!',
+    ];
+    for (const title of blockedTitles) {
+      assert.equal(isBlockedPageTitle(title), true, title);
+      assert.equal(tidyPreviewTitle(title), null, title);
+    }
+    assert.equal(tidyPreviewTitle('Amazon.com.au : Linen apron'), 'Linen apron');
+    assert.equal(tidyPreviewTitle('Lego Classic Bricks'), 'Lego Classic Bricks');
+    assert.equal(isBlockedPageTitle('Error-free cotton sheets'), false);
+
+    const lego = 'https://www.amazon.com.au/Lego-Classic-Bricks/dp/B08EXAMPL1';
+    const blockHtml = `<html><head>
+      <title>Too Many Requests</title>
+      <meta property="og:description" content="Please slow down" />
+      <meta property="og:image" content="https://www.kmart.com.au/images/blocked.png" />
+      <meta property="product:price:amount" content="19.00" />
+      <meta property="product:price:currency" content="AUD" />
+    </head></html>`;
+    const blocked = parseHtmlPreview(blockHtml, 'https://www.kmart.com.au/product/washed-linen-throw/123');
+    assert.equal(blocked.title, null);
+    assert.equal(blocked.notes, null);
+    assert.equal(blocked.imageUrl, null);
+    assert.equal(blocked.priceAmount, undefined);
+
+    const amazonBlock = parseHtmlPreview(
+      `<html><head><title>Sorry! Something went wrong!</title>
+        <meta property="og:image" content="https://m.media-amazon.com/images/I/error.gif" />
+        <meta property="product:price:amount" content="12.00" />
+        <meta property="product:price:currency" content="AUD" />
+      </head></html>`,
+      lego,
+    );
+    assert.equal(amazonBlock.title, null);
+    assert.equal(amazonBlock.imageUrl, null);
+    assert.equal(amazonBlock.priceAmount, undefined);
+
+    assert.deepEqual(
+      draftFromPreview({
+        url: lego,
+        title: 'Too Many Requests',
+        description: 'Please slow down',
+        image_url: 'https://cdn.example/captcha.png',
+        price_amount: 12,
+        stub: false,
+      }),
+      { title: null, notes: null, imageUrl: null },
+    );
+
+    assert.equal(titleFromBuyUrl(lego), 'Lego Classic Bricks');
+    const slug = { title: 'Lego Classic Bricks', notes: null, imageUrl: null };
+    const filled = applyBuyLinkDraft(
+      { title: '', notes: '', imageUrl: '' },
+      slug,
+      { title: '', notes: '', imageUrl: '' },
+    );
+    assert.equal(filled.title, 'Lego Classic Bricks');
+    const kept = applyBuyLinkDraft(
+      { title: 'Birthday Lego', notes: '', imageUrl: '' },
+      slug,
+      { title: '', notes: '', imageUrl: '' },
+    );
+    assert.equal(kept.title, undefined);
+
+    const edge = readFileSync(join(root, '../supabase/functions/preview-url/index.ts'), 'utf8');
+    assert.match(edge, /if \(!response\.ok\) return null/);
+    assert.equal(/response\.status === 401/.test(edge), false);
+    for (const phrase of [
+      'too many requests',
+      'access denied',
+      'robot check',
+      'are you a robot',
+      'just a moment',
+      'attention required',
+      'page not found',
+      'service unavailable',
+      'request blocked',
+      'something went wrong',
+    ]) {
+      assert.match(edge, new RegExp(phrase, 'i'));
+    }
+    assert.match(edge, /amazon\\.com/);
+    assert.match(source('services/preview.ts'), /responseHasPreviewMetadata/);
   });
 });

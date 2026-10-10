@@ -1,5 +1,5 @@
-import { router, usePathname } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect, usePathname } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { NativePressable } from '@/components/native-pressable';
@@ -8,8 +8,8 @@ import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { useInbox } from '@/context/inbox-context';
 import { useTheme } from '@/hooks/use-theme';
+import { subscribeGivenName } from '@/lib/given-name';
 import { badgeCountLabel } from '@/lib/inbox';
-import { personFirstLabel } from '@/lib/list-title';
 import { stageBarActive, stageGreeting } from '@/lib/stage-home';
 import { getOwnProfile } from '@/services/profile';
 
@@ -25,7 +25,8 @@ export function StageStickyHeader({ title }: { title: string }) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { pendingRequests, newlyReady } = useInbox();
-  const [name, setName] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [nameReady, setNameReady] = useState(false);
   const active = stageBarActive(pathname);
   const counts: Record<(typeof LINKS)[number]['id'], number> = {
     people: newlyReady.length,
@@ -33,23 +34,37 @@ export function StageStickyHeader({ title }: { title: string }) {
     settings: 0,
   };
 
-  useEffect(() => {
+  const pullName = useCallback(() => {
     let cancelled = false;
     void getOwnProfile()
       .then((profile) => {
-        if (!cancelled) setName(personFirstLabel(profile?.display_name, profile?.handle));
+        if (cancelled) return;
+        setDisplayName(profile?.display_name ?? null);
+        setNameReady(true);
       })
       .catch(() => {
-        if (!cancelled) setName(null);
+        if (cancelled) return;
+        setDisplayName(null);
+        setNameReady(true);
       });
     return () => {
       cancelled = true;
     };
   }, [user?.id]);
 
+  useEffect(() => subscribeGivenName(() => void pullName()), [pullName]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return pullName();
+    }, [pullName]),
+  );
+
   return (
     <View style={styles.wrap}>
-      <ThemedText themeColor="textSecondary">{stageGreeting(name)}</ThemedText>
+      <ThemedText themeColor="textSecondary">
+        {stageGreeting(nameReady ? displayName : null, new Date(), nameReady ? user?.email : null)}
+      </ThemedText>
       <ThemedText type="display" accessibilityRole="header" style={styles.title}>
         {title}
       </ThemedText>

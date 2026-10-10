@@ -83,11 +83,14 @@ describe('Owner preview never shows giver state', () => {
   });
 
   it('wires a sanitized preview and hides comments without editing the comments component', () => {
-    const preview = source('src/components/preview-giver-link.tsx');
+    const preview = source('src/app/(app)/share.tsx');
+    const home = source('src/app/(app)/wishlist.tsx');
     const list = source('src/app/g/[token]/index.tsx');
     const item = source('src/app/g/[token]/[itemId].tsx');
     const comments = source('src/components/giver-comments.tsx');
     assert.match(preview, /openOwnerPreview/);
+    assert.match(preview, /PrettyCopy\.previewGiverLink/);
+    assert.equal(/preview-giver-link|PreviewGiverLink/.test(home), false);
     assert.match(list, /ownerPreviewItem/);
     assert.match(list, /readOnly=\{ownerPreview\}/);
     assert.match(item, /ownerPreview \? null : \(/);

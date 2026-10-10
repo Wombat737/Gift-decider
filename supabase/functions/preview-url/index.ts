@@ -132,6 +132,38 @@ function readMeta(html: string, keys: string[]) {
   return null;
 }
 
+// Keep in sync with isBlockedPageTitle in src/lib/link-preview.ts.
+const BLOCK_PAGE_PHRASES = [
+  'too many requests',
+  'access denied',
+  'robot check',
+  'are you a robot',
+  'just a moment',
+  'attention required',
+  'page not found',
+  'service unavailable',
+  'request blocked',
+  'something went wrong',
+];
+
+function isBlockedPageTitle(raw: string | null) {
+  if (!raw) return false;
+  const decoded = decodeHtmlEntities(raw).replace(/\s+/g, ' ').trim().toLowerCase();
+  if (!decoded) return false;
+  const bare = decoded.replace(/[.!\s]+$/g, '');
+  if (/^amazon\.com(?:\.au)?$/.test(bare)) return true;
+  const folded = decoded.replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!folded) return false;
+  if (BLOCK_PAGE_PHRASES.some((phrase) => folded.includes(phrase))) return true;
+  if (folded === '404' || folded === 'error' || folded === 'forbidden' || folded === 'captcha') return true;
+  if (/^404(?:\s+(?:not found|error))?$/.test(folded)) return true;
+  if (/^(?:(?:\d{3}|an|application)\s+)?error(?:\s+(?:\d{3}|\w+))?$/.test(folded)) return true;
+  if (/^\d{3}\s+error$/.test(folded)) return true;
+  if (/^(?:\d{3}\s+)?forbidden(?:\s+\w+)?$/.test(folded)) return true;
+  if (/\bcaptcha\b/.test(folded)) return true;
+  return false;
+}
+
 function tidyTitle(raw: string | null) {
   if (!raw) return null;
   let title = decodeHtmlEntities(raw).replace(/\s+/g, ' ').trim();
@@ -141,10 +173,7 @@ function tidyTitle(raw: string | null) {
   );
   title = title.replace(/^Amazon\.com\.au\s*[:|\-–—]\s*/i, '').trim();
   if (!title || /^preview of /i.test(title)) return null;
-  if (
-    /^(instagram|login\s*[•·|:-]\s*instagram|www\.instagram\.com)$/i.test(title) ||
-    /robot check|access denied|just a moment|attention required|captcha/i.test(title)
-  ) {
+  if (/^(instagram|login\s*[•·|:-]\s*instagram|www\.instagram\.com)$/i.test(title) || isBlockedPageTitle(title)) {
     return null;
   }
   return title.slice(0, 120);
@@ -339,10 +368,28 @@ function readLooseProductImage(html: string): string | null {
   return null;
 }
 
+function titleFromCandidates(candidates: (string | null)[]) {
+  for (const candidate of candidates) {
+    if (!candidate?.trim()) continue;
+    const title = tidyTitle(candidate);
+    if (title) return { title, blocked: false };
+    if (isBlockedPageTitle(candidate)) return { title: null, blocked: true };
+  }
+  return { title: null, blocked: false };
+}
+
 function parseHtml(html: string, pageUrl: string) {
   const jsonLd = readJsonLdProduct(html);
   const titleTag = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() ?? null;
-  const title = tidyTitle(readMeta(html, ['og:title', 'twitter:title']) ?? jsonLd.title ?? titleTag);
+  const chosen = titleFromCandidates([
+    readMeta(html, ['og:title', 'twitter:title']),
+    jsonLd.title,
+    titleTag,
+  ]);
+  if (chosen.blocked) {
+    return { title: null, description: null, image_url: null, price_amount: null as number | null };
+  }
+  const title = chosen.title;
   const description = lightNotes(
     readMeta(html, ['og:description', 'twitter:description', 'description']) ?? jsonLd.description,
     title,
@@ -409,7 +456,8 @@ async function fetchPublicHtml(url: string, userAgent: string) {
         'User-Agent': userAgent,
       },
     });
-    if (response.status === 401 || response.status === 403 || response.status === 407) return null;
+    // 429, 403, 503, and any other non-2xx body is a block page, not product metadata.
+    if (!response.ok) return null;
     const finalUrl = response.url || url;
     let finalHost = '';
     try {
@@ -646,11 +694,13 @@ Deno.serve(async (req) => {
     }
   }
 
-  if (!parsed.image_url && oembed?.image) {
-    parsed.image_url = sanitizeImageUrl(oembed.image, finalUrl);
-  }
-  if (!parsed.title && oembed?.title) {
-    parsed.title = tidyTitle(oembed.title);
+  if (oembed && !isBlockedPageTitle(oembed.title)) {
+    if (!parsed.image_url && oembed.image) {
+      parsed.image_url = sanitizeImageUrl(oembed.image, finalUrl);
+    }
+    if (!parsed.title && oembed.title) {
+      parsed.title = tidyTitle(oembed.title);
+    }
   }
 
   if (!parsed.image_url) {

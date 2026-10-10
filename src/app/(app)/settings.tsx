@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/context/auth-context';
 import { useInbox } from '@/context/inbox-context';
 import { PrettyCopy } from '@/lib/copy';
+import { notifyGivenNameSaved } from '@/lib/given-name';
 import { acceptBannerText, requestBannerText } from '@/lib/inbox';
 import { track } from '@/lib/analytics';
 import { env } from '@/lib/env';
@@ -77,6 +78,7 @@ export default function SettingsScreen() {
       setHandle(profile.handle ?? '');
       setDiscoverability(profile.discoverability ?? 'handle');
       setTasteTags(profile.taste_tags ?? []);
+      notifyGivenNameSaved();
       setProfileMessage('Profile saved.');
     } catch (error) {
       setProfileMessage(error instanceof Error ? error.message : 'Could not save profile');
@@ -174,6 +176,8 @@ export default function SettingsScreen() {
             value={displayName}
             onChangeText={setDisplayName}
             placeholder="Jordan"
+            hint="First name in your greeting. Shown on share links."
+            autoCapitalize="words"
           />
           <TextField
             label="Handle"

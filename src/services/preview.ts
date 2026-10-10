@@ -11,6 +11,7 @@ import {
   previewLooksLikeStub,
   previewMissMessage,
   previewProviderForHost,
+  responseHasPreviewMetadata,
   sanitizeBuyUrl,
   sanitizeImageUrl,
   titleFromBuyUrl,
@@ -92,7 +93,8 @@ async function fetchPublicPageHtml(url: string): Promise<string | null> {
             'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
         },
       });
-      if (!response.ok) return null;
+      // 429, 403, 503, and any other non-2xx body is a block page, not a product.
+      if (!responseHasPreviewMetadata(response.status)) return null;
       const type = response.headers.get('content-type') ?? '';
       if (type && !/text\/html|application\/xhtml|text\/plain/i.test(type)) return null;
       const text = await response.text();

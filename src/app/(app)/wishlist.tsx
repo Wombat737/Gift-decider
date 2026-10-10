@@ -4,8 +4,8 @@ import { AccessibilityInfo, Platform, ScrollView, StyleSheet, View } from 'react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { GivenNamePrompt } from '@/components/given-name-prompt';
 import { NativePressable } from '@/components/native-pressable';
-import { PreviewGiverLink } from '@/components/preview-giver-link';
 import { Screen } from '@/components/screen';
 import { StagePickRow } from '@/components/stage-pick-row';
 import { StageStickyHeader } from '@/components/stage-sticky-header';
@@ -77,6 +77,8 @@ export default function OwnerHomeScreen() {
       }>
       <Stack.Screen options={{ headerShown: false, title: PrettyCopy.ownerHomeTitle }} />
 
+      <GivenNamePrompt />
+
       <View style={styles.actions}>
         <Button label={PrettyCopy.ownerEmptyCta} onPress={() => router.push('/add')} />
         <NativePressable
@@ -91,7 +93,6 @@ export default function OwnerHomeScreen() {
             {PrettyCopy.ownerShareLink}
           </ThemedText>
         </NativePressable>
-        <PreviewGiverLink />
       </View>
 
       {error ? (
