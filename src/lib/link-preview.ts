@@ -221,6 +221,47 @@ function titleCaseWords(value: string) {
     .join(' ');
 }
 
+/**
+ * Titles shops put on 429, bot-check, and error pages.
+ * Keep in sync with isBlockedPageTitle in supabase/functions/preview-url/index.ts.
+ */
+const BLOCK_PAGE_PHRASES = [
+  'too many requests',
+  'access denied',
+  'robot check',
+  'are you a robot',
+  'just a moment',
+  'attention required',
+  'page not found',
+  'service unavailable',
+  'request blocked',
+  'something went wrong',
+] as const;
+
+/** True when a page title is a known block or error page, not a product name. */
+export function isBlockedPageTitle(raw: string | null | undefined): boolean {
+  if (!raw) return false;
+  const decoded = decodeHtmlEntities(raw).replace(/\s+/g, ' ').trim().toLowerCase();
+  if (!decoded) return false;
+  const bare = decoded.replace(/[.!\s]+$/g, '');
+  if (/^amazon\.com(?:\.au)?$/.test(bare)) return true;
+  const folded = decoded.replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!folded) return false;
+  if (BLOCK_PAGE_PHRASES.some((phrase) => folded.includes(phrase))) return true;
+  if (folded === '404' || folded === 'error' || folded === 'forbidden' || folded === 'captcha') return true;
+  if (/^404(?:\s+(?:not found|error))?$/.test(folded)) return true;
+  if (/^(?:(?:\d{3}|an|application)\s+)?error(?:\s+(?:\d{3}|\w+))?$/.test(folded)) return true;
+  if (/^\d{3}\s+error$/.test(folded)) return true;
+  if (/^(?:\d{3}\s+)?forbidden(?:\s+\w+)?$/.test(folded)) return true;
+  if (/\bcaptcha\b/.test(folded)) return true;
+  return false;
+}
+
+/** 429, 403, 503, and any other non-2xx response is not product metadata. */
+export function responseHasPreviewMetadata(status: number) {
+  return status >= 200 && status < 300;
+}
+
 export function titleFromBuyUrl(url: string): string | null {
   let parsed: URL;
   try {
@@ -262,10 +303,7 @@ export function tidyPreviewTitle(raw: string | null | undefined): string | null 
   title = title.replace(/^Amazon\.com\.au\s*[:|\-–—]\s*/i, '');
   title = title.trim();
   if (!title || /^preview of /i.test(title)) return null;
-  if (
-    /^(instagram|login\s*[•·|:-]\s*instagram|www\.instagram\.com)$/i.test(title) ||
-    /robot check|access denied|just a moment|attention required|captcha/i.test(title)
-  ) {
+  if (/^(instagram|login\s*[•·|:-]\s*instagram|www\.instagram\.com)$/i.test(title) || isBlockedPageTitle(title)) {
     return null;
   }
   return title.slice(0, 120);
@@ -528,11 +566,30 @@ export function draftWithPageHtml(draft: BuyLinkDraft, html: string | null, page
   };
 }
 
+function titleFromPreviewCandidates(candidates: (string | null | undefined)[]): {
+  title: string | null;
+  blocked: boolean;
+} {
+  for (const candidate of candidates) {
+    if (!candidate?.trim()) continue;
+    const title = tidyPreviewTitle(candidate);
+    if (title) return { title, blocked: false };
+    if (isBlockedPageTitle(candidate)) return { title: null, blocked: true };
+  }
+  return { title: null, blocked: false };
+}
+
 export function parseHtmlPreview(html: string, pageUrl: string): BuyLinkDraft {
   const jsonLd = readJsonLdProduct(html);
-  const title = tidyPreviewTitle(
-    readMeta(html, ['og:title', 'twitter:title']) ?? jsonLd.title ?? readTitleTag(html),
-  );
+  const chosen = titleFromPreviewCandidates([
+    readMeta(html, ['og:title', 'twitter:title']),
+    jsonLd.title,
+    readTitleTag(html),
+  ]);
+  if (chosen.blocked) {
+    return { title: null, notes: null, imageUrl: null };
+  }
+  const title = chosen.title;
   const notes = lightNotes(
     readMeta(html, ['og:description', 'twitter:description', 'description']) ?? jsonLd.notes,
     title,
@@ -595,7 +652,7 @@ export function draftFromPreview(
     stub?: boolean;
   } | null | undefined,
 ): BuyLinkDraft {
-  if (previewLooksLikeStub(preview)) {
+  if (previewLooksLikeStub(preview) || isBlockedPageTitle(preview?.title)) {
     return { title: null, notes: null, imageUrl: null };
   }
   const title = tidyPreviewTitle(preview?.title);

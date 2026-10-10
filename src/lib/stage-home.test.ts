@@ -55,6 +55,11 @@ describe('Stage home', () => {
     assert.equal(stageGreeting('Sam Lee', new Date(2026, 9, 7, 9, 41)), 'Morning, Sam');
     assert.equal(stageGreeting('Sam Lee', new Date(2026, 9, 7, 15, 0)), 'Afternoon, Sam');
     assert.equal(stageGreeting(null, new Date(2026, 9, 7, 20, 0)), 'Evening');
+    assert.equal(
+      stageGreeting('Wade.curedale', new Date(2026, 9, 7, 9, 41), 'wade.curedale@gmail.com'),
+      'Morning, Wade',
+    );
+    assert.equal(stageGreeting('Wade.curedale', new Date(2026, 9, 7, 9, 41)).includes('.'), false);
     assert.equal(thumbInitials('Linen throw, terracotta'), 'LT');
     assert.equal(thumbInitials('Notebook — soft cover'), 'NS');
     assert.equal(thumbInitials('Mug'), 'MU');
@@ -165,7 +170,8 @@ describe('Stage home', () => {
     assert.match(tabs, /router\.navigate/);
     assert.match(tabs, /router\.dismissTo/);
     assert.equal(/router\.replace/.test(tabs), false);
-    assert.match(home, /PreviewGiverLink/);
+    assert.equal(/PreviewGiverLink|preview-giver-link|previewGiverLink/.test(home), false);
+    assert.match(home, /GivenNamePrompt/);
     assert.match(home, /peekPickPulse/);
     assert.match(home, /scrollTo/);
     assert.match(home, /rowReady/);
@@ -205,7 +211,14 @@ describe('Stage home', () => {
     }
     assert.match(source('components/screen.tsx'), /sticky\?: ReactNode/);
 
-    assert.match(source('components/preview-giver-link.tsx'), /openOwnerPreview/);
+    assert.match(source('app/(app)/share.tsx'), /openOwnerPreview/);
+    assert.match(source('app/(app)/share.tsx'), /PrettyCopy\.previewGiverLink/);
+    assert.match(source('components/stage-sticky-header.tsx'), /stageGreeting\(/);
+    assert.match(source('components/stage-sticky-header.tsx'), /user\?\.email/);
+    assert.equal(/personFirstLabel/.test(source('components/stage-sticky-header.tsx')), false);
+    assert.match(source('app/(app)/settings.tsx'), /label="Display name"/);
+    assert.match(source('app/(app)/settings.tsx'), /notifyGivenNameSaved/);
+    assert.match(source('components/given-name-prompt.tsx'), /What should we call you\?|PrettyCopy\.givenNamePrompt/);
     assert.match(source('components/stack-exit-button.tsx'), /accessibilityLabel="Back"/);
     assert.match(source('components/stack-exit-button.tsx'), /chevron\.backward/);
   });

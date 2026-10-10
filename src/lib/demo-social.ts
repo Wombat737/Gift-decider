@@ -195,7 +195,8 @@ function seedBundle(): DemoSocialBundle {
         status: 'pending_request',
         requested_by: 'demo-person-alex',
         accepted_at: null,
-        created_at: '2026-09-10T00:00:00.000Z',
+        // Stay inside the 30-day pending window. A fixed September date lapses after 10 Oct 2026.
+        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       },
     ],
     comments: [
