@@ -49,6 +49,7 @@ export default function GiverShareScreen() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [peel, setPeel] = useState<{ id: string; key: number }>({ id: '', key: 0 });
 
   function goAddSomeone() {
     router.push(user ? '/people?add=1' : '/sign-in');
@@ -108,6 +109,7 @@ export default function GiverShareScreen() {
     }
     setClaimError(null);
     setClaimingId(item.id);
+    setPeel((current) => ({ id: item.id, key: current.key + 1 }));
     const snapshot = item;
     const optimistic = applyItemStatus(item, 'reserved', known);
     patchItem(optimistic);
@@ -159,7 +161,7 @@ export default function GiverShareScreen() {
     <Screen sticky={<StageStickyHeader title={picksTitle} />}>
       <Stack.Screen
         options={{
-          title: !meta && !error ? listTitle : 'Gift Decider',
+          title: !meta && !error ? listTitle : 'Meantvo',
           gestureEnabled: false,
           headerRight: () => (
             <View style={styles.headerRow}>
@@ -255,6 +257,7 @@ export default function GiverShareScreen() {
               key={`${item.id}:${item.status}:${item.reserved_at ?? ''}`}
               item={item}
               readOnly={ownerPreview}
+              peelKey={ownerPreview ? 0 : peel.id === item.id ? peel.key : 0}
               href={
                 ownerPreview && token
                   ? { pathname: '/g/[token]/[itemId]', params: { token, itemId: item.id, preview: '1' } }

@@ -120,7 +120,7 @@ describe('Owner preview never shows giver state', () => {
 
 describe('App Store review copy and account deletion', () => {
   it('keeps the drafted policy, including TODO placeholders', () => {
-    assert.match(privacyPolicyMarkdown, /# Gift Decider Privacy Policy/);
+    assert.match(privacyPolicyMarkdown, /# Meantvo Privacy Policy/);
     assert.match(privacyPolicyMarkdown, /\*\*Effective date:\*\* 9 October 2026/);
     assert.match(privacyPolicyMarkdown, /\[TODO: legal name of the operator/);
     assert.match(privacyPolicyMarkdown, /Delete account/);

@@ -4,6 +4,7 @@ import { AccessibilityInfo, Platform, ScrollView, StyleSheet, View } from 'react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { PeelArt } from '@/components/peel-moment';
 import { GivenNamePrompt } from '@/components/given-name-prompt';
 import { NativePressable } from '@/components/native-pressable';
 import { Screen } from '@/components/screen';
@@ -127,6 +128,9 @@ export default function OwnerHomeScreen() {
 
       {!loading && !error && items.length === 0 ? (
         <View style={styles.empty}>
+          <View style={styles.art} pointerEvents="none">
+            <PeelArt />
+          </View>
           <ThemedText type="title" style={styles.emptyTitle}>
             {PrettyCopy.ownerEmptyTitle}
           </ThemedText>
@@ -159,6 +163,10 @@ const styles = StyleSheet.create({
   empty: {
     gap: Spacing.two,
     paddingTop: Spacing.two,
+    alignItems: 'flex-start',
+  },
+  art: {
+    alignSelf: 'center',
   },
   emptyTitle: {
     letterSpacing: -0.4,

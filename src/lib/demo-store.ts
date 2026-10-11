@@ -197,7 +197,7 @@ const seedItems: WishlistItem[] = [
     reveal_at: shiftLocalDate(14),
     buy_url_dead: false,
     organiser_name: 'Alex',
-    pay_instructions: 'PayID: alex@chipin.au — honour system, Gift Decider holds no money',
+    pay_instructions: 'PayID: alex@chipin.au — honour system, Meantvo holds no money',
     delivery_method: null,
     delivery_note: null,
     ready_to_buy_notified_at: null,
@@ -311,7 +311,7 @@ const seedNotices: OrganiserNotice[] = [
       '',
       'Hi Sam,',
       '',
-      'The group gift “Burr coffee grinder” is funded. Gift Decider holds no money — honour system.',
+      'The group gift “Burr coffee grinder” is funded. Meantvo holds no money — honour system.',
       'How givers pay you: BSB 062-000  Acc 1234 5678 — Sam (honour system)',
     ].join('\n'),
     created_at: '2026-01-08T00:00:00.000Z',
@@ -384,7 +384,7 @@ function normalizeItem(raw: Partial<WishlistItem> & { id: string }): WishlistIte
     pay_instructions:
       raw.pay_instructions ??
       (raw.id === 'demo-espresso'
-        ? 'PayID: alex@chipin.au — honour system, Gift Decider holds no money'
+        ? 'PayID: alex@chipin.au — honour system, Meantvo holds no money'
         : raw.id === 'demo-grinder'
           ? 'BSB 062-000  Acc 1234 5678 — Sam (honour system)'
           : null),

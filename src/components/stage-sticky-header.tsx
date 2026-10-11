@@ -2,6 +2,7 @@ import { router, useFocusEffect, usePathname } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { HEADER_MARK_HEIGHT, MeantvoHeaderMark } from '@/components/meantvo-mark';
 import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -62,6 +63,9 @@ export function StageStickyHeader({ title }: { title: string }) {
 
   return (
     <View style={styles.wrap}>
+      <View style={styles.logo}>
+        <MeantvoHeaderMark height={HEADER_MARK_HEIGHT} tone="onLight" />
+      </View>
       <ThemedText themeColor="textSecondary">
         {stageGreeting(nameReady ? displayName : null, new Date(), nameReady ? user?.email : null)}
       </ThemedText>
@@ -112,6 +116,10 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
     minWidth: 0,
     gap: Spacing.one,
+  },
+  logo: {
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.one,
   },
   title: {
     fontSize: 32,

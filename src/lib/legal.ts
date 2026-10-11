@@ -28,10 +28,10 @@ export function privacyDestination(): PrivacyDestination {
 
 /** Email fallback described in the privacy policy. In-app deletion does not use this. */
 export function accountDeletionMailto() {
-  const subject = encodeURIComponent('Gift Decider account deletion request');
+  const subject = encodeURIComponent('Meantvo account deletion request');
   const body = encodeURIComponent(
     [
-      'Please delete my Gift Decider account and associated wishlist data.',
+      'Please delete my Meantvo account and associated wishlist data.',
       '',
       'Account email:',
       'Approximate date I signed up:',

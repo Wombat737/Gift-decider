@@ -47,7 +47,7 @@ export default function SignInScreen() {
       <HeroWash variant="hero" style={styles.hero}>
         <BrandMark size={56} />
         <ThemedText type="eyebrow" themeColor="brand">
-          Gift Decider
+          Meantvo
         </ThemedText>
         <ThemedText type="title">{PrettyCopy.splash}</ThemedText>
         <ThemedText themeColor="textSecondary">{PrettyCopy.signInSub}</ThemedText>

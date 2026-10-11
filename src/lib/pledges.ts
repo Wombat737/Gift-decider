@@ -169,7 +169,7 @@ export function readyToBuyEmailPreview(item: WishlistItem) {
   const text = [
     `Hi ${who},`,
     '',
-    `The group gift “${title}” is funded. Gift Decider holds no money — honour system.`,
+    `The group gift “${title}” is funded. Meantvo holds no money — honour system.`,
     `How givers pay you: ${pay}`,
     `They see who chipped in on ${reveal} — not today.`,
     '',

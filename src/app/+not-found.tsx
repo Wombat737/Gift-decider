@@ -8,14 +8,14 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: 'Missing' }} />
       <Screen>
-        <ThemedText type="heading">That page isn’t in Gift Decider.</ThemedText>
+        <ThemedText type="heading">That page isn’t in Meantvo.</ThemedText>
         <ThemedText themeColor="textSecondary">
           If you opened a GitHub Pages link, check the /Gift-decider prefix. Demo giver URLs are /g/demo,
           /g/demo-birthday, and /g/demo-housewarming.
         </ThemedText>
         <Link href="/">
           <ThemedText type="link" themeColor="brand">
-            Back to Gift Decider
+            Back to Meantvo
           </ThemedText>
         </Link>
       </Screen>
