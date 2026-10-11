@@ -29,6 +29,8 @@ export function endDelight(kind: DelightKind) {
 }
 
 export const DOLLAR_FLICK_MS = 800;
+/** Giver reserve peel: corner opens, then settles. Inside 600–900ms. */
+export const PEEL_MOMENT_MS = 780;
 export const COIN_TRICKLE_MS = 900;
 export const REDUCE_MOTION_TOAST_MS = 400;
 export const BUTTON_PRESS_SCALE = 0.97;

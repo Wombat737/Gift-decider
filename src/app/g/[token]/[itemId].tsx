@@ -8,6 +8,7 @@ import { AuBuyLinks } from '@/components/au-buy-links';
 import { Button } from '@/components/button';
 import { ConfidenceBadge } from '@/components/confidence-badge';
 import { DollarFlick } from '@/components/dollar-flick';
+import { PeelMoment } from '@/components/peel-moment';
 import { GiverComments } from '@/components/giver-comments';
 import { HelpTip } from '@/components/help-tip';
 import { NativePressable } from '@/components/native-pressable';
@@ -137,6 +138,7 @@ export default function GiverItemScreen() {
   const [loading, setLoading] = useState(!shareItem);
   const [busy, setBusy] = useState(false);
   const [flickKey, setFlickKey] = useState(0);
+  const [peelKey, setPeelKey] = useState(0);
   const chipRequested = shareTokenParam(chipParam) === '1';
   const [groupSession, setGroupSession] = useState(() => ({ id: itemId, open: chipRequested }));
   const groupOpen = !ownerPreview && (groupSession.id === itemId ? groupSession.open : chipRequested);
@@ -222,6 +224,9 @@ export default function GiverItemScreen() {
     if (status === 'purchased' && snapshot.status !== 'purchased' && tryStartDelight('flick')) {
       setFlickKey((count) => count + 1);
       track('delight_purchased_flick', { status });
+    }
+    if (status === 'reserved' && !ownerPreview) {
+      setPeelKey((key) => key + 1);
     }
     if (status === 'reserved' || (status === 'available' && snapshot.status !== 'available')) {
       void hapticLight();
@@ -448,6 +453,11 @@ export default function GiverItemScreen() {
           contentFit="cover"
           pointerEvents="none"
         />
+        {!ownerPreview && peelKey > 0 ? (
+          <View pointerEvents="none" style={styles.peel}>
+            <PeelMoment playKey={peelKey} size={96} />
+          </View>
+        ) : null}
       </View>
       <View style={styles.block}>
         <ThemedText type="eyebrow" themeColor="brand">
@@ -559,6 +569,11 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  peel: {
+    position: 'absolute',
+    right: Spacing.three,
+    bottom: Spacing.three,
   },
   block: {
     gap: Spacing.one,

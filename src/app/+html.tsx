@@ -13,7 +13,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="theme-color" content="#E85D4C" />
         <base href={baseHref} />
-        <title>Gift Decider</title>
+        <title>Meantvo</title>
         <meta
           name="description"
           content="Pick gifts from a living photo wishlist. Demo — no install, no spoilers for the recipient."

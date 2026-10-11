@@ -1,4 +1,4 @@
-# Gift Decider
+# Meantvo
 
 Mobile wishlist app for gift-givers who need to pick from a recipient’s **living photo wishlist**.
 
@@ -8,9 +8,9 @@ Mobile wishlist app for gift-givers who need to pick from a recipient’s **livi
 - Occasion packs (birthday, housewarming, …) each get their own giver link
 - Givers open a shared read-only link: soft-lock, chip in, AU store search, dead-link heal
 - **Surprise gifts:** reserved / purchased / pledge progress is **giver-only** while a gift is in flight
-- Group gifts have an **organiser** (who marked it a group gift, else the first named pledge, else “the organiser”). They buy; givers pay them via **PayID / BSB** (honour system — Gift Decider holds no money)
+- Group gifts have an **organiser** (who marked it a group gift, else the first named pledge, else “the organiser”). They buy; givers pay them via **PayID / BSB** (honour system — Meantvo holds no money)
 - When a **group gift’s reveal date** arrives, the recipient sees **who it’s from** (names / Anonymous) — not the dollar amounts, and **not** as soon as it’s funded
-- Instagram v1: paste a public post URL. Public OG/meta and oEmbed if a page exposes them → edit → pin. Honest empty if a page hides the photo — never a fake sample gift. There is no Share to Gift Decider on iOS or Android. Paste the link on Add. Buy-link autofill and in-app photo upload stay.
+- Instagram v1: paste a public post URL. Public OG/meta and oEmbed if a page exposes them → edit → pin. Honest empty if a page hides the photo — never a fake sample gift. There is no Share to Meantvo on iOS or Android. Paste the link on Add. Buy-link autofill and in-app photo upload stay.
 - Soft-launch ready: polished UI, EAS build profiles, privacy + account-deletion stubs
 - Real Stripe, Meta Instagram OAuth, push notifications, and **actual store submit** (Wombat’s Apple/Play accounts) stay out of scope
 - Push notifications are next; Ready to buy uses an in-app banner plus an email stub (`notify-organiser-ready-to-buy`)
@@ -101,7 +101,7 @@ Visual polish on the existing IA — owner vs giver pills, gift cards, empty sta
 | Piece | Where |
 | --- | --- |
 | **EAS profiles** | `eas.json` — `development` (dev client, internal APK), `preview` (internal APK / ad hoc for mates), `production` (AAB + autoIncrement) |
-| **App identity** | `app.json` — name Gift Decider, slug `gift-decider`, scheme `giftdecider`, Coral Coast coral splash / white theme |
+| **App identity** | `app.json` — display name Meantvo, slug `gift-decider`, scheme `giftdecider`, bundle `com.giftdecider.app`. Monogram icon, cream splash with the mark centred. Home-screen name and icon need a new native build. |
 | **Privacy + deletion** | `/privacy` (public) and **Settings** (signed-in). Deletion is a mailto stub (`EXPO_PUBLIC_SUPPORT_EMAIL`) |
 | **Analytics** | `src/lib/analytics.ts` — no-op unless `EXPO_PUBLIC_ANALYTICS_ENABLED=true` (console only). No paid account. |
 
@@ -458,7 +458,7 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 
 ## What’s stubbed (on purpose)
 
-- **Instagram** — paste a public URL, or share the post to Gift Decider (iOS). Public OG/meta and token-free oEmbed only. No Meta OAuth, no Saves API, no unofficial scrapers. If the page hides metadata, fields stay empty — never a demo stub photo
+- **Instagram** — paste a public URL, or share the post to Meantvo (iOS). Public OG/meta and token-free oEmbed only. No Meta OAuth, no Saves API, no unofficial scrapers. If the page hides metadata, fields stay empty — never a demo stub photo
 - **`preview-url`** — live Open Graph / meta / oEmbed for shop buy links and public Instagram pages. Rehosts a blocked photo into `wishlist-images` when you are signed in. Explore demo cannot fetch remote shops (CORS) — path-title fallback for buy links; Instagram paste stays honestly empty
 - **`heal-link` / `improv-substitutes`** — stubs. The app uses in-app fallbacks when env vars or the function are missing
 - **Apple / Google Sign-In** — buttons that explain they are placeholders. **Email magic link is live** once URL + anon key are set
@@ -470,7 +470,7 @@ Explore demo: Wishlist header → **People** (Mum waiting, Priya open) and **Req
 - **Organiser notify** — in-app banner + `notify-organiser-ready-to-buy` email stub (Resend/Postmark optional). **Push notifications are next**
 - **Account deletion** — Settings mailto stub until a backend mailer exists
 - **Analytics** — no-op hook; optional console traces. No paid account
-- **Real payments** — honour-system pledges + PayID/BSB text only. No Stripe. Gift Decider holds no money
+- **Real payments** — honour-system pledges + PayID/BSB text only. No Stripe. Meantvo holds no money
 - **Store submit** — EAS profiles are ready; Apple/Play upload needs Wombat’s accounts
 - **Affiliates** — AU helpers are plain search URLs (Amazon AU, Kmart, Target AU, Big W)
 
@@ -507,7 +507,7 @@ Preview is what you hand to mates before TestFlight. Production is what you subm
 
 **iOS TestFlight**
 
-1. App Store Connect → create the app (bundle `com.giftdecider.app`, name Gift Decider — name still parked).
+1. App Store Connect → create the app (bundle `com.giftdecider.app`, display name Meantvo).
 2. `eas submit --platform ios --profile production` (or upload the preview IPA if you only want internal).
 3. TestFlight → Internal Testing → add testers by Apple ID email. They install TestFlight, then your build.
 
@@ -525,7 +525,7 @@ What #36 left in the process, and why a green `check-ios-host` could still crash
 
 This tree matches build 28’s native surface:
 
-- `expo-sharing` is not installed, on iOS or Android. Share to… will not list Gift Decider.
+- `expo-sharing` is not installed, on iOS or Android. Share to… will not list Meantvo.
 - No share config plugins. `app.config.js` is the pre-share file again.
 - No `+native-intent`, no root-layout linking listener, no pending-share redirect.
 - Paste, buy-link autofill, and Add photo (camera / library, `expo-image-picker`, already in build 28) stay. They do not import a share native module.

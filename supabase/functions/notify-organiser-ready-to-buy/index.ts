@@ -37,7 +37,7 @@ function compose(body: Body) {
   const text = [
     `Hi ${who},`,
     '',
-    `The group gift “${title}” is funded. Gift Decider holds no money — honour system.`,
+    `The group gift “${title}” is funded. Meantvo holds no money — honour system.`,
     `How givers pay you: ${pay}`,
     `They see who chipped in on ${reveal} — not today.`,
     '',
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
   const message = compose(body);
   const resendKey = Deno.env.get('RESEND_API_KEY') ?? '';
   const postmark = Deno.env.get('POSTMARK_SERVER_TOKEN') ?? '';
-  const from = Deno.env.get('NOTIFY_FROM_EMAIL') ?? 'Gift Decider <hello@giftdecider.app>';
+  const from = Deno.env.get('NOTIFY_FROM_EMAIL') ?? 'Meantvo <hello@giftdecider.app>';
   const configuredTo = (Deno.env.get('NOTIFY_TO_EMAIL') ?? '').trim();
   if (!message.to && configuredTo) {
     message.to = configuredTo;

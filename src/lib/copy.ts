@@ -54,5 +54,5 @@ export const PrettyCopy = {
 } as const;
 
 export function mateNudgeMessage() {
-  return 'Your Gift Decider list is quiet — add a few bits so we can buy?';
+  return 'Your Meantvo list is quiet — add a few bits so we can buy?';
 }

@@ -60,7 +60,7 @@ export default function TermsScreen() {
       <Stack.Screen options={{ title: 'Terms' }} />
       <ThemedText type="heading">Terms of use</ThemedText>
       <ThemedText themeColor="textSecondary">
-        Gift Decider is for planning gifts with people you know. Comments are visible only to other givers on that
+        Meantvo is for planning gifts with people you know. Comments are visible only to other givers on that
         list, not to the person the list is for.
       </ThemedText>
 

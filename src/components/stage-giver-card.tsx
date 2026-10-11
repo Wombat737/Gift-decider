@@ -2,6 +2,7 @@ import { Link, type Href } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { PeelMoment } from '@/components/peel-moment';
 import { KindPill, StageThumb } from '@/components/stage-thumb';
 import { NativePressable } from '@/components/native-pressable';
 import { ThemedText } from '@/components/themed-text';
@@ -20,6 +21,8 @@ type StageGiverCardProps = {
   onSoftLock: () => void;
   onChipIn: () => void;
   chooseBusy?: boolean;
+  /** Plays the peel when this card was just reserved. Giver-only. */
+  peelKey?: number;
   /** Owner preview: the gift only. No reserve, chip-in, or status. */
   readOnly?: boolean;
 };
@@ -32,6 +35,7 @@ export function StageGiverCard({
   onSoftLock,
   onChipIn,
   chooseBusy = false,
+  peelKey = 0,
   readOnly = false,
 }: StageGiverCardProps) {
   const theme = useTheme();
@@ -92,6 +96,11 @@ export function StageGiverCard({
           </ThemedText>
         </NativePressable>
       ) : null}
+      {!readOnly && peelKey > 0 ? (
+        <View pointerEvents="none" style={styles.peel}>
+          <PeelMoment playKey={peelKey} size={68} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -105,6 +114,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: Spacing.three,
     gap: Spacing.three,
+    position: 'relative',
+  },
+  peel: {
+    position: 'absolute',
+    top: Spacing.two,
+    right: Spacing.two,
   },
   top: {
     minHeight: 44,

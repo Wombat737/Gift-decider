@@ -110,7 +110,7 @@ describe('Stage home', () => {
     assert.match(source('constants/theme.ts'), /0 1px 2px rgb\(0 0 0 \/ 0\.04\), 0 4px 12px rgb\(0 0 0 \/ 0\.06\)/);
   });
 
-  it('stacks giver cards with Choose this and does not rename the app', () => {
+  it('stacks giver cards with Choose this and names the home screen Meantvo', () => {
     const giver = source('app/g/[token]/index.tsx');
     assert.match(giver, /PrettyCopy\.giverHeadline/);
     assert.match(source('components/stage-giver-card.tsx'), /PrettyCopy\.giverChooseCta/);
@@ -120,9 +120,30 @@ describe('Stage home', () => {
     assert.match(giver, /Search gifts/);
     assert.equal(/ItemGrid[^S]/.test(giver), false);
     assert.match(source('components/stage-giver-card.tsx'), /minHeight: 44/);
-    const appJson = readFileSync(join(repo, 'app.json'), 'utf8');
-    assert.match(appJson, /"name": "Gift Decider"/);
-    assert.equal(appJson.includes('Meantvo'), false);
+    const appJson = JSON.parse(readFileSync(join(repo, 'app.json'), 'utf8')) as {
+      expo: {
+        name: string;
+        slug: string;
+        scheme: string;
+        icon: string;
+        ios: { icon: string; bundleIdentifier: string; infoPlist: { CFBundleDisplayName: string } };
+        android: { package: string; adaptiveIcon: { backgroundColor: string } };
+        web: { name: string; shortName: string; favicon: string };
+        extra: { eas: { projectId: string } };
+      };
+    };
+    assert.equal(appJson.expo.name, 'Meantvo');
+    assert.equal(appJson.expo.ios.infoPlist.CFBundleDisplayName, 'Meantvo');
+    assert.equal(appJson.expo.web.name, 'Meantvo');
+    assert.equal(appJson.expo.web.shortName, 'Meantvo');
+    assert.match(appJson.expo.icon, /opt1-monogram-icon-1024\.png/);
+    assert.match(appJson.expo.ios.icon, /opt1-monogram-icon-1024\.png/);
+    assert.equal(appJson.expo.android.adaptiveIcon.backgroundColor, '#E85D4C');
+    assert.equal(appJson.expo.slug, 'gift-decider');
+    assert.equal(appJson.expo.scheme, 'giftdecider');
+    assert.equal(appJson.expo.ios.bundleIdentifier, 'com.giftdecider.app');
+    assert.equal(appJson.expo.android.package, 'com.giftdecider.app');
+    assert.equal(appJson.expo.extra.eas.projectId, 'd2cd72f5-20f3-42da-866d-c60b9dcd6b3e');
   });
 
   it('returns home after a pin, keeps a back exit, and pulses the new card', () => {

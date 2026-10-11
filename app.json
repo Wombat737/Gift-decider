@@ -1,26 +1,27 @@
 {
   "expo": {
-    "name": "Gift Decider",
+    "name": "Meantvo",
     "slug": "gift-decider",
     "owner": "wombats",
     "version": "0.4.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/brand/opt1-monogram-icon-1024.png",
     "scheme": "giftdecider",
     "userInterfaceStyle": "light",
     "primaryColor": "#E85D4C",
     "backgroundColor": "#FAFAFA",
-    "description": "Pick gifts from a living photo wishlist. Recipients pin photos and vibes; givers open a surprise-safe share link.",
+    "description": "Meantvo — pick gifts from a living photo wishlist. Recipients pin photos and vibes; givers open a surprise-safe share link.",
     "githubUrl": "https://github.com/Wombat737/Gift-decider",
     "ios": {
-      "icon": "./assets/images/icon.png",
+      "icon": "./assets/brand/opt1-monogram-icon-1024.png",
       "supportsTablet": true,
       "bundleIdentifier": "com.giftdecider.app",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryUsageDescription": "Gift Decider uses your photos so you can pin a gift picture.",
-        "NSCameraUsageDescription": "Gift Decider uses the camera so you can snap a gift picture.",
+        "CFBundleDisplayName": "Meantvo",
+        "NSPhotoLibraryUsageDescription": "Meantvo uses your photos so you can pin a gift picture.",
+        "NSCameraUsageDescription": "Meantvo uses the camera so you can snap a gift picture.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": ["giftdecider"]
@@ -43,8 +44,8 @@
       "output": "single",
       "favicon": "./assets/images/favicon.png",
       "bundler": "metro",
-      "name": "Gift Decider",
-      "shortName": "Gift Decider",
+      "name": "Meantvo",
+      "shortName": "Meantvo",
       "themeColor": "#E85D4C",
       "backgroundColor": "#FAFAFA"
     },
@@ -54,8 +55,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Gift Decider uses your photos so you can pin a gift picture.",
-          "cameraPermission": "Gift Decider uses the camera so you can snap a gift picture.",
+          "photosPermission": "Meantvo uses your photos so you can pin a gift picture.",
+          "cameraPermission": "Meantvo uses the camera so you can snap a gift picture.",
           "microphonePermission": false
         }
       ],
@@ -64,7 +65,7 @@
         {
           "backgroundColor": "#FAFAFA",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 128
+          "imageWidth": 180
         }
       ]
     ],
