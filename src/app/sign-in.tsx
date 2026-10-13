@@ -14,13 +14,16 @@ import { Spacing } from '@/constants/theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
 import { env } from '@/lib/env';
+import { reviewSignInEmail } from '@/lib/review-sign-in';
 
 export default function SignInScreen() {
-  const { signInWithMagicLink, signInDemo } = useAuth();
+  const { signInWithMagicLink, signInWithPassword, signInDemo } = useAuth();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const live = env.isSupabaseConfigured;
+  const reviewEmail = reviewSignInEmail(email);
 
   async function onMagicLink() {
     setBusy(true);
@@ -34,6 +37,23 @@ export default function SignInScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function onPassword() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await signInWithPassword(email, password);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not sign in');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function onEmailChange(next: string) {
+    setEmail(next);
+    if (!reviewSignInEmail(next)) setPassword('');
   }
 
   function onExploreDemo() {
@@ -62,13 +82,28 @@ export default function SignInScreen() {
             keyboardType="email-address"
             placeholder="you@example.com"
             value={email}
-            onChangeText={setEmail}
-            hint="We’ll email you a one-time sign-in link. It expires soon."
+            onChangeText={onEmailChange}
+            hint={
+              reviewEmail ? undefined : 'We’ll email you a one-time sign-in link. It expires soon.'
+            }
           />
+          {reviewEmail ? (
+            <TextField
+              label="Password"
+              autoCapitalize="none"
+              autoComplete="current-password"
+              autoCorrect={false}
+              secureTextEntry
+              textContentType="password"
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+            />
+          ) : null}
           <Button
-            label={busy ? 'Sending…' : 'Email me a magic link'}
+            label={reviewEmail ? (busy ? 'Signing in…' : 'Sign in') : busy ? 'Sending…' : 'Email me a magic link'}
             disabled={busy}
-            onPress={() => void onMagicLink()}
+            onPress={() => void (reviewEmail ? onPassword() : onMagicLink())}
           />
           <Button
             label="Explore demo"
@@ -91,14 +126,31 @@ export default function SignInScreen() {
             keyboardType="email-address"
             placeholder="you@example.com"
             value={email}
-            onChangeText={setEmail}
-            hint="We’ll email you a one-time sign-in link. Explore the demo if email sign-in isn’t available."
+            onChangeText={onEmailChange}
+            hint={
+              reviewEmail
+                ? undefined
+                : 'We’ll email you a one-time sign-in link. Explore the demo if email sign-in isn’t available.'
+            }
           />
+          {reviewEmail ? (
+            <TextField
+              label="Password"
+              autoCapitalize="none"
+              autoComplete="current-password"
+              autoCorrect={false}
+              secureTextEntry
+              textContentType="password"
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+            />
+          ) : null}
           <Button
-            label={busy ? 'Sending…' : 'Email me a magic link'}
+            label={reviewEmail ? (busy ? 'Signing in…' : 'Sign in') : busy ? 'Sending…' : 'Email me a magic link'}
             variant="secondary"
             disabled={busy}
-            onPress={() => void onMagicLink()}
+            onPress={() => void (reviewEmail ? onPassword() : onMagicLink())}
           />
         </>
       )}

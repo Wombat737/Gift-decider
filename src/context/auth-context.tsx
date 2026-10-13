@@ -6,6 +6,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { completeAuthFromUrl } from '@/lib/auth-redirect';
 import { isDemoSession, writeDemoSession } from '@/lib/demo-session';
 import { env } from '@/lib/env';
+import { reviewSignInEmail } from '@/lib/review-sign-in';
 import { supabase } from '@/lib/supabase';
 import type { SessionUser } from '@/lib/types';
 
@@ -17,6 +18,7 @@ type AuthContextValue = {
   user: SessionUser | null;
   isLoading: boolean;
   signInWithMagicLink: (email: string) => Promise<string>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
   signInDemo: () => void;
   signOut: () => Promise<void>;
   signInWithApple: () => Promise<void>;
@@ -109,6 +111,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
         });
         if (error) throw error;
         return `Check ${trimmed} for a sign-in link.`;
+      },
+      async signInWithPassword(email: string, password: string) {
+        const allowed = reviewSignInEmail(email);
+        if (!allowed) {
+          throw new Error('Password sign-in isn’t available for this email.');
+        }
+        if (!password) throw new Error('Enter your password');
+        if (!supabase) {
+          throw new Error('Email sign-in isn’t available right now. Explore the demo to look around.');
+        }
+
+        const { error } = await supabase.auth.signInWithPassword({
+          email: allowed,
+          password,
+        });
+        if (error) throw error;
       },
       signInDemo() {
         writeDemoSession(true);
