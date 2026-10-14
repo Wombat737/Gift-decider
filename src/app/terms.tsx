@@ -8,7 +8,6 @@ import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
-import { supportEmail } from '@/lib/legal';
 import { acceptTerms, getOwnProfile } from '@/services/profile';
 
 function agreedOn(value: string) {
@@ -22,7 +21,6 @@ export default function TermsScreen() {
   const [acceptedAt, setAcceptedAt] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const email = supportEmail();
 
   useEffect(() => {
     if (!user) {
@@ -91,7 +89,7 @@ export default function TermsScreen() {
       <Card>
         <ThemedText type="smallBold">Contact</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Contact: TODO ({email}). Write if a report needs a faster look, or if you want something removed.
+          Contact: support@meantvo.app. Write if a report needs a faster look, or if you want something removed.
         </ThemedText>
       </Card>
 

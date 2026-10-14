@@ -119,11 +119,20 @@ describe('Owner preview never shows giver state', () => {
 });
 
 describe('App Store review copy and account deletion', () => {
-  it('keeps the drafted policy, including TODO placeholders', () => {
+  it('matches the published privacy policy, with no placeholders', () => {
     assert.match(privacyPolicyMarkdown, /# Meantvo Privacy Policy/);
     assert.match(privacyPolicyMarkdown, /\*\*Effective date:\*\* 9 October 2026/);
-    assert.match(privacyPolicyMarkdown, /\[TODO: legal name of the operator/);
-    assert.match(privacyPolicyMarkdown, /Delete account/);
+    assert.match(
+      privacyPolicyMarkdown,
+      /Wade Curedale\*\*, an individual based in Perth, Western Australia/,
+    );
+    assert.match(privacyPolicyMarkdown, /privacy@meantvo\.app/);
+    assert.match(privacyPolicyMarkdown, /13 or older/);
+    assert.match(privacyPolicyMarkdown, /parent or guardian's permission and involvement/);
+    assert.match(privacyPolicyMarkdown, /type \*\*DELETE\*\* and tap \*\*Delete account\*\*/);
+    assert.match(privacyPolicyMarkdown, /Any giver can \*\*Report\*\* a comment/);
+    assert.match(privacyPolicyMarkdown, /\*\*Block\*\* another giver/);
+    assert.equal(/TODO|\[domain\]|ABN if any|once built/i.test(privacyPolicyMarkdown), false);
     assert.equal(privacyPolicyMarkdown.includes('EDITOR NOTES'), false);
     assert.equal(privacyPolicyMarkdown.includes('operational stub'), false);
     assert.match(source('src/app/privacy.tsx'), /PrivacyPolicyView/);

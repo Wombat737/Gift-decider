@@ -100,7 +100,7 @@ function parseBlocks(markdown: string): Block[] {
   return blocks;
 }
 
-/** Renders the drafted privacy policy, including TODO placeholders. */
+/** Renders the in-app privacy policy. */
 export function PrivacyPolicyView() {
   const theme = useTheme();
   const blocks = parseBlocks(privacyPolicyMarkdown);
