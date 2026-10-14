@@ -516,7 +516,8 @@ describe('Guideline 1.2 — report, block, filter, terms', () => {
     assert.match(terms, /within 24 hours/);
     assert.match(terms, /I agree to the Terms/);
     assert.match(terms, /No tolerance for objectionable content or abusive users/);
-    assert.match(terms, /Contact: TODO/);
+    assert.match(terms, /support@meantvo\.app/);
+    assert.equal(terms.includes('TODO'), false);
     const settings = source('src/app/(app)/settings.tsx');
     assert.match(settings, /Blocked people/);
     assert.match(source('src/app/(app)/blocked.tsx'), /Unblock/);
