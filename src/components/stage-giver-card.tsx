@@ -9,9 +9,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, StageShadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { PrettyCopy } from '@/lib/copy';
-import { giverStatusLabel } from '@/lib/format';
+import { giverClaimBadge, giverPriceLabel } from '@/lib/giver-list';
 import { groupGiftPhase } from '@/lib/pledges';
-import { giverCardSecondary, pickKindLabel } from '@/lib/stage-home';
+import { giverCardSecondary, pickKindLabel, StageThumbSize } from '@/lib/stage-home';
 import type { WishlistItem } from '@/lib/types';
 
 type StageGiverCardProps = {
@@ -41,60 +41,91 @@ export function StageGiverCard({
   const theme = useTheme();
   const title = item.title || 'Untitled gift';
   const kind = pickKindLabel(item.item_kind);
+  const price = giverPriceLabel(item);
   const secondary = giverCardSecondary(item, groupGiftPhase(item));
   const canChoose = item.status === 'available';
+  const badge = readOnly ? null : giverClaimBadge(item);
+  const taken = badge != null;
+  const labelParts = [title, kind];
+  if (price) labelParts.push(price);
+  if (badge) labelParts.push(badge);
 
   return (
     <View style={[styles.card, StageShadow, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <Link href={href} asChild>
-        <NativePressable
-          accessibilityRole="link"
-          accessibilityLabel={`${title}, ${kind}`}
-          style={styles.top}>
-          <StageThumb title={title} seed={item.id} imageUrl={item.image_url} />
-          <View style={styles.copy}>
-            <ThemedText type="titleSm" numberOfLines={2}>
-              {title}
+      <View style={taken ? styles.faded : undefined}>
+        <Link href={href} asChild>
+          <NativePressable
+            accessibilityRole="link"
+            accessibilityLabel={labelParts.join(', ')}
+            style={styles.top}>
+            <View style={styles.thumbSlot}>
+              <View style={taken ? styles.desat : undefined}>
+                <StageThumb title={title} seed={item.id} imageUrl={item.image_url} />
+              </View>
+              {taken ? <View pointerEvents="none" style={styles.wash} /> : null}
+            </View>
+            <View style={styles.copy}>
+              <ThemedText type="titleSm" numberOfLines={2}>
+                {title}
+              </ThemedText>
+              <KindPill kind={item.item_kind} />
+              {price ? (
+                <ThemedText type="caption" themeColor="textSecondary">
+                  {price}
+                </ThemedText>
+              ) : null}
+            </View>
+          </NativePressable>
+        </Link>
+        {readOnly ? null : canChoose ? (
+          <Button
+            label={chooseBusy ? 'Saving…' : PrettyCopy.giverChooseCta}
+            disabled={chooseBusy}
+            onPress={onChoose}
+            accessibilityLabel={`${PrettyCopy.giverChooseCta}, ${title}`}
+          />
+        ) : null}
+        {!readOnly && secondary === 'soft-lock' ? (
+          <NativePressable
+            accessibilityRole="button"
+            accessibilityLabel={`${PrettyCopy.giverSoftLockCta}, ${title}`}
+            disabled={chooseBusy}
+            onPress={onSoftLock}
+            style={styles.textHit}>
+            <ThemedText type="bodyEm" themeColor="textSecondary">
+              {PrettyCopy.giverSoftLockCta}
             </ThemedText>
-            <KindPill label={kind} />
+          </NativePressable>
+        ) : null}
+        {!readOnly && secondary === 'chip-in' ? (
+          <NativePressable
+            accessibilityRole="button"
+            accessibilityLabel={`${PrettyCopy.chipInCta}, ${title}`}
+            onPress={onChipIn}
+            style={[styles.chipIn, { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}>
+            <View style={[styles.dot, { backgroundColor: theme.accent }]} />
+            <ThemedText type="bodyEm" style={{ color: theme.accentInk }}>
+              {PrettyCopy.chipInCta}
+            </ThemedText>
+          </NativePressable>
+        ) : null}
+      </View>
+      {badge ? (
+        <View pointerEvents="none" style={styles.badgeAnchor}>
+          <View
+            style={[
+              styles.badge,
+              {
+                backgroundColor: badge === 'Bought' ? theme.successSoft : theme.reservedSoft,
+              },
+            ]}>
+            <ThemedText
+              type="caption"
+              style={{ color: badge === 'Bought' ? theme.success : theme.reserved, fontWeight: 700 }}>
+              {badge}
+            </ThemedText>
           </View>
-        </NativePressable>
-      </Link>
-      {readOnly ? null : canChoose ? (
-        <Button
-          label={chooseBusy ? 'Saving…' : PrettyCopy.giverChooseCta}
-          disabled={chooseBusy}
-          onPress={onChoose}
-          accessibilityLabel={`${PrettyCopy.giverChooseCta}, ${title}`}
-        />
-      ) : (
-        <ThemedText type="small" themeColor="textSecondary">
-          {giverStatusLabel(item.status)}
-        </ThemedText>
-      )}
-      {!readOnly && secondary === 'soft-lock' ? (
-        <NativePressable
-          accessibilityRole="button"
-          accessibilityLabel={`${PrettyCopy.giverSoftLockCta}, ${title}`}
-          disabled={chooseBusy}
-          onPress={onSoftLock}
-          style={styles.textHit}>
-          <ThemedText type="bodyEm" themeColor="textSecondary">
-            {PrettyCopy.giverSoftLockCta}
-          </ThemedText>
-        </NativePressable>
-      ) : null}
-      {!readOnly && secondary === 'chip-in' ? (
-        <NativePressable
-          accessibilityRole="button"
-          accessibilityLabel={`${PrettyCopy.chipInCta}, ${title}`}
-          onPress={onChipIn}
-          style={[styles.chipIn, { backgroundColor: theme.accentSoft, borderColor: theme.accent }]}>
-          <View style={[styles.dot, { backgroundColor: theme.accent }]} />
-          <ThemedText type="bodyEm" style={{ color: theme.accentInk }}>
-            {PrettyCopy.chipInCta}
-          </ThemedText>
-        </NativePressable>
+        </View>
       ) : null}
       {!readOnly && peelKey > 0 ? (
         <View pointerEvents="none" style={styles.peel}>
@@ -116,6 +147,9 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     position: 'relative',
   },
+  faded: {
+    opacity: 0.55,
+  },
   peel: {
     position: 'absolute',
     top: Spacing.two,
@@ -128,10 +162,41 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     ...Platform.select({ web: { cursor: 'pointer' as const } }),
   },
+  thumbSlot: {
+    width: StageThumbSize,
+    height: StageThumbSize,
+    flexGrow: 0,
+    flexShrink: 0,
+    position: 'relative',
+  },
+  desat: Platform.select({
+    web: { filter: 'grayscale(1)' },
+    default: {},
+  }),
+  wash: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: '#FAFAFA',
+    opacity: 0.28,
+  },
   copy: {
     flex: 1,
     minWidth: 0,
-    gap: Spacing.two,
+    gap: Spacing.one,
+  },
+  badgeAnchor: {
+    position: 'absolute',
+    left: Spacing.three,
+    top: Spacing.three,
+    width: StageThumbSize,
+    height: StageThumbSize,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 6,
+  },
+  badge: {
+    borderRadius: Radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   textHit: {
     minHeight: 44,

@@ -34,8 +34,9 @@ export function thumbInitials(title?: string | null) {
   return `${words[0][0]}${words[1][0]}`.toUpperCase();
 }
 
+/** Neutral giver wording. Exact is one specific thing; vibe is a feel to match. */
 export function pickKindLabel(kind: ItemKind) {
-  return kind === 'vibe' ? 'Taste' : 'Exact';
+  return kind === 'vibe' ? 'Their taste' : 'Exact item';
 }
 
 /** Stable 0–2 so a row keeps the same coral / neutral / sunshine wash. */

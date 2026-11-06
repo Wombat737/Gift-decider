@@ -14,7 +14,8 @@ import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
 import { confirmDestructive } from '@/lib/confirm';
 import { PrettyCopy } from '@/lib/copy';
-import { parseAud } from '@/lib/format';
+import { formatAud, parseAud } from '@/lib/format';
+import { giverPriceAmount } from '@/lib/giver-list';
 import { noSubstitutionForSave } from '@/lib/item-form';
 import { leaveScreen } from '@/lib/leave-screen';
 import { presentNotes } from '@/lib/link-preview';
@@ -66,6 +67,7 @@ export default function ItemDetailScreen() {
   const current = item;
   const currentForm = form;
   const notes = presentNotes(item.notes);
+  const priceAmount = giverPriceAmount(item);
 
   async function onRemove() {
     const ok = await confirmDestructive(PrettyCopy.removeGiftTitle, PrettyCopy.removeGiftBody, PrettyCopy.removeGift);
@@ -165,10 +167,15 @@ export default function ItemDetailScreen() {
               Size / fit: {item.size_hint}
             </ThemedText>
           ) : null}
-          {item.target_amount != null ? (
-            <ThemedText type="small" themeColor="textSecondary">
-              Target (if friends chip in): ${item.target_amount}
-            </ThemedText>
+          {priceAmount != null ? (
+            <View style={styles.block}>
+              <ThemedText type="small" themeColor="textSecondary">
+                Price: {formatAud(priceAmount)}
+              </ThemedText>
+              <ThemedText type="caption" themeColor="textSecondary">
+                Also the chip-in goal for a group gift.
+              </ThemedText>
+            </View>
           ) : null}
 
           {item.no_substitution ? <NoSubLock /> : null}
