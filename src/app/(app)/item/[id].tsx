@@ -14,7 +14,7 @@ import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
 import { confirmDestructive } from '@/lib/confirm';
 import { PrettyCopy } from '@/lib/copy';
-import { formatAud, parseAud } from '@/lib/format';
+import { formatAudQuiet, parseAud } from '@/lib/format';
 import { giverPriceAmount } from '@/lib/giver-list';
 import { noSubstitutionForSave } from '@/lib/item-form';
 import { leaveScreen } from '@/lib/leave-screen';
@@ -170,7 +170,7 @@ export default function ItemDetailScreen() {
           {priceAmount != null ? (
             <View style={styles.block}>
               <ThemedText type="small" themeColor="textSecondary">
-                Price: {formatAud(priceAmount)}
+                Price: {formatAudQuiet(priceAmount)}
               </ThemedText>
               <ThemedText type="caption" themeColor="textSecondary">
                 Also the chip-in goal for a group gift.

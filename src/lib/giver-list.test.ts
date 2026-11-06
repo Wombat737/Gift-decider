@@ -5,7 +5,7 @@ import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { getDemoItem, resetDemoStore } from './demo-store';
-import { formatAud } from './format';
+import { formatAudQuiet } from './format';
 import {
   applyGiverListView,
   giverClaimBadge,
@@ -33,13 +33,18 @@ function demo(id: string) {
 describe('giver list price, sort, and available filter', () => {
   it('formats a quiet price and stays silent when there is no amount', () => {
     resetDemoStore();
-    assert.equal(giverPriceLabel(demo('demo-mug')), formatAud(42));
-    assert.equal(giverPriceLabel(demo('demo-espresso')), `${formatAud(429)} goal`);
+    assert.equal(formatAudQuiet(42), '$42');
+    assert.equal(formatAudQuiet(429), '$429');
+    assert.equal(formatAudQuiet(42.5), '$42.50');
+    assert.equal(formatAudQuiet(20.3), '$20.30');
+    assert.equal(giverPriceLabel(demo('demo-mug')), '$42');
+    assert.equal(giverPriceLabel(demo('demo-espresso')), '$429 goal');
     assert.equal(giverPriceLabel(demo('demo-socks')), null);
     assert.equal(giverPriceLabel({ target_amount: 0, is_group_gift: true }), null);
     assert.equal(giverPriceLabel({ target_amount: Number.NaN, is_group_gift: false }), null);
     assert.equal(giverPriceLabel({ target_amount: -5, is_group_gift: false }), null);
-    assert.equal(giverPriceLabel({ target_amount: 80, is_group_gift: true }), `${formatAud(80)} goal`);
+    assert.equal(giverPriceLabel({ target_amount: 80, is_group_gift: true }), '$80 goal');
+    assert.equal(giverPriceLabel({ target_amount: 42.5, is_group_gift: false }), '$42.50');
   });
 
   it('sorts by price with unpriced items last and keeps ties stable', () => {
@@ -127,7 +132,7 @@ describe('giver list price, sort, and available filter', () => {
     assert.equal(giverClaimBadge(socks), null);
     assert.equal(giverItemUnavailable(socks), false);
     assert.equal(giverPriceLabel(socks), null);
-    assert.equal(giverPriceLabel(espresso), formatAud(429));
+    assert.equal(giverPriceLabel(espresso), '$429');
     assert.equal(giverPriceLabel(espresso)?.includes('goal'), false);
 
     const card = source('components/stage-giver-card.tsx');
@@ -141,6 +146,11 @@ describe('giver list price, sort, and available filter', () => {
     assert.match(source('components/item-fields.tsx'), /chip-in goal for a group gift/);
     assert.match(source('app/g/[token]/index.tsx'), /presentGiverList/);
     assert.match(source('app/g/[token]/index.tsx'), /GiverListControls/);
+    const controls = source('components/giver-list-controls.tsx');
+    assert.match(controls, /Sort · /);
+    assert.match(controls, /Available only/);
+    assert.match(controls, /flexWrap: 'nowrap'/);
+    assert.match(source('app/(app)/item/[id].tsx'), /formatAudQuiet/);
     assert.match(source('app/g/[token]/[itemId].tsx'), /giverPriceLabel/);
   });
 });

@@ -1,4 +1,4 @@
-import { formatAud } from '@/lib/format';
+import { formatAudQuiet } from '@/lib/format';
 import { groupGiftPhase } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
 
@@ -37,7 +37,7 @@ export function giverPriceAmount(item: Pick<WishlistItem, 'target_amount'>): num
 export function giverPriceLabel(item: Pick<WishlistItem, 'target_amount' | 'is_group_gift'>): string | null {
   const amount = giverPriceAmount(item);
   if (amount == null) return null;
-  const formatted = formatAud(amount);
+  const formatted = formatAudQuiet(amount);
   return item.is_group_gift ? `${formatted} goal` : formatted;
 }
 
