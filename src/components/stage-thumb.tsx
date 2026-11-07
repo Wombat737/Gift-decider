@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -15,7 +16,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Fonts, StageShadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isUnsafeImageUri, looksLikeImageUri } from '@/lib/item-image';
-import { PICK_PULSE_MS, StageThumbRadius, StageThumbSize, thumbInitials } from '@/lib/stage-home';
+import { PICK_PULSE_MS, pickKindLabel, StageThumbRadius, StageThumbSize, thumbInitials } from '@/lib/stage-home';
+import type { ItemKind } from '@/lib/types';
 
 type StageThumbProps = {
   title?: string | null;
@@ -114,19 +116,36 @@ export function StageThumb({ title, seed, imageUrl, pop = false }: StageThumbPro
   );
 }
 
-export function KindPill({ label }: { label: 'Exact' | 'Taste' }) {
-  const theme = useTheme();
-  const taste = label === 'Taste';
+function KindMark({ kind, color }: { kind: ItemKind; color: string }) {
+  const stroke = {
+    stroke: color,
+    strokeWidth: 1.6,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    fill: 'none' as const,
+  };
   return (
-    <View
-      style={[
-        styles.pill,
-        {
-          backgroundColor: taste ? theme.backgroundElement : theme.brandSoft,
-          borderColor: taste ? theme.border : theme.brandSoft,
-        },
-      ]}>
-      <ThemedText type="caption" style={{ color: taste ? theme.textSecondary : theme.brandInk, fontWeight: 600 }}>
+    <Svg width={14} height={14} viewBox="0 0 14 14">
+      {kind === 'vibe' ? (
+        <Path d="M7 1.4 L8.05 5.05 L11.8 5.25 L9.05 7.55 L10.05 11.35 L7 9.35 L3.95 11.35 L4.95 7.55 L2.2 5.25 L5.95 5.05 Z" {...stroke} />
+      ) : (
+        <>
+          <Path d="M7 2.1 V4.15 M7 9.85 V11.9 M2.1 7 H4.15 M9.85 7 H11.9" {...stroke} />
+          <Path d="M7 4.7 A2.3 2.3 0 1 0 7 9.3 A2.3 2.3 0 1 0 7 4.7" {...stroke} />
+        </>
+      )}
+    </Svg>
+  );
+}
+
+/** Neutral kind marker. Same chrome for both — coral stays on primary actions. */
+export function KindPill({ kind }: { kind: ItemKind }) {
+  const theme = useTheme();
+  const label = pickKindLabel(kind);
+  return (
+    <View style={[styles.pill, { backgroundColor: theme.paper, borderColor: theme.border }]}>
+      <KindMark kind={kind} color={theme.textSecondary} />
+      <ThemedText type="caption" style={{ color: theme.textSecondary, fontWeight: 600 }}>
         {label}
       </ThemedText>
     </View>
@@ -174,9 +193,12 @@ const styles = StyleSheet.create({
   },
   pill: {
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
 });

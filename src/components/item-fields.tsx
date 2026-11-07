@@ -219,12 +219,13 @@ export function ItemFields({
       {frame(
         'Amount',
         <TextField
-          label="Target amount AUD (optional)"
+          label="Price (AUD, optional)"
           keyboardType="decimal-pad"
           placeholder="80"
           value={value.targetAmount}
           loading={previewing}
           onChangeText={(targetAmount) => onChange({ targetAmount })}
+          hint="Also the chip-in goal for a group gift."
           help={FieldHelp.chipIn}
         />,
       )}

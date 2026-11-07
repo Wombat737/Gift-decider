@@ -55,6 +55,18 @@ export function formatAud(amount: number) {
   return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(amount);
 }
 
+/** Price chip. Whole dollars drop the cents; $42.50 stays when there are cents. */
+export function formatAudQuiet(amount: number) {
+  const cents = Math.round(Math.abs(amount) * 100);
+  const whole = cents % 100 === 0;
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
+  }).format(cents / 100);
+}
+
 export function parseAud(value: string): number | null {
   const trimmed = value.trim().replace(/[^0-9.]/g, '');
   if (!trimmed) return null;

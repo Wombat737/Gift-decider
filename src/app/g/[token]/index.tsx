@@ -11,6 +11,7 @@ import { LegalLinks } from '@/components/legal-links';
 import { ReadyToBuyBanner } from '@/components/ready-to-buy-banner';
 import { Screen } from '@/components/screen';
 import { StageStickyHeader } from '@/components/stage-sticky-header';
+import { GiverListControls } from '@/components/giver-list-controls';
 import { StageGiverCard } from '@/components/stage-giver-card';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -26,6 +27,7 @@ import { giverListTitle, recipientPicksTitle } from '@/lib/list-title';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { giverListPaint, giverPaintItems, patchGiverCatalog, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
+import { presentGiverList, giverListControlsVisible, type GiverListSort } from '@/lib/giver-list';
 import { applyItemStatus, rememberedGiverName, rememberGiverName } from '@/lib/giver-status';
 import { hapticLight } from '@/lib/haptics';
 import { ownerPreviewItem } from '@/lib/owner-preview';
@@ -45,6 +47,8 @@ export default function GiverShareScreen() {
   const items = ownerPreview ? painted.map(ownerPreviewItem) : painted;
   const [focusGen, setFocusGen] = useState(0);
   const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<GiverListSort>('recommended');
+  const [availableOnly, setAvailableOnly] = useState(false);
   const [hitIds, setHitIds] = useState<string[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -80,11 +84,16 @@ export default function GiverShareScreen() {
   });
   const picksTitle = meta ? recipientPicksTitle(meta.owner_display_name, meta.owner_handle) : listTitle;
   const readyToBuy = items.filter((item) => groupGiftPhase(item) === 'ready_to_buy');
-  const visible = useMemo(() => {
+  const searched = useMemo(() => {
     if (!hitIds) return items;
     const order = new Map(hitIds.map((id, index) => [id, index]));
     return items.filter((item) => order.has(item.id)).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
   }, [hitIds, items]);
+  const controlsOn = giverListControlsVisible(items.length);
+  const visible = useMemo(
+    () => presentGiverList(searched, { sort, availableOnly }, items.length),
+    [availableOnly, items.length, searched, sort],
+  );
 
   const emptyHint =
     query.trim() && token && isDemoShareToken(token) ? ownerTasteTagsHint(demoOwnerHasTasteTags()) : null;
@@ -94,7 +103,7 @@ export default function GiverShareScreen() {
     fetchSettled,
     settledToken: fetchSettled ? token : undefined,
     hydrated,
-    itemCount: visible.length,
+    itemCount: searched.length,
     query,
     error,
   });
@@ -236,9 +245,18 @@ export default function GiverShareScreen() {
       {!ownerPreview && readyToBuy.length > 0 ? <ReadyToBuyBanner items={readyToBuy} /> : null}
       {ownerPreview ? null : <DeadLinkBanner items={items} />}
 
+      {controlsOn && paint !== 'skeleton' ? (
+        <GiverListControls
+          sort={sort}
+          availableOnly={availableOnly}
+          onSort={setSort}
+          onAvailableOnly={setAvailableOnly}
+        />
+      ) : null}
+
       {paint === 'skeleton' ? (
         <ItemGridSkeleton />
-      ) : visible.length === 0 ? (
+      ) : paint === 'empty' ? (
         <View key={`${token ?? 'share'}:${focusGen}:${query}`} style={styles.empty}>
           <ThemedText type="title" style={styles.emptyTitle}>
             {searching ? 'Nothing matched' : PrettyCopy.giverEmptyTitle}
@@ -249,6 +267,18 @@ export default function GiverShareScreen() {
           {!searching ? (
             <Button label={PrettyCopy.giverEmptyCta} icon="nudge" onPress={() => void remindThem()} />
           ) : null}
+        </View>
+      ) : visible.length === 0 ? (
+        <View style={styles.empty}>
+          <ThemedText type="title" style={styles.emptyTitle}>
+            Nothing available
+          </ThemedText>
+          <ThemedText themeColor="textSecondary" style={styles.emptyBody}>
+            {searching
+              ? 'Nothing in this search is still up for grabs.'
+              : 'Reserved and bought gifts are hidden, including funded group gifts.'}
+          </ThemedText>
+          <Button label="Show all" variant="secondary" onPress={() => setAvailableOnly(false)} />
         </View>
       ) : (
         <View key={`${token ?? 'share'}:${focusGen}:${query}`} style={styles.stack}>

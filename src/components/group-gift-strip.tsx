@@ -16,7 +16,7 @@ import { ChipPad, Radius, Spacing } from '@/constants/theme';
 import { PrettyCopy } from '@/lib/copy';
 import { BAR_PULSE_MS, DELIGHT_VARIANT } from '@/lib/delight';
 import { formatAud } from '@/lib/format';
-import { formatRevealDate, isFunded, isRevealDue, itemPledges, pledgeRemaining, pledgeTotal } from '@/lib/pledges';
+import { formatRevealDate, isFunded, isRevealDue, itemPledges, pledgeFillRatio, pledgeRemaining, pledgeTotal } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -34,7 +34,7 @@ export function GroupGiftStrip({ item, trickleKey = 0 }: GroupGiftStripProps) {
   const funded = isFunded(item);
   const revealed = isRevealDue(item);
   const target = item.target_amount;
-  const ratio = target && target > 0 ? Math.min(1, total / target) : funded ? 1 : 0;
+  const ratio = pledgeFillRatio(item);
   const mates = itemPledges(item).length;
   const revealLabel = formatRevealDate(item.reveal_at);
   const progress = useSharedValue(ratio);

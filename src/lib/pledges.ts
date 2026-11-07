@@ -77,6 +77,14 @@ export function isFunded(item: WishlistItem) {
   return Boolean(item.funded_at);
 }
 
+/** 0–1 fill for the sunshine bar. Target uses pledge cents; no target fills only once funded. */
+export function pledgeFillRatio(item: WishlistItem) {
+  if (hasFundingTarget(item)) {
+    return Math.min(1, pledgeTotalCents(item) / toCents(item.target_amount!));
+  }
+  return isFunded(item) ? 1 : 0;
+}
+
 export function contributorLabel(displayName: string | null | undefined) {
   const trimmed = displayName?.trim();
   return trimmed ? trimmed : 'Anonymous';

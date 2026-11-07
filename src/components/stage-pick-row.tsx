@@ -18,7 +18,7 @@ type StagePickRowProps = {
   onPulseLayout?: (y: number) => void;
 };
 
-/** Owner home row. Title + Exact/Taste only — no reserve, purchase, or pledge chrome. */
+/** Owner home row. Title + kind only — no reserve, purchase, or pledge chrome. */
 export function StagePickRow({ item, href, pulse = false, onPulseLayout }: StagePickRowProps) {
   const theme = useTheme();
   const title = item.title || 'Untitled gift';
@@ -46,7 +46,7 @@ export function StagePickRow({ item, href, pulse = false, onPulseLayout }: Stage
             <ThemedText type="titleSm" numberOfLines={2}>
               {title}
             </ThemedText>
-            <KindPill label={kind} />
+            <KindPill kind={item.item_kind} />
           </View>
         </NativePressable>
       </Link>

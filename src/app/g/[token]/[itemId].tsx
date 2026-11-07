@@ -26,6 +26,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { PrettyCopy } from '@/lib/copy';
 import { giverStatusHint } from '@/lib/format';
+import { giverPriceLabel } from '@/lib/giver-list';
 import { tryStartDelight } from '@/lib/delight';
 import { hapticLight } from '@/lib/haptics';
 import { isDemoShareToken } from '@/lib/demo-store';
@@ -464,6 +465,11 @@ export default function GiverItemScreen() {
           {ownerPreview ? 'Preview' : 'They won’t see this'}
         </ThemedText>
         <ThemedText type="heading">{view.title || 'Untitled gift'}</ThemedText>
+        {giverPriceLabel(view) ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            {giverPriceLabel(view)}
+          </ThemedText>
+        ) : null}
         {ownerPreview ? (
           <ThemedText type="small" themeColor="textSecondary">
             Available. Who reserved it, and what they pledged, stays hidden.

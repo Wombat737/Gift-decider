@@ -46,8 +46,8 @@ describe('Stage home', () => {
     assert.equal(PrettyCopy.giverSoftLockCta, 'Mark soft-locked');
     assert.equal(PrettyCopy.giverEmptyTitle, 'Quiet picks');
     assert.equal(PrettyCopy.giverEmptyCta, 'Nudge them');
-    assert.equal(pickKindLabel('exact'), 'Exact');
-    assert.equal(pickKindLabel('vibe'), 'Taste');
+    assert.equal(pickKindLabel('exact'), 'Exact item');
+    assert.equal(pickKindLabel('vibe'), 'Their taste');
     assert.equal(PrettyCopy.ownerHomeTitle.includes('Signature'), false);
   });
 
