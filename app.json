@@ -3,7 +3,7 @@
     "name": "Meantvo",
     "slug": "gift-decider",
     "owner": "wombats",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "orientation": "portrait",
     "icon": "./assets/brand/opt1-monogram-icon-1024.png",
     "scheme": "giftdecider",
