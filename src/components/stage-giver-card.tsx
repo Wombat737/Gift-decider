@@ -9,7 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, StageShadow } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { PrettyCopy } from '@/lib/copy';
-import { giverClaimBadge, giverPriceLabel } from '@/lib/giver-list';
+import { giverClaimBadge, giverPriceLabel, groupGiftCardProgress } from '@/lib/giver-list';
 import { groupGiftPhase } from '@/lib/pledges';
 import { giverCardSecondary, pickKindLabel, StageThumbSize } from '@/lib/stage-home';
 import type { WishlistItem } from '@/lib/types';
@@ -41,18 +41,20 @@ export function StageGiverCard({
   const theme = useTheme();
   const title = item.title || 'Untitled gift';
   const kind = pickKindLabel(item.item_kind);
-  const price = giverPriceLabel(item);
+  const progress = readOnly ? null : groupGiftCardProgress(item);
+  const price = progress ? null : giverPriceLabel(item);
   const secondary = giverCardSecondary(item, groupGiftPhase(item));
   const canChoose = item.status === 'available';
   const badge = readOnly ? null : giverClaimBadge(item);
   const taken = badge != null;
   const labelParts = [title, kind];
-  if (price) labelParts.push(price);
+  if (progress) labelParts.push(progress.label);
+  else if (price) labelParts.push(price);
   if (badge) labelParts.push(badge);
 
   return (
     <View style={[styles.card, StageShadow, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <View style={taken ? styles.faded : undefined}>
+      <View style={[styles.stack, taken ? styles.faded : null]}>
         <Link href={href} asChild>
           <NativePressable
             accessibilityRole="link"
@@ -77,6 +79,24 @@ export function StageGiverCard({
             </View>
           </NativePressable>
         </Link>
+        {progress ? (
+          <View
+            accessibilityRole="progressbar"
+            accessibilityLabel={progress.label}
+            accessibilityValue={{ min: 0, max: 100, now: Math.round(progress.ratio * 100) }}>
+            <View style={[styles.track, { backgroundColor: theme.accentSoft }]}>
+              <View
+                style={[
+                  styles.fill,
+                  { backgroundColor: theme.accent, width: `${Math.round(progress.ratio * 100)}%` },
+                ]}
+              />
+            </View>
+            <ThemedText type="caption" themeColor="textSecondary">
+              {progress.label}
+            </ThemedText>
+          </View>
+        ) : null}
         {readOnly ? null : canChoose ? (
           <Button
             label={chooseBusy ? 'Saving…' : PrettyCopy.giverChooseCta}
@@ -147,8 +167,22 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     position: 'relative',
   },
+  stack: {
+    gap: Spacing.three,
+  },
   faded: {
     opacity: 0.55,
+  },
+  track: {
+    height: 6,
+    borderRadius: Radius.pill,
+    overflow: 'hidden',
+    marginBottom: Spacing.one,
+  },
+  fill: {
+    height: '100%',
+    borderRadius: Radius.pill,
+    minWidth: 0,
   },
   peel: {
     position: 'absolute',

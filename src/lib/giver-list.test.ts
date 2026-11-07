@@ -12,6 +12,7 @@ import {
   giverItemUnavailable,
   giverListControlsVisible,
   giverPriceLabel,
+  groupGiftCardProgress,
   presentGiverList,
   sortGiverItems,
 } from './giver-list';
@@ -134,11 +135,58 @@ describe('giver list price, sort, and available filter', () => {
     assert.equal(giverPriceLabel(socks), null);
     assert.equal(giverPriceLabel(espresso), '$429');
     assert.equal(giverPriceLabel(espresso)?.includes('goal'), false);
+    assert.equal(groupGiftCardProgress(espresso), null);
+
+    const partial = groupGiftCardProgress(demo('demo-espresso'));
+    assert.equal(partial?.label, '$130 of $429');
+    assert.ok(partial && partial.ratio > 0 && partial.ratio < 1);
+    const quiet = {
+      ...demo('demo-espresso'),
+      pledges: [],
+    };
+    assert.equal(groupGiftCardProgress(quiet)?.label, '$0 of $429');
+    assert.equal(groupGiftCardProgress(quiet)?.ratio, 0);
+    const ready = groupGiftCardProgress({
+      ...demo('demo-espresso'),
+      target_amount: 100,
+      status: 'available',
+      pledges: [
+        {
+          id: 'full',
+          item_id: 'demo-espresso',
+          amount: 100,
+          display_name: null,
+          created_at: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+    });
+    assert.equal(ready?.ratio, 1);
+    assert.equal(ready?.label, '$100 of $100 · Ready to buy');
+    const bought = groupGiftCardProgress(demo('demo-grinder'));
+    assert.equal(bought?.ratio, 1);
+    assert.equal(bought?.label, '$249 of $249');
+    assert.equal(bought?.label.includes('Ready to buy'), false);
+    const cents = groupGiftCardProgress({
+      ...demo('demo-espresso'),
+      target_amount: 40,
+      pledges: [
+        {
+          id: 'cents',
+          item_id: 'demo-espresso',
+          amount: 20.5,
+          display_name: null,
+          created_at: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+    });
+    assert.equal(cents?.label, '$20.50 of $40');
 
     const card = source('components/stage-giver-card.tsx');
     assert.match(card, /readOnly \? null : giverClaimBadge/);
     assert.match(card, /giverPriceLabel/);
     assert.match(card, /opacity: 0\.55/);
+    assert.match(card, /readOnly \? null : groupGiftCardProgress/);
+    assert.match(card, /gap: Spacing\.three/);
     const thumb = source('components/stage-thumb.tsx');
     assert.equal(thumb.includes('brandSoft'), false);
     assert.equal(thumb.includes('brandInk'), false);

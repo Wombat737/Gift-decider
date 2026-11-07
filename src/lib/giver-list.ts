@@ -1,5 +1,5 @@
 import { formatAudQuiet } from '@/lib/format';
-import { groupGiftPhase } from '@/lib/pledges';
+import { groupGiftPhase, pledgeFillRatio, pledgeTotal } from '@/lib/pledges';
 import type { WishlistItem } from '@/lib/types';
 
 /** Session sort on the giver list. Recommended keeps the loaded order. */
@@ -39,6 +39,31 @@ export function giverPriceLabel(item: Pick<WishlistItem, 'target_amount' | 'is_g
   if (amount == null) return null;
   const formatted = formatAudQuiet(amount);
   return item.is_group_gift ? `${formatted} goal` : formatted;
+}
+
+/**
+ * Slim group-gift meter. Null unless this row is still a group gift, so the
+ * owner preview (group flag and pledges stripped) never shows a contribution total.
+ * Givers already have pledge rows from list_shared_item_pledges.
+ */
+export function groupGiftCardProgress(item: WishlistItem): { ratio: number; label: string } | null {
+  if (!item.is_group_gift) return null;
+  const phase = groupGiftPhase(item);
+  const total = pledgeTotal(item);
+  const target = giverPriceAmount(item);
+  const ready = phase === 'ready_to_buy';
+  if (target == null) {
+    const amount = `${formatAudQuiet(total)} chipped in`;
+    return {
+      ratio: pledgeFillRatio(item),
+      label: ready ? `${amount} · Ready to buy` : amount,
+    };
+  }
+  const amounts = `${formatAudQuiet(total)} of ${formatAudQuiet(target)}`;
+  return {
+    ratio: ready ? 1 : pledgeFillRatio(item),
+    label: ready ? `${amounts} · Ready to buy` : amounts,
+  };
 }
 
 /** Reservation badge. Null while the gift is still open. Owners must not render this. */
