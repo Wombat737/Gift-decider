@@ -1,6 +1,5 @@
-import { StyleSheet, type StyleProp, type TextStyle } from 'react-native';
+import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { FontFamilies } from '@/constants/theme';
 import { headlineRuns } from '@/lib/headlines';
 
@@ -9,29 +8,46 @@ type HeadlineTextProps = {
   style?: StyleProp<TextStyle>;
 };
 
-/** Serif headline. Words in *asterisks* are italic. Scales with system text. */
+/**
+ * Serif headline. Words in *asterisks* are italic at the same size as the roman.
+ * A nested themed text would fall back to body size and look tiny.
+ */
 export function HeadlineText({ text, style }: HeadlineTextProps) {
+  const flat = StyleSheet.flatten(style) ?? {};
   const runs = headlineRuns(text);
+  const shared: TextStyle = {
+    fontSize: flat.fontSize,
+    lineHeight: flat.lineHeight,
+    letterSpacing: flat.letterSpacing,
+    color: flat.color,
+  };
   return (
-    <ThemedText type="display" accessibilityRole="header" style={[styles.headline, style]}>
+    <Text accessibilityRole="header" style={[styles.headline, style]}>
       {runs.map((run, index) =>
         run.emphasis ? (
-          <ThemedText key={`${index}-${run.text}`} style={styles.emphasis}>
+          <Text key={`${index}-${run.text}`} style={[shared, styles.emphasis]}>
             {run.text}
-          </ThemedText>
+          </Text>
         ) : (
-          run.text
+          <Text key={`${index}-${run.text}`} style={[shared, styles.roman]}>
+            {run.text}
+          </Text>
         ),
       )}
-    </ThemedText>
+    </Text>
   );
 }
 
 const styles = StyleSheet.create({
   headline: {
     flexShrink: 1,
+    fontFamily: FontFamilies.serif,
+  },
+  roman: {
+    fontFamily: FontFamilies.serif,
   },
   emphasis: {
     fontFamily: FontFamilies.serifItalic,
+    fontStyle: 'normal',
   },
 });
