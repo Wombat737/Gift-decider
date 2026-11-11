@@ -268,7 +268,7 @@ export function CircleButton({ label, onPress, children }: { label: string; onPr
 }
 
 export function screenPad(): StyleProp<ViewStyle> {
-  return { paddingBottom: 120 };
+  return { paddingBottom: 120, gap: 0 };
 }
 
 const styles = StyleSheet.create({

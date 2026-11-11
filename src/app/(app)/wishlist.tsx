@@ -322,7 +322,7 @@ export default function OwnerHomeScreen() {
           ) : null}
         </View>
       ) : feature && featureEdition ? (
-        <View style={{ marginTop: 12 }}>
+        <View>
           <EditionStory
             kicker={issueKicker(feature.title, featureEdition.headline, featureEdition.eventOn, today)}
             headline={displayHeadline(featureEdition.headline, feature.title, who)}

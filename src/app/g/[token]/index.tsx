@@ -203,7 +203,7 @@ export default function GiverShareScreen() {
   const listHeadline = meta ? `${ownerFirst}'s *list*` : PrettyCopy.giverHeadline;
 
   return (
-    <Screen padded={false} sticky={null} style={{ paddingBottom: 120 }}>
+    <Screen padded={false} sticky={null} style={{ paddingBottom: 120, gap: 0 }}>
       <Stack.Screen
         options={{
           headerShown: false,
