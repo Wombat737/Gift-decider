@@ -1,6 +1,6 @@
 import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 
-import { Fonts, readableThemeColor, ThemeColor, TypeScale } from '@/constants/theme';
+import { FontFamilies, Fonts, readableThemeColor, ThemeColor, TypeScale } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
@@ -60,72 +60,85 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   caption: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.caption,
+    fontFamily: FontFamilies.sansMedium,
+    fontSize: TypeScale.caption.fontSize,
+    lineHeight: TypeScale.caption.lineHeight,
   },
   body: {
     fontFamily: Fonts.sans,
-    ...TypeScale.body,
+    fontSize: TypeScale.body.fontSize,
+    lineHeight: TypeScale.body.lineHeight,
   },
   bodyEm: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.bodyEm,
+    fontFamily: FontFamilies.sansMedium,
+    fontSize: TypeScale.bodyEm.fontSize,
+    lineHeight: TypeScale.bodyEm.lineHeight,
   },
   titleSm: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.titleSm,
+    fontFamily: Fonts.serif,
+    fontSize: TypeScale.titleSm.fontSize,
+    lineHeight: 26,
     letterSpacing: -0.22,
   },
   display: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.display,
-    letterSpacing: -0.55,
+    fontFamily: Fonts.serif,
+    fontSize: TypeScale.display.fontSize,
+    lineHeight: 38,
+    letterSpacing: -0.4,
   },
   small: {
     fontFamily: Fonts.sans,
-    ...TypeScale.caption,
+    fontSize: TypeScale.caption.fontSize,
+    lineHeight: TypeScale.caption.lineHeight,
   },
   smallBold: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.bodyEm,
+    fontFamily: FontFamilies.sansSemibold,
+    fontSize: TypeScale.body.fontSize,
+    lineHeight: TypeScale.body.lineHeight,
   },
   default: {
     fontFamily: Fonts.sans,
-    ...TypeScale.body,
+    fontSize: TypeScale.body.fontSize,
+    lineHeight: TypeScale.body.lineHeight,
   },
   heading: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.title,
+    fontFamily: Fonts.serif,
+    fontSize: TypeScale.title.fontSize,
+    lineHeight: 30,
     letterSpacing: -0.28,
   },
   title: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.display,
-    letterSpacing: -0.5,
+    fontFamily: Fonts.serif,
+    fontSize: TypeScale.display.fontSize,
+    lineHeight: 38,
+    letterSpacing: -0.4,
   },
   subtitle: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.titleSm,
+    fontFamily: Fonts.serif,
+    fontSize: TypeScale.titleSm.fontSize,
+    lineHeight: 26,
   },
   moment: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.title,
+    fontFamily: Fonts.serif,
+    fontSize: TypeScale.title.fontSize,
+    lineHeight: 30,
     letterSpacing: -0.28,
   },
   momentSmall: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.caption,
-  },
-  link: {
-    fontFamily: Fonts.sans,
-    ...TypeScale.bodyEm,
-  },
-  eyebrow: {
-    fontFamily: Fonts.sans,
+    fontFamily: FontFamilies.sansMedium,
     fontSize: TypeScale.caption.fontSize,
     lineHeight: TypeScale.caption.lineHeight,
-    fontWeight: 600,
-    letterSpacing: 0.8,
+  },
+  link: {
+    fontFamily: FontFamilies.sansMedium,
+    fontSize: TypeScale.bodyEm.fontSize,
+    lineHeight: TypeScale.bodyEm.lineHeight,
+  },
+  eyebrow: {
+    fontFamily: FontFamilies.sansSemibold,
+    fontSize: TypeScale.caption.fontSize,
+    lineHeight: TypeScale.caption.lineHeight,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   code: {

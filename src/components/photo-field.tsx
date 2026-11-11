@@ -10,12 +10,15 @@ import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { FieldHelp } from '@/lib/help';
-import { pickGiftPhoto, uploadGiftPhoto } from '@/services/item-image';
+import { pickGiftPhoto, uploadGiftPhoto, type GiftPhotoSource } from '@/services/item-image';
+import type * as ImagePicker from 'expo-image-picker';
 
 type PhotoFieldProps = {
   value: string;
   onChange: (imageUrl: string) => void;
   onBusyChange?: (busy: boolean) => void;
+  /** True while a chosen photo is not saved yet, including after a failed upload. */
+  onHoldChange?: (held: boolean) => void;
   /** Second URL when the first preview is hotlink-blocked. */
   fallbackUrl?: string | null;
   /** Page the photo came from, sent as Referer while loading the remote image. */
@@ -23,12 +26,14 @@ type PhotoFieldProps = {
   onRemoteError?: () => void;
 };
 
-export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referrer, onRemoteError }: PhotoFieldProps) {
+export function PhotoField({ value, onChange, onBusyChange, onHoldChange, fallbackUrl, referrer, onRemoteError }: PhotoFieldProps) {
   const theme = useTheme();
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pendingAsset = useRef<ImagePicker.ImagePickerAsset | null>(null);
   const triedFallback = useRef(false);
 
   useEffect(() => {
@@ -38,24 +43,45 @@ export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referre
   const shown = localUri || value;
   const hasPhoto = Boolean(shown.trim());
 
-  async function addFrom(source: 'library' | 'camera') {
+  async function uploadAsset(asset: ImagePicker.ImagePickerAsset) {
     setError(null);
     setBusy(true);
+    setProgress(0.02);
     onBusyChange?.(true);
+    onHoldChange?.(true);
+    pendingAsset.current = asset;
+    setLocalUri(asset.uri);
     try {
-      const asset = await pickGiftPhoto(source);
-      if (!asset) return;
-      setLocalUri(asset.uri);
-      const url = await uploadGiftPhoto(asset);
+      const url = await uploadGiftPhoto(asset, setProgress);
       onChange(url);
+      pendingAsset.current = null;
       setLocalUri(null);
+      onHoldChange?.(false);
+      setProgress(1);
     } catch (err) {
-      setLocalUri(null);
       setError(err instanceof Error ? err.message : 'Couldn’t add that photo');
+      setProgress(0);
     } finally {
       setBusy(false);
       onBusyChange?.(false);
     }
+  }
+
+  async function addFrom(source: GiftPhotoSource) {
+    setError(null);
+    try {
+      const asset = await pickGiftPhoto(source);
+      if (!asset) return;
+      await uploadAsset(asset);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Couldn’t add that photo');
+    }
+  }
+
+  function retry() {
+    const asset = pendingAsset.current;
+    if (!asset) return;
+    void uploadAsset(asset);
   }
 
   return (
@@ -77,9 +103,19 @@ export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referre
             return false;
           }}
         />
-        {busy ? (
+        {busy || error ? (
           <View style={[styles.busy, { backgroundColor: theme.overlay }]} pointerEvents="none">
-            <ActivityIndicator accessibilityLabel="Uploading photo" color={theme.brand} />
+            {busy ? <ActivityIndicator accessibilityLabel="Uploading photo" color={theme.brandText} /> : null}
+            <ThemedText type="small" style={{ color: theme.brandText }}>
+              {busy
+                ? progress < 0.3
+                  ? 'Preparing photo…'
+                  : `Uploading photo… ${Math.round(progress * 100)}%`
+                : error}
+            </ThemedText>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${Math.round((busy ? progress : 0) * 100)}%`, backgroundColor: theme.brandText }]} />
+            </View>
           </View>
         ) : null}
       </View>
@@ -124,7 +160,10 @@ export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referre
               accessibilityRole="button"
               accessibilityLabel="Remove photo"
               onPress={() => {
+                pendingAsset.current = null;
                 setLocalUri(null);
+                setError(null);
+                onHoldChange?.(false);
                 onChange('');
               }}
               hitSlop={8}>
@@ -137,9 +176,14 @@ export function PhotoField({ value, onChange, onBusyChange, fallbackUrl, referre
       )}
 
       {error ? (
-        <ThemedText type="small" themeColor="accent">
-          {error}
-        </ThemedText>
+        <View style={styles.links}>
+          <ThemedText type="small" themeColor="accent">
+            {error}
+          </ThemedText>
+          <NativePressable accessibilityRole="button" accessibilityLabel="Retry photo upload" onPress={retry} hitSlop={8}>
+            <ThemedText type="smallBold">Retry</ThemedText>
+          </NativePressable>
+        </View>
       ) : null}
     </View>
   );
@@ -164,6 +208,18 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: Spacing.two,
+    padding: Spacing.three,
+  },
+  track: {
+    width: '70%',
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(251, 249, 244, 0.35)',
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
   },
   links: {
     flexDirection: 'row',

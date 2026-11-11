@@ -124,7 +124,7 @@ describe('Request badge and accept flip', () => {
     assert.match(settings, /InboxBanner/);
     assert.match(settings, /pending-giver-requests/);
     assert.match(tabs, /pendingRequests/);
-    assert.match(tabs, /label: 'Me'/);
+    assert.match(tabs, /label: 'Settings'/);
     assert.match(people, /accepted-giver-pins/);
     assert.match(people, /selected=\{justReady\}/);
     assert.match(people, /Waiting for them to accept/);

@@ -25,8 +25,8 @@ export function FundedReveal({ item }: { item: WishlistItem }) {
         <ThemedText type="moment">{PrettyCopy.revealDay}</ThemedText>
         <ThemedText>
           {reveal.contributors.length === 0
-            ? 'Friends chipped in together on this one.'
-            : `Who chipped in: ${who}.`}
+            ? 'Friends shared the cost of this one.'
+            : `Who shared the cost: ${who}.`}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           This shows on the reveal date givers picked ({when}) — not as soon as the group gift is funded.

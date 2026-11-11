@@ -13,7 +13,13 @@ export type FlairIconName =
   | 'nudge'
   | 'photo'
   | 'home'
-  | 'me';
+  | 'me'
+  | 'lists'
+  | 'people'
+  | 'search'
+  | 'settings'
+  | 'bell'
+  | 'chat';
 
 type FlairIconProps = {
   name: FlairIconName;
@@ -79,10 +85,33 @@ export function FlairIcon({ name, color, size = 24, active = false }: FlairIconP
         </>
       ) : name === 'home' ? (
         <Path d="M4 11 L12 4 L20 11 V20 H15.5 V14 H8.5 V20 H4 Z" {...common} />
-      ) : name === 'me' ? (
+      ) : name === 'me' || name === 'people' ? (
         <>
           <Circle cx="12" cy="8" r="3.25" {...common} />
           <Path d="M5.5 19.5 V17.5 A6.5 6.5 0 0 1 18.5 17.5 V19.5" {...common} />
+        </>
+      ) : name === 'lists' ? (
+        <>
+          <Path d="M6 7 H18" {...common} />
+          <Path d="M6 12 H18" {...common} />
+          <Path d="M6 17 H14" {...common} />
+        </>
+      ) : name === 'search' ? (
+        <>
+          <Circle cx="11" cy="11" r="5.5" {...common} />
+          <Path d="M15.5 15.5 L20 20" {...common} />
+        </>
+      ) : name === 'bell' ? (
+        <>
+          <Path d="M6 9a6 6 0 0 1 12 0c0 7 2.5 8 2.5 8H3.5S6 16 6 9" {...common} />
+          <Path d="M10 20a2 2 0 0 0 4 0" {...common} />
+        </>
+      ) : name === 'chat' ? (
+        <Path d="M6 18.5A8 8 0 1 0 5 14L3.5 20Z" {...common} />
+      ) : name === 'settings' ? (
+        <>
+          <Circle cx="12" cy="12" r="3" {...common} />
+          <Path d="M12 4.5 V7 M12 17 V19.5 M4.5 12 H7 M17 12 H19.5 M6.4 6.4 L8.2 8.2 M15.8 15.8 L17.6 17.6 M17.6 6.4 L15.8 8.2 M8.2 15.8 L6.4 17.6" {...common} />
         </>
       ) : (
         <>

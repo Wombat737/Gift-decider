@@ -28,6 +28,7 @@ export const Colors = {
     border: CoralCoast.border,
     overlay: CoralCoast.overlay,
     paper: CoralCoast.paper,
+    stone: CoralCoast.stone,
   },
   dark: {
     text: CoralCoastDark.ink,
@@ -52,6 +53,7 @@ export const Colors = {
     border: CoralCoastDark.border,
     overlay: CoralCoastDark.overlay,
     paper: CoralCoastDark.paper,
+    stone: CoralCoastDark.stone,
   },
 } as const;
 
@@ -66,35 +68,44 @@ export function readableThemeColor(theme: ThemePalette, key: ThemeColor = 'text'
   return theme[key];
 }
 
+/** Loaded with expo-font. Headlines use Instrument Serif; UI uses Inter. */
+export const FontFamilies = {
+  sans: 'Inter_400Regular',
+  sansMedium: 'Inter_500Medium',
+  sansSemibold: 'Inter_600SemiBold',
+  sansBold: 'Inter_700Bold',
+  serif: 'InstrumentSerif_400Regular',
+  serifItalic: 'InstrumentSerif_400Regular_Italic',
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
-    /** Plus Jakarta Sans on web; system-ui stand-in on native. No serif headings. */
-    sans: 'system-ui',
-    serif: 'system-ui',
-    rounded: 'ui-rounded',
+    sans: FontFamilies.sans,
+    serif: FontFamilies.serif,
+    rounded: FontFamilies.sansMedium,
     mono: 'ui-monospace',
-    display: 'system-ui',
+    display: FontFamilies.serif,
   },
   android: {
-    sans: 'sans-serif',
-    serif: 'sans-serif',
-    rounded: 'sans-serif-medium',
+    sans: FontFamilies.sans,
+    serif: FontFamilies.serif,
+    rounded: FontFamilies.sansMedium,
     mono: 'monospace',
-    display: 'sans-serif',
+    display: FontFamilies.serif,
   },
   default: {
-    sans: 'normal',
-    serif: 'normal',
-    rounded: 'normal',
+    sans: FontFamilies.sans,
+    serif: FontFamilies.serif,
+    rounded: FontFamilies.sansMedium,
     mono: 'monospace',
-    display: 'normal',
+    display: FontFamilies.serif,
   },
   web: {
-    sans: 'var(--font-sans)',
-    serif: 'var(--font-sans)',
-    rounded: 'var(--font-rounded)',
+    sans: FontFamilies.sans,
+    serif: FontFamilies.serif,
+    rounded: FontFamilies.sansMedium,
     mono: 'var(--font-mono)',
-    display: 'var(--font-sans)',
+    display: FontFamilies.serif,
   },
 });
 
@@ -129,14 +140,14 @@ export const Radius = {
   pill: CoralCoast.radius.pill,
 } as const;
 
-/** Flair-pass hero washes — splash, empty heroes, reveal header. Not list rows. */
+/** Paper washes. No saturated colour blocks. */
 export const Washes = {
-  hero: ['#FFE8E4', '#FAFAFA'] as const,
-  chipin: ['#FFF3D1', '#FFFFFF'] as const,
+  hero: ['#E4DCCC', '#F3EFE6'] as const,
+  chipin: ['#E4DCCC', '#FBF9F4'] as const,
 };
 
-/** Selected / press ring — coral at 40%. */
-export const RingSelected = 'rgba(232, 93, 76, 0.4)';
+/** Selected / press ring — oxblood at 40%. */
+export const RingSelected = 'rgba(122, 31, 43, 0.4)';
 
 /** Empty-field hint. Lighter than ink-muted so a placeholder does not read as a filled value. */
 export const PlaceholderColor = '#A3A3A3';
@@ -206,7 +217,7 @@ export const ShadowButton: ViewStyle = Platform.select({
     elevation: 2,
   },
   web: {
-    boxShadow: '0 1px 2px rgb(23 23 23 / 0.04), 0 6px 16px rgb(232 93 76 / 0.12)',
+    boxShadow: '0 1px 2px rgb(26 23 20 / 0.04), 0 6px 16px rgb(122 31 43 / 0.12)',
   },
   default: {
     shadowColor: CoralCoast.brand,
@@ -228,7 +239,7 @@ export const ShadowFloat: ViewStyle = Platform.select({
     elevation: 6,
   },
   web: {
-    boxShadow: '0 8px 28px rgb(232 93 76 / 0.18)',
+    boxShadow: '0 8px 28px rgb(122 31 43 / 0.18)',
   },
   default: {
     shadowColor: CoralCoast.brand,

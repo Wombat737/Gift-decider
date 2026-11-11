@@ -17,7 +17,7 @@ We aim to handle personal information in line with the Australian Privacy Princi
 
 - We collect your **email address** to sign you in. We also store what you put into the app: your **profile**, **wishlists**, **gift photos**, and, if you help buy for someone, your **reservations, pledges and comments**.
 - We use it **only to run the app**. There's **no advertising**, **no tracking across other apps or websites**, **no analytics service**, and we **don't sell or rent** your information.
-- **Surprise-safe:** if it's your wishlist, the app doesn't show you who reserved or bought your gifts, how much anyone chipped in, or what givers say to each other.
+- **Surprise-safe:** if it's your wishlist, the app doesn't show you who reserved or bought your gifts, how much anyone shared the cost, or what givers say to each other.
 - Your data is stored with our hosting provider, **Supabase**, in **Tokyo, Japan**.
 - You can **delete your account and data** from inside the app at any time.
 
@@ -91,7 +91,7 @@ Meantvo is built so the person a gift is for doesn't get spoilers.
   - pledge amounts
   - payment or delivery notes
   - the givers' private comments
-- **Group gifts:** on or after the reveal date you set, you can see the **names** of people who chipped in, but **never the amounts**.
+- **Group gifts:** on or after the reveal date you set, you can see the **names** of people who shared the cost, but **never the amounts**.
 
 **Preview giver view:** when you preview your own list as a giver would see it, Meantvo hides reservations, purchases, pledges, organiser notes and giver names so you still don't get spoilers.
 

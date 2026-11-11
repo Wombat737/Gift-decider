@@ -1,8 +1,9 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { PersonAvatar } from '@/components/person-avatar';
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { FlairIcon } from '@/components/flair-icons';
@@ -32,6 +33,7 @@ import {
   unlistGiverPerson,
 } from '@/services/giver-social';
 import { prefetchSharedItems } from '@/services/wishlist';
+import { loadAvatars } from '@/services/avatars';
 
 function wantsAddParam(value: string | string[] | undefined) {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -40,7 +42,7 @@ function wantsAddParam(value: string | string[] | undefined) {
 
 export default function PeopleScreen() {
   const theme = useTheme();
-  const params = useLocalSearchParams<{ add?: string | string[] }>();
+  const params = useLocalSearchParams<{ add?: string | string[]; find?: string | string[] }>();
   const { newlyReady, refreshInbox, ackReady } = useInbox();
   const [people, setPeople] = useState<GiverPerson[]>([]);
   const [addingOverride, setAddingOverride] = useState<boolean | null>(null);
@@ -49,7 +51,15 @@ export default function PeopleScreen() {
   const [hits, setHits] = useState<HandleSearchHit[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const adding = addingOverride ?? wantsAddParam(params.add);
+  const [avatars, setAvatars] = useState<Record<string, string>>({});
+  const find = (Array.isArray(params.find) ? params.find[0] : params.find) === '1';
+  const adding = addingOverride ?? (wantsAddParam(params.add) || find);
+
+  useEffect(() => {
+    const ids = people.map((person) => person.recipient_id);
+    if (ids.length === 0) return;
+    void loadAvatars(ids).then(setAvatars).catch(() => setAvatars({}));
+  }, [people]);
   const readyCopy = acceptBannerText(newlyReady);
 
   const refresh = useCallback(async () => {
@@ -238,10 +248,18 @@ export default function PeopleScreen() {
           const justReady = isNewlyReadyPin(person.id, newlyReady);
           return (
             <Card key={person.id} selected={justReady}>
-              <ThemedText type="titleSm">{person.label || person.display_name || `@${person.handle}`}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {person.handle ? `@${person.handle}` : 'No handle yet'}
-              </ThemedText>
+              <View style={styles.personRow}>
+                <PersonAvatar
+                  name={person.label || person.display_name || person.handle}
+                  uri={avatars[person.recipient_id]}
+                />
+                <View style={styles.hit}>
+                  <ThemedText type="titleSm">{person.label || person.display_name || `@${person.handle}`}</ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {person.handle ? `@${person.handle}` : 'No handle yet'}
+                  </ThemedText>
+                </View>
+              </View>
               <StatusChip label={justReady ? 'Ready' : chip.label} tone={justReady ? 'brand' : chip.tone} />
               {person.can_open && person.share_token ? (
                 <Button label="Open wishlist" onPress={() => openGiverShare(person.share_token, router.push, prefetchSharedItems)} />
@@ -283,6 +301,12 @@ const styles = StyleSheet.create({
   hit: {
     gap: Spacing.one,
     width: '100%',
+    flex: 1,
+  },
+  personRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   headerAdd: {
     width: 44,

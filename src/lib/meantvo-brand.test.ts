@@ -31,7 +31,7 @@ describe('Meantvo brand assets', () => {
 
     const appJson = readFileSync(join(repo, 'app.json'), 'utf8');
     assert.match(appJson, /opt1-monogram-icon-1024\.png/);
-    assert.match(appJson, /"backgroundColor": "#FAFAFA"/);
+    assert.match(appJson, /"backgroundColor": "#F3EFE6"/);
     assert.match(appJson, /"backgroundColor": "#E85D4C"/);
     assert.match(appJson, /splash-icon\.png/);
     assert.match(appJson, /favicon\.png/);
@@ -77,6 +77,6 @@ describe('Meantvo brand assets', () => {
     assert.match(card, /PeelMoment/);
 
     const giverList = source('app/g/[token]/index.tsx');
-    assert.match(giverList, /peelKey=\{ownerPreview \? 0 : peel\.id === item\.id \? peel\.key : 0\}/);
+    assert.match(giverList, /peelKey=\{ownerPreview \? 0 : peel\.id === feature\.id \? peel\.key : 0\}/);
   });
 });

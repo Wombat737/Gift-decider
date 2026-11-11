@@ -22,19 +22,19 @@ function source(rel: string) {
 }
 
 describe('Flair pass (pretty v2) punch-list', () => {
-  it('P0 wash tokens stay coral→cream / sunshine→white and locked palette', () => {
+  it('P0 wash tokens stay paper and stone, with oxblood as the action colour', () => {
     const theme = source('constants/theme.ts');
-    assert.match(theme, /hero: \['#FFE8E4', '#FAFAFA'\]/);
-    assert.match(theme, /chipin: \['#FFF3D1', '#FFFFFF'\]/);
-    assert.match(theme, /RingSelected = 'rgba\(232, 93, 76, 0\.4\)'/);
+    assert.match(theme, /hero: \['#E4DCCC', '#F3EFE6'\]/);
+    assert.match(theme, /chipin: \['#E4DCCC', '#FBF9F4'\]/);
+    assert.match(theme, /RingSelected = 'rgba\(122, 31, 43, 0\.4\)'/);
     assert.match(theme, /vertical: 10/);
     assert.match(theme, /horizontal: 14/);
     assert.match(theme, /IlluSize = 140/);
-    assert.equal(CoralCoast.brandSoft, '#FFE8E4');
-    assert.equal(CoralCoast.accentSoft, '#FFF3D1');
-    assert.equal(CoralCoast.brand, '#E85D4C');
-    assert.equal(CoralCoast.accent, '#F5B942');
-    assert.equal(CoralCoast.bg, '#FAFAFA');
+    assert.equal(CoralCoast.brandSoft, '#E4DCCC');
+    assert.equal(CoralCoast.accentSoft, '#E4DCCC');
+    assert.equal(CoralCoast.brand, '#7A1F2B');
+    assert.equal(CoralCoast.accent, '#7A1F2B');
+    assert.equal(CoralCoast.bg, '#F3EFE6');
   });
 
   it('P0 hero wash is only on splash, empties, chip-in header, and reveal', () => {
@@ -65,9 +65,9 @@ describe('Flair pass (pretty v2) punch-list', () => {
     assert.equal(PrettyCopy.shareTitle, 'Send this to whoever’s buying.');
     assert.equal(PrettyCopy.softLock, 'You’ve got this one.');
     assert.equal(PrettyCopy.purchasedGiver, 'Bought — nice one.');
-    assert.equal(PrettyCopy.chipInCta, 'Chip in');
+    assert.equal(PrettyCopy.chipInCta, 'Share the cost');
     assert.equal(PrettyCopy.chipInHonour, 'PayID on honour — tick off what you’ve sent.');
-    assert.equal(PrettyCopy.revealDay, 'The mates chipped in — here’s who.');
+    assert.equal(PrettyCopy.revealDay, 'The mates shared the cost — here’s who.');
     const giverItem = source('app/g/[token]/[itemId].tsx');
     const hints = source('lib/format.ts');
     const pledge = source('components/pledge-panel.tsx');
@@ -86,7 +86,7 @@ describe('Flair pass (pretty v2) punch-list', () => {
     const chips = source('components/vibe-chips.tsx');
     const status = source('components/status-chip.tsx');
     assert.match(theme, /0 1px 2px rgb\(23 23 23 \/ 0\.04\), 0 8px 22px rgb\(23 23 23 \/ 0\.05\)/);
-    assert.match(theme, /0 8px 28px rgb\(232 93 76 \/ 0\.18\)/);
+    assert.match(theme, /0 8px 28px rgb\(122 31 43 \/ 0\.18\)/);
     assert.match(card, /selected/);
     assert.match(card, /RingSelected/);
     assert.match(itemCard, /selected=\{pressed\}/);
@@ -136,7 +136,7 @@ describe('Flair pass (pretty v2) punch-list', () => {
     assert.equal(/emptyKind="owner"/.test(wishlist), false);
     assert.equal(/HeroWash/.test(wishlist), false);
     assert.match(giverList, /PrettyCopy\.giverEmptyTitle/);
-    assert.match(giverList, /StageGiverCard/);
+    assert.match(giverList, /GiverFeature/);
     assert.match(source('components/stage-giver-card.tsx'), /PrettyCopy\.giverChooseCta/);
     assert.equal(/emptyKind="giver"/.test(giverList), false);
     assert.match(share, /kind="invites"/);

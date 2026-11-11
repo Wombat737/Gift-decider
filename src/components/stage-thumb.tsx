@@ -104,7 +104,7 @@ export function StageThumb({ title, seed, imageUrl, pop = false }: StageThumbPro
           />
         ) : (
           <LinearGradient
-            colors={['#FFE8E4', '#FFF3D1'] as const}
+            colors={['#E4DCCC', '#F3EFE6'] as const}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.fallback}>
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   letters: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.serif,
     fontSize: 18,
     lineHeight: 22,
     fontWeight: 600,

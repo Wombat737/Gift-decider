@@ -114,8 +114,10 @@ describe('Add-item photo preview + Storage upload', () => {
     assert.match(service, /launchImageLibraryAsync/);
     assert.match(service, /launchCameraAsync/);
     assert.match(service, /UIImagePickerPreferredAssetRepresentationMode\.Compatible/);
-    assert.match(service, /base64: true/);
-    assert.match(service, /arrayBufferFromBase64/);
+    assert.match(service, /base64: false/);
+    assert.match(service, /compressGiftPhoto/);
+    assert.match(service, /manipulateAsync/);
+    assert.equal(/base64: true/.test(service), false);
     assert.match(service, /requestCameraPermissionsAsync/);
     assert.equal(/requestMediaLibraryPermissionsAsync/.test(service), false);
     assert.match(service, /pickWebImageFile|gift-photo-file/);

@@ -76,18 +76,18 @@ export function Button({
     variant === 'primary'
       ? theme.brand
       : variant === 'pledge'
-        ? theme.accent
+        ? theme.stone
         : variant === 'secondary'
           ? theme.backgroundElement
           : 'transparent';
   const color =
-    variant === 'primary' || variant === 'pledge'
-      ? variant === 'pledge'
-        ? theme.accentText
-        : theme.brandText
-      : variant === 'ghost'
-        ? theme.brandInk
-        : theme.text;
+    variant === 'primary'
+      ? theme.brandText
+      : variant === 'pledge'
+        ? theme.text
+        : variant === 'ghost'
+          ? theme.brandInk
+          : theme.text;
   const filled = variant === 'primary' || variant === 'pledge';
   const borderColor =
     variant === 'secondary' ? theme.border : variant === 'ghost' ? 'transparent' : variant === 'pledge' ? theme.accent : theme.brand;

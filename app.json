@@ -3,13 +3,13 @@
     "name": "Meantvo",
     "slug": "gift-decider",
     "owner": "wombats",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "orientation": "portrait",
     "icon": "./assets/brand/opt1-monogram-icon-1024.png",
     "scheme": "giftdecider",
     "userInterfaceStyle": "light",
-    "primaryColor": "#E85D4C",
-    "backgroundColor": "#FAFAFA",
+    "primaryColor": "#7A1F2B",
+    "backgroundColor": "#F3EFE6",
     "description": "Meantvo — pick gifts from a living photo wishlist. Recipients pin photos and vibes; givers open a surprise-safe share link.",
     "githubUrl": "https://github.com/Wombat737/Gift-decider",
     "ios": {
@@ -46,8 +46,8 @@
       "bundler": "metro",
       "name": "Meantvo",
       "shortName": "Meantvo",
-      "themeColor": "#E85D4C",
-      "backgroundColor": "#FAFAFA"
+      "themeColor": "#7A1F2B",
+      "backgroundColor": "#F3EFE6"
     },
     "plugins": [
       "expo-router",
@@ -63,7 +63,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FAFAFA",
+          "backgroundColor": "#F3EFE6",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 180
         }

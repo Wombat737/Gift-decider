@@ -36,9 +36,9 @@ function chrome(src: string) {
 
 describe('Stage home', () => {
   it('locks picks chrome and Exact versus Taste', () => {
-    assert.equal(PrettyCopy.ownerHomeTitle, 'Your picks');
+    assert.equal(PrettyCopy.ownerHomeTitle, 'Your lists');
     assert.equal(PrettyCopy.ownerEmptyCta, 'Add a pick');
-    assert.equal(PrettyCopy.ownerSection, 'On your picks');
+    assert.equal(PrettyCopy.ownerSection, 'Also in this issue');
     assert.equal(PrettyCopy.ownerShareLink, 'Send to whoever’s choosing');
     assert.equal(PrettyCopy.ownerEmptyTitle, 'What moves you?');
     assert.equal(PrettyCopy.giverHeadline, 'They’re set · you decide');
@@ -67,8 +67,8 @@ describe('Stage home', () => {
     assert.ok(StageThumbRadius >= 12 && StageThumbRadius <= 16);
     const thumb = source('components/stage-thumb.tsx');
     assert.match(thumb, /imageUrl/);
-    assert.match(thumb, /#FFE8E4/);
-    assert.match(thumb, /#FFF3D1/);
+    assert.match(thumb, /#E4DCCC/);
+    assert.match(thumb, /#F3EFE6/);
     assert.match(thumb, /borderRadius: StageThumbRadius/);
     assert.match(source('components/stage-pick-row.tsx'), /imageUrl=\{item\.image_url\}/);
     assert.match(source('components/stage-giver-card.tsx'), /imageUrl=\{item\.image_url\}/);
@@ -82,9 +82,9 @@ describe('Stage home', () => {
     assert.equal(giverCardSecondary(espresso, groupGiftPhase(espresso)), 'chip-in');
     assert.equal(giverCardSecondary({ ...mug, status: 'reserved' }, null), null);
     assert.equal(stageTabVisible('/wishlist'), true);
-    assert.equal(stageTabVisible('/add'), true);
+    assert.equal(stageTabVisible('/add'), false);
     assert.equal(stageTabVisible('/settings'), true);
-    assert.equal(stageTabVisible('/people'), false);
+    assert.equal(stageTabVisible('/people'), true);
     assert.equal(stageTabVisible('/g/demo'), false);
     assert.equal(stageTabSelected('/settings'), 'me');
     assert.equal(stageTabSelected('/add'), 'add');
@@ -102,9 +102,11 @@ describe('Stage home', () => {
     assert.match(owner, /PrettyCopy\.ownerEmptyCta/);
     assert.match(owner, /PrettyCopy\.ownerShareLink/);
     assert.match(owner, /router\.push\('\/share'\)/);
-    assert.match(source('components/stage-tab-bar.tsx'), /Home/);
-    assert.match(source('components/stage-tab-bar.tsx'), /Add/);
-    assert.match(source('components/stage-tab-bar.tsx'), /Me/);
+    assert.match(source('components/stage-tab-bar.tsx'), /Lists/);
+    assert.match(source('components/stage-tab-bar.tsx'), /People/);
+    assert.match(source('components/stage-tab-bar.tsx'), /Search/);
+    assert.match(source('components/stage-tab-bar.tsx'), /Settings/);
+    assert.match(source('components/stage-tab-bar.tsx'), /Add a pick/);
     assert.match(source('components/stage-tab-bar.tsx'), /minHeight: 44/);
     assert.match(owner, /minHeight: 44/);
     assert.match(source('constants/theme.ts'), /0 1px 2px rgb\(0 0 0 \/ 0\.04\), 0 4px 12px rgb\(0 0 0 \/ 0\.06\)/);
@@ -116,7 +118,8 @@ describe('Stage home', () => {
     assert.match(source('components/stage-giver-card.tsx'), /PrettyCopy\.giverChooseCta/);
     assert.match(giver, /PrettyCopy\.giverEmptyTitle/);
     assert.match(giver, /PrettyCopy\.giverEmptyCta/);
-    assert.match(giver, /StageGiverCard/);
+    assert.match(giver, /GiverFeature/);
+    assert.match(giver, /PrettyCopy\.claimCta/);
     assert.match(giver, /Search gifts/);
     assert.equal(/ItemGrid[^S]/.test(giver), false);
     assert.match(source('components/stage-giver-card.tsx'), /minHeight: 44/);

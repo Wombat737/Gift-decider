@@ -1,3 +1,4 @@
+import { demoImageUri } from '@/lib/demo-images';
 import { slugToken } from '@/lib/format';
 import {
   asDeliveryMethod,
@@ -24,7 +25,7 @@ import type {
 const DEMO_WISHLIST_ID = 'demo-wishlist';
 const DEMO_OWNER_ID = 'demo-user';
 export const DEMO_SHARE_TOKEN = 'demo';
-const STORAGE_KEY = 'giftdecider.demo.v5';
+const STORAGE_KEY = 'giftdecider.demo.v6';
 const LEGACY_V4_KEY = 'giftdecider.demo.v4';
 const LEGACY_V3_KEY = 'giftdecider.demo.v3';
 const LEGACY_V2_KEY = 'giftdecider.demo.v2';
@@ -53,6 +54,13 @@ export const demoOccasionsSeed: Occasion[] = [
     share_token: 'demo-housewarming',
     created_at: '2026-01-01T00:00:00.000Z',
   },
+  {
+    id: 'demo-occasion-because',
+    wishlist_id: DEMO_WISHLIST_ID,
+    title: 'Just because',
+    share_token: 'demo-because',
+    created_at: '2026-02-01T00:00:00.000Z',
+  },
 ];
 
 const seedItems: WishlistItem[] = [
@@ -60,7 +68,7 @@ const seedItems: WishlistItem[] = [
     id: 'demo-mug',
     wishlist_id: DEMO_WISHLIST_ID,
     image_path: null,
-    image_url: 'https://picsum.photos/seed/giftdecider-mug/800/800',
+    image_url: demoImageUri('demo-mug'),
     title: 'Speckled ceramic mug',
     notes: 'Matte oatmeal glaze, 12oz. The one from the Saturday market stall.',
     source_type: 'manual',
@@ -90,7 +98,7 @@ const seedItems: WishlistItem[] = [
     id: 'demo-socks',
     wishlist_id: DEMO_WISHLIST_ID,
     image_path: null,
-    image_url: 'https://picsum.photos/seed/giftdecider-socks/800/800',
+    image_url: demoImageUri('demo-socks'),
     title: 'Merino hiking socks',
     notes: 'Crew height. Not the thin dress ones.',
     source_type: 'instagram',
@@ -120,7 +128,7 @@ const seedItems: WishlistItem[] = [
     id: 'demo-book',
     wishlist_id: DEMO_WISHLIST_ID,
     image_path: null,
-    image_url: 'https://picsum.photos/seed/giftdecider-book/800/800',
+    image_url: demoImageUri('demo-book'),
     title: 'Weeknight cookbook',
     notes: 'Something with actual weeknight timing, not 40-ingredient flex.',
     source_type: 'url',
@@ -150,7 +158,7 @@ const seedItems: WishlistItem[] = [
     id: 'demo-plant',
     wishlist_id: DEMO_WISHLIST_ID,
     image_path: null,
-    image_url: 'https://picsum.photos/seed/giftdecider-plant/800/800',
+    image_url: demoImageUri('demo-plant'),
     title: 'A plant that can survive me',
     notes: 'Snake plant or pothos. Nursery pickup is fine.',
     source_type: 'manual',
@@ -180,7 +188,7 @@ const seedItems: WishlistItem[] = [
     id: 'demo-espresso',
     wishlist_id: DEMO_WISHLIST_ID,
     image_path: null,
-    image_url: 'https://picsum.photos/seed/giftdecider-espresso/800/800',
+    image_url: demoImageUri('demo-espresso'),
     title: 'Home espresso machine',
     notes: 'Compact, not a café two-group. Happy with a solid entry machine.',
     source_type: 'manual',
@@ -210,7 +218,7 @@ const seedItems: WishlistItem[] = [
     id: 'demo-grinder',
     wishlist_id: DEMO_WISHLIST_ID,
     image_path: null,
-    image_url: 'https://picsum.photos/seed/giftdecider-grinder/800/800',
+    image_url: demoImageUri('demo-grinder'),
     title: 'Burr coffee grinder',
     notes: 'Stepless, not a blade. Pairs with the espresso machine if friends go in together.',
     source_type: 'manual',
@@ -240,7 +248,7 @@ const seedItems: WishlistItem[] = [
     id: 'demo-throw',
     wishlist_id: DEMO_WISHLIST_ID,
     image_path: null,
-    image_url: 'https://picsum.photos/seed/giftdecider-throw/800/800',
+    image_url: demoImageUri('demo-throw'),
     title: 'Washed linen throw',
     notes: 'Oatmeal or sage. Nothing neon. The listing they saved is gone.',
     source_type: 'url',
@@ -305,7 +313,7 @@ const seedNotices: OrganiserNotice[] = [
     item_id: 'demo-grinder',
     kind: 'ready_to_buy',
     title: 'Funded — time to buy',
-    body: 'Pledges hit the target. Buy it, then mark purchased and pick delivery. The recipient still will not see who chipped in until the reveal date.',
+    body: 'Pledges hit the target. Buy it, then mark purchased and pick delivery. The recipient still will not see who shared the cost until the reveal date.',
     email_preview: [
       'Subject: Funded — time to buy Burr coffee grinder',
       '',
@@ -580,7 +588,7 @@ function recordReadyToBuyNotice(item: WishlistItem) {
     item_id: item.id,
     kind: 'ready_to_buy',
     title: 'Funded — time to buy',
-    body: `Pledges hit the target. ${pickOrganiserName(item)} should buy it, then mark purchased and pick delivery. The recipient still will not see who chipped in until the reveal date.`,
+    body: `Pledges hit the target. ${pickOrganiserName(item)} should buy it, then mark purchased and pick delivery. The recipient still will not see who shared the cost until the reveal date.`,
     email_preview: `Subject: ${preview.subject}\n\n${preview.text}`,
     created_at: now(),
   };
@@ -869,7 +877,7 @@ export function simulateDemoReveal(itemId: string, which: DemoRevealShift): Wish
 }
 
 export function addDemoPledge(itemId: string, amount: number, displayName?: string | null): ItemPledge {
-  if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter an amount to chip in');
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter an amount to share');
   adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');

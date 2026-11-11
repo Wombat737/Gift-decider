@@ -14,18 +14,18 @@ const SUNROOM_CREAM = '#F7F1E8';
 const SUNROOM_MOSS = '#2F6B5A';
 const SUNROOM_CORAL = '#E07A5F';
 
-describe('Coral Coast design tokens', () => {
-  it('locks off-white chrome, white cards, coral brand, and sunshine chip-in', () => {
-    assert.equal(CoralCoast.bg, '#FAFAFA');
-    assert.equal(CoralCoast.surface, '#FFFFFF');
-    assert.equal(CoralCoast.paper, '#FAFAFA');
-    assert.equal(CoralCoast.ink, '#171717');
-    assert.equal(CoralCoast.brand, '#E85D4C');
-    assert.equal(CoralCoast.brandSoft, '#FFE8E4');
-    assert.equal(CoralCoast.accent, '#F5B942');
-    assert.equal(CoralCoast.accentSoft, '#FFF3D1');
-    assert.equal(CoralCoast.border, '#E5E5E5');
-    assert.equal(CoralCoast.success, '#059669');
+describe('Sunday Edition design tokens', () => {
+  it('locks paper, card, rule, stone, muted, ink, and oxblood', () => {
+    assert.equal(CoralCoast.bg, '#F3EFE6');
+    assert.equal(CoralCoast.surface, '#FBF9F4');
+    assert.equal(CoralCoast.paper, '#F3EFE6');
+    assert.equal(CoralCoast.ink, '#1A1714');
+    assert.equal(CoralCoast.brand, '#7A1F2B');
+    assert.equal(CoralCoast.brandSoft, '#E4DCCC');
+    assert.equal(CoralCoast.accent, '#7A1F2B');
+    assert.equal(CoralCoast.accentSoft, '#E4DCCC');
+    assert.equal(CoralCoast.border, '#D9D2C4');
+    assert.equal(CoralCoast.stone, '#E4DCCC');
   });
 
   it('does not keep Sunroom cream/moss or Citrus Lane lemon wash', () => {
@@ -41,9 +41,9 @@ describe('Coral Coast design tokens', () => {
   });
 
   it('keeps the dark palette on the same off-white chrome', () => {
-    assert.equal(CoralCoastDark.bg, '#FAFAFA');
-    assert.equal(CoralCoastDark.surface, '#FFFFFF');
-    assert.equal(CoralCoastDark.paper, '#FAFAFA');
+    assert.equal(CoralCoastDark.bg, '#F3EFE6');
+    assert.equal(CoralCoastDark.surface, '#FBF9F4');
+    assert.equal(CoralCoastDark.paper, '#F3EFE6');
     assert.notEqual(CoralCoastDark.bg, '#16201C');
     assert.notEqual(CoralCoastDark.bg, '#0C1716');
   });
@@ -89,17 +89,17 @@ describe('Coral Coast colour law — no success/purchased/reserved on owner view
   });
 });
 
-describe('Headings use the existing sans — no Fraunces / serif titles', () => {
-  it('title, heading, and moment styles use Fonts.sans', () => {
+describe('Headlines use Instrument Serif and UI uses Inter', () => {
+  it('title, heading, and moment styles use Fonts.serif', () => {
     const text = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/themed-text.tsx'), 'utf8');
-    for (const name of ['heading', 'title', 'moment', 'momentSmall']) {
+    for (const name of ['heading', 'title', 'moment']) {
       const block = text.match(new RegExp(`${name}:\\s*\\{([\\s\\S]*?)\\n  \\},`))?.[1] ?? '';
-      assert.match(block, /fontFamily: Fonts\.sans/);
-      assert.equal(/Fonts\.display/.test(block), false);
+      assert.match(block, /fontFamily: Fonts\.serif/);
     }
+    assert.match(text, /FontFamilies\.sans/);
   });
 
-  it('does not load Fraunces or pin display to a serif stack', () => {
+  it('loads Instrument Serif and Inter, not Fraunces', () => {
     const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../global.css'), 'utf8');
     const fonts = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/web-fonts.tsx'), 'utf8');
     const html = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../app/+html.tsx'), 'utf8');
@@ -107,10 +107,11 @@ describe('Headings use the existing sans — no Fraunces / serif titles', () => 
     assert.equal(css.includes('Fraunces'), false);
     assert.equal(fonts.includes('Fraunces'), false);
     assert.equal(html.includes('Fraunces'), false);
-    assert.match(css, /--font-display:\s*var\(--font-sans\)/);
-    assert.match(theme, /display: 'var\(--font-sans\)'/);
-    assert.equal(/display: 'Georgia'/.test(theme), false);
-    assert.equal(/display: 'serif'/.test(theme), false);
+    assert.match(css, /--font-display:\s*var\(--font-serif\)/);
+    assert.match(css, /Instrument Serif/);
+    assert.match(fonts, /Instrument\+Serif/);
+    assert.match(theme, /InstrumentSerif_400Regular/);
+    assert.match(theme, /Inter_400Regular/);
   });
 });
 

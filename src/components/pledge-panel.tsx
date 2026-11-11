@@ -156,7 +156,7 @@ export function PledgePanel({
             </ThemedText>
           ))}
           <TextField
-            label="Chip in (AUD)"
+            label="Share the cost (AUD)"
             keyboardType="decimal-pad"
             placeholder="40"
             value={amount}
@@ -269,7 +269,7 @@ export function PledgePanel({
                 />
               ) : (
                 <ThemedText type="bodyEm" themeColor="brand">
-                  Bought. They still only see who chipped in on {revealLabel}.
+                  Bought. They still only see who shared the cost on {revealLabel}.
                 </ThemedText>
               )}
             </>
@@ -278,7 +278,7 @@ export function PledgePanel({
             label="Reveal date"
             value={editDate}
             onChange={setEditDate}
-            hint="If you’re giving it on Saturday, pick Sunday so they see who chipped in the day after."
+            hint="If you’re giving it on Saturday, pick Sunday so they see who shared the cost the day after."
             accessibilityLabel="group-gift-reveal-date"
           />
           <Button label="Save reveal date" variant="secondary" disabled={busy} onPress={saveRevealDate} />
@@ -313,7 +313,7 @@ export function PledgePanel({
       ) : (
         <>
           <DateField
-            label="When should they see who chipped in?"
+            label="When should they see who shared the cost?"
             value={draftDate}
             onChange={setDraftDate}
             hint="Pick the day after you give the gift so they stay surprised until then."

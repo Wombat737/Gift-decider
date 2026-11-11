@@ -16,6 +16,8 @@ export type Profile = {
   discoverability: Discoverability;
   /** Owner-only. Never send this array to a giver-facing payload. */
   taste_tags: string[];
+  /** Public photo. Missing until the profile migration is applied. */
+  avatar_url?: string | null;
   /**
    * Set when this person agreed to the Terms. Null means the column exists and
    * they have not agreed. Undefined means an older server without the column.

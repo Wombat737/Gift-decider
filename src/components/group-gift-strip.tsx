@@ -71,7 +71,7 @@ export function GroupGiftStrip({ item, trickleKey = 0 }: GroupGiftStripProps) {
 
   const amountLine = target
     ? `${formatAud(total)} of ${formatAud(target)} · ${mates} ${mates === 1 ? 'mate' : 'mates'}`
-    : `${formatAud(total)} chipped in · ${mates} ${mates === 1 ? 'mate' : 'mates'}`;
+    : `${formatAud(total)} shared · ${mates} ${mates === 1 ? 'mate' : 'mates'}`;
 
   return (
     <View style={styles.wrap} accessibilityLabel="group-gift-strip">
