@@ -118,7 +118,8 @@ describe('Stage home', () => {
     assert.match(source('components/stage-giver-card.tsx'), /PrettyCopy\.giverChooseCta/);
     assert.match(giver, /PrettyCopy\.giverEmptyTitle/);
     assert.match(giver, /PrettyCopy\.giverEmptyCta/);
-    assert.match(giver, /StageGiverCard/);
+    assert.match(giver, /GiverFeature/);
+    assert.match(giver, /PrettyCopy\.claimCta/);
     assert.match(giver, /Search gifts/);
     assert.equal(/ItemGrid[^S]/.test(giver), false);
     assert.match(source('components/stage-giver-card.tsx'), /minHeight: 44/);

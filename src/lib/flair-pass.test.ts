@@ -136,7 +136,7 @@ describe('Flair pass (pretty v2) punch-list', () => {
     assert.equal(/emptyKind="owner"/.test(wishlist), false);
     assert.equal(/HeroWash/.test(wishlist), false);
     assert.match(giverList, /PrettyCopy\.giverEmptyTitle/);
-    assert.match(giverList, /StageGiverCard/);
+    assert.match(giverList, /GiverFeature/);
     assert.match(source('components/stage-giver-card.tsx'), /PrettyCopy\.giverChooseCta/);
     assert.equal(/emptyKind="giver"/.test(giverList), false);
     assert.match(share, /kind="invites"/);

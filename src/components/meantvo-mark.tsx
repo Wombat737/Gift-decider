@@ -18,16 +18,16 @@ type HeaderTone = 'onLight' | 'onCoral';
 export function MonogramMark({ size }: { size: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 1024 1024">
-      <Rect width={1024} height={1024} rx={230} fill={CoralCoast.brand} />
+      <Rect width={1024} height={1024} rx={230} fill={CoralCoast.ink} />
       <Path
         d="M318 704 V352 L512 566 L706 352 V704"
         fill="none"
-        stroke={CoralCoast.brandText}
+        stroke={CoralCoast.paper}
         strokeWidth={128}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Circle cx={512} cy={350} r={42} fill={CoralCoast.brandText} />
+      <Circle cx={512} cy={350} r={42} fill={CoralCoast.brand} />
     </Svg>
   );
 }

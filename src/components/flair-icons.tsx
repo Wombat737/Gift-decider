@@ -17,7 +17,9 @@ export type FlairIconName =
   | 'lists'
   | 'people'
   | 'search'
-  | 'settings';
+  | 'settings'
+  | 'bell'
+  | 'chat';
 
 type FlairIconProps = {
   name: FlairIconName;
@@ -99,6 +101,13 @@ export function FlairIcon({ name, color, size = 24, active = false }: FlairIconP
           <Circle cx="11" cy="11" r="5.5" {...common} />
           <Path d="M15.5 15.5 L20 20" {...common} />
         </>
+      ) : name === 'bell' ? (
+        <>
+          <Path d="M6 9a6 6 0 0 1 12 0c0 7 2.5 8 2.5 8H3.5S6 16 6 9" {...common} />
+          <Path d="M10 20a2 2 0 0 0 4 0" {...common} />
+        </>
+      ) : name === 'chat' ? (
+        <Path d="M6 18.5A8 8 0 1 0 5 14L3.5 20Z" {...common} />
       ) : name === 'settings' ? (
         <>
           <Circle cx="12" cy="12" r="3" {...common} />

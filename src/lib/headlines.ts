@@ -13,18 +13,18 @@ export type HeadlineRun = {
 const SUGGESTIONS: Record<OccasionKind, HeadlineSuggestion[]> = {
   birthday: [
     { id: 'birthday-day', text: 'The big *day*' },
-    { id: 'birthday-cake', text: 'Cake, and then some' },
     { id: 'birthday-year', text: 'Another lovely *year*' },
+    { id: 'birthday-cake', text: 'Cake, and then *some*' },
   ],
   christmas: [
-    { id: 'christmas-tree', text: 'Under the *tree*' },
-    { id: 'christmas-quiet', text: 'A quiet *Christmas*' },
-    { id: 'christmas-parcel', text: 'The good parcel' },
+    { id: 'christmas-deck', text: 'Deck the *lists*' },
+    { id: 'christmas-quiet', text: 'Silent night, *loud picks*' },
+    { id: 'christmas-parcel', text: 'The good *parcel*' },
   ],
   housewarming: [
-    { id: 'home-door', text: 'The new *front door*' },
-    { id: 'home-keys', text: 'Keys, at last' },
-    { id: 'home-proper', text: 'Home, *properly*' },
+    { id: 'home-digs', text: 'New digs, *fresh picks*' },
+    { id: 'home-place', text: "There's no place *like it*" },
+    { id: 'home-keys', text: 'Keys, at *last*' },
   ],
   baby: [
     { id: 'baby-hello', text: 'A very small *hello*' },
@@ -65,9 +65,57 @@ export function headlineSuggestions(title?: string | null): HeadlineSuggestion[]
   const base = SUGGESTIONS[kind];
   const age = (title ?? '').match(/\b(1[0-9]|[2-9]|[1-9]0)(?:st|nd|rd|th)?\b/);
   if (kind === 'birthday' && age?.[1] === '40') {
-    return [{ id: 'birthday-forty', text: 'The big *four-oh*' }, ...base.slice(0, 2)];
+    return [
+      { id: 'birthday-forty', text: 'The big *four-oh*' },
+      { id: 'birthday-fabulous', text: 'Forty and *fabulous*' },
+      { id: 'birthday-year', text: 'Another lovely *year*' },
+    ];
+  }
+  if (kind === 'birthday' && age?.[1] === '13') {
+    return [
+      { id: 'birthday-teen', text: 'Officially a *teenager*' },
+      { id: 'birthday-thirteen', text: 'Thirteen, *properly*' },
+      { id: 'birthday-year', text: 'A very good *year*' },
+    ];
   }
   return base;
+}
+
+/**
+ * Sensible headline when the owner has not chosen one.
+ * This is "{Name}'s *{nth}*", not a pun. Suggestions stay unpublished until they tap one.
+ */
+export function defaultHeadline(title?: string | null, ownerName?: string | null) {
+  const plain = (title ?? '').trim() || 'List';
+  const named = plain.match(/^(.+?)['’]s\s+(\d+)(st|nd|rd|th)\b/i);
+  if (named) return `${named[1]}'s *${named[2]}${named[3].toLowerCase()}*`;
+  const age = plain.match(/\b(\d+)(st|nd|rd|th)\b/i);
+  const who = (ownerName ?? '').trim().split(/\s+/)[0];
+  if (age && who) return `${who}'s *${age[1]}${age[2].toLowerCase()}*`;
+  if (who && /birth|bday/i.test(plain)) return `${who}'s *birthday*`;
+  const words = plain.split(/\s+/);
+  if (words.length >= 2) {
+    const last = words.pop();
+    return `${words.join(' ')} *${last}*`;
+  }
+  return who ? `${who}'s *${plain.toLowerCase()}*` : `The *${plain.toLowerCase()}*`;
+}
+
+export function displayHeadline(chosen: string | null | undefined, title?: string | null, ownerName?: string | null) {
+  const picked = chosen?.trim();
+  return picked || defaultHeadline(title, ownerName);
+}
+
+/** Two or three words for the oxblood kicker, not the whole headline. */
+export function kickerPhrase(title?: string | null) {
+  const text = (title ?? '').toLowerCase();
+  if (/christmas|xmas/.test(text)) return 'The big one';
+  if (/\b13(?:th)?\b/.test(text)) return 'Teen spirit';
+  if (/\b40(?:th)?\b|four-oh/.test(text)) return 'Milestone';
+  if (/house|warming/.test(text)) return 'Housewarming';
+  if (/birth|bday/.test(text)) return 'The big one';
+  const words = (title ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 3);
+  return words.join(' ') || 'This list';
 }
 
 /** Split *emphasis* markers. The asterisks are not shown. */
@@ -102,10 +150,8 @@ export function daysUntil(eventOn?: string | null, today = new Date()) {
   return diff;
 }
 
-export function issueKicker(title: string, headline: string | null | undefined, eventOn: string | null | undefined, today = new Date()) {
-  const lead = plainHeadline(headline || '') || title.trim() || 'List';
-  const short = lead.length > 28 ? title.trim() || lead : lead;
-  const base = short.toUpperCase();
+export function issueKicker(title: string, _headline: string | null | undefined, eventOn: string | null | undefined, today = new Date()) {
+  const base = kickerPhrase(title).toUpperCase();
   const days = daysUntil(eventOn, today);
   if (days == null) return base;
   if (days < 0) return `${base} · PASSED`;
@@ -137,14 +183,24 @@ export function orderedIssues(
   });
 }
 
-export function issueDateline(date = new Date()) {
-  const formatted = date.toLocaleDateString('en-AU', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
-  const start = new Date(date.getFullYear(), 0, 1);
-  const dayOfYear = Math.floor((date.getTime() - start.getTime()) / 86400000) + 1;
-  const week = Math.max(1, Math.ceil((dayOfYear + start.getDay()) / 7));
-  return `${formatted} · Issue ${week}`;
+/** Issue number is how many lists are active, not the week of the year. */
+export function issueDateline(date = new Date(), listCount = 1) {
+  const weekday = date.toLocaleDateString('en-AU', { weekday: 'short' }).replace(/\.$/, '').toUpperCase();
+  const month = date.toLocaleDateString('en-AU', { month: 'long' }).toUpperCase();
+  const issue = String(Math.max(1, listCount)).padStart(2, '0');
+  return `${weekday} ${date.getDate()} ${month} · ISSUE NO. ${issue}`;
+}
+
+export function listMetaLine(title: string, eventOn: string | null | undefined, pickCount: number, today = new Date()) {
+  const bits = [title.trim() || 'List'];
+  if (eventOn && /^\d{4}-\d{2}-\d{2}$/.test(eventOn)) {
+    const [year, month, day] = eventOn.split('-').map((part) => Number(part));
+    const when = new Date(year, month - 1, day);
+    const weekday = when.toLocaleDateString('en-AU', { weekday: 'short' }).replace(/\.$/, '');
+    const mon = when.toLocaleDateString('en-AU', { month: 'short' }).replace(/\.$/, '');
+    bits.push(`${weekday} ${when.getDate()} ${mon}`);
+    void today;
+  }
+  bits.push(`${pickCount} pick${pickCount === 1 ? '' : 's'}`);
+  return bits.join(' · ');
 }

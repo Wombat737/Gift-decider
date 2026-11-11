@@ -66,8 +66,8 @@ export function Screen({
       // That UIView is viewport-tall; overflowing Pressables then miss hits.
       collapsable={false}
       style={[styles.inner, padded && styles.padded, style]}>
-      <DemoBanner />
       {children}
+      <DemoBanner />
     </View>
   );
 

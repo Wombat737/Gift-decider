@@ -77,6 +77,6 @@ describe('Meantvo brand assets', () => {
     assert.match(card, /PeelMoment/);
 
     const giverList = source('app/g/[token]/index.tsx');
-    assert.match(giverList, /peelKey=\{ownerPreview \? 0 : peel\.id === item\.id \? peel\.key : 0\}/);
+    assert.match(giverList, /peelKey=\{ownerPreview \? 0 : peel\.id === feature\.id \? peel\.key : 0\}/);
   });
 });

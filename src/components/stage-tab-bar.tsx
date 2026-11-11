@@ -1,70 +1,48 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FlairIcon, type FlairIconName } from '@/components/flair-icons';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { ICON, INK, OXBLOOD, PAPER, CARD, RULE } from '@/components/edition-layout';
 import { useInbox } from '@/context/inbox-context';
-import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
-import { badgeCountLabel } from '@/lib/inbox';
 import { editionTabSelected, type EditionTab } from '@/lib/stage-home';
 
 const TABS: { id: EditionTab; label: string; icon: FlairIconName }[] = [
-  { id: 'lists', label: 'Lists', icon: 'lists' },
+  { id: 'lists', label: 'Lists', icon: 'gift' },
   { id: 'people', label: 'People', icon: 'people' },
   { id: 'search', label: 'Search', icon: 'search' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
 
-export function EditionTopTabs({ pathname }: { pathname: string }) {
-  const theme = useTheme();
-  const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ find?: string | string[] }>();
-  const find = (Array.isArray(params.find) ? params.find[0] : params.find) === '1';
-  const { pendingRequests, newlyReady } = useInbox();
+/** Icon row under the masthead. Oxblood underline on the active tab. */
+export function EditionIconTabs({ pathname, find = false }: { pathname: string; find?: boolean }) {
   const selected = editionTabSelected(pathname, find);
-  const settingsBadge = badgeCountLabel(pendingRequests + newlyReady.length);
-
   return (
-    <View
-      style={[
-        styles.top,
-        {
-          backgroundColor: theme.background,
-          borderBottomColor: theme.border,
-          paddingTop: Math.max(insets.top, Spacing.two),
-        },
-      ]}>
-      {TABS.map((tab) => {
-        const active = selected === tab.id;
-        const color = active ? theme.brand : theme.textSecondary;
-        return (
-          <Pressable
-            key={tab.id}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            accessibilityLabel={tab.id === 'settings' && settingsBadge ? `Settings, ${settingsBadge} new` : tab.label}
-            onPress={() => openTab(tab.id, active)}
-            style={styles.hit}>
-            <FlairIcon name={tab.icon} color={color} size={22} />
-            {tab.id === 'settings' && settingsBadge ? (
-              <View style={[styles.badge, { backgroundColor: theme.brand }]}>
-                <ThemedText type="caption" style={[styles.badgeText, { color: theme.brandText }]}>
-                  {settingsBadge}
-                </ThemedText>
-              </View>
-            ) : null}
-          </Pressable>
-        );
-      })}
+    <View style={styles.tabsWrap}>
+      <View style={styles.tabs}>
+        {TABS.map((tab) => {
+          const active = selected === tab.id;
+          return (
+            <Pressable
+              key={tab.id}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={tab.label}
+              onPress={() => openTab(tab.id, active)}
+              style={styles.tab}>
+              <FlairIcon name={tab.icon} color={active ? INK : ICON} size={22} />
+              {active ? <View style={styles.underline} /> : null}
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 function openTab(id: EditionTab, active: boolean) {
-  if (active) return;
+  if (active && id !== 'search') return;
   if (id === 'lists') {
     router.dismissTo('/wishlist');
     return;
@@ -81,78 +59,134 @@ function openTab(id: EditionTab, active: boolean) {
   router.navigate('/settings');
 }
 
-/** Floating bar. The oxblood plus is the only primary action. */
-export function EditionPlusBar() {
-  const theme = useTheme();
+/** Card dock. The oxblood + sits proud of the row. */
+export function EditionDock({
+  onShare,
+}: {
+  onShare?: () => void;
+}) {
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+  const { pendingRequests } = useInbox();
+  const home = pathname.replace(/\/$/, '') === '/wishlist' || pathname === '/';
 
   return (
-    <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, Spacing.two) }]} pointerEvents="box-none">
-      <View style={[styles.bar, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+    <View pointerEvents="box-none" style={[styles.dockWrap, { paddingBottom: Math.max(insets.bottom, 18) }]}>
+      <View style={styles.dock}>
+        <DockIcon label="Lists" active={home} icon="home" onPress={() => router.dismissTo('/wishlist')} />
+        <DockIcon
+          label={pendingRequests ? `Requests, ${pendingRequests} new` : 'Requests'}
+          icon="bell"
+          onPress={() => router.navigate('/requests')}
+        />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Add a pick"
           onPress={() => router.navigate('/add')}
-          style={[styles.plus, { backgroundColor: theme.brand }]}>
-          <FlairIcon name="add" color={theme.brandText} size={28} />
+          style={styles.plus}>
+          <FlairIcon name="add" color="#FFFFFF" size={28} />
         </Pressable>
+        <DockIcon label="People" icon="chat" onPress={() => router.navigate('/people')} />
+        <DockIcon label="Share" icon="share" onPress={() => (onShare ? onShare() : router.navigate('/share'))} />
       </View>
     </View>
   );
 }
 
+function DockIcon({
+  label,
+  icon,
+  onPress,
+  active = false,
+}: {
+  label: string;
+  icon: FlairIconName;
+  onPress: () => void;
+  active?: boolean;
+}) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.dockHit}>
+      <FlairIcon name={icon} color={active ? INK : ICON} size={22} />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  top: {
-    width: '100%',
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    flexGrow: 0,
-    flexShrink: 0,
+  tabsWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 6,
   },
-  hit: {
+  tabs: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: INK,
+    borderBottomWidth: 1,
+    borderBottomColor: RULE,
+  },
+  tab: {
     flex: 1,
-    minHeight: 44,
+    height: 44,
     minWidth: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.two,
     ...Platform.select({ web: { cursor: 'pointer' as const } }),
   },
-  badge: {
+  underline: {
     position: 'absolute',
-    top: 6,
-    right: '28%',
-    minWidth: 16,
-    height: 16,
-    paddingHorizontal: 4,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    bottom: -1,
+    width: 30,
+    height: 2,
+    backgroundColor: OXBLOOD,
   },
-  badgeText: {
-    fontSize: 10,
-    lineHeight: 12,
+  dockWrap: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 0,
+    alignItems: 'center',
+    zIndex: 20,
   },
   dock: {
     width: '100%',
-    alignItems: 'center',
-    flexGrow: 0,
-    flexShrink: 0,
-  },
-  bar: {
-    marginBottom: Spacing.two,
-    borderRadius: 999,
+    maxWidth: 520,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: CARD,
     borderWidth: 1,
-    padding: Spacing.two,
+    borderColor: RULE,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 8,
+    ...Platform.select({
+      web: { boxShadow: '0 14px 30px -14px rgba(40,30,20,.35)' },
+      default: {
+        shadowColor: '#281E14',
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 10 },
+      },
+    }),
   },
-  plus: {
-    width: 64,
-    height: 64,
+  dockHit: {
+    width: 46,
     minHeight: 44,
-    minWidth: 44,
-    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({ web: { cursor: 'pointer' as const } }),
+  },
+  plus: {
+    width: 66,
+    height: 66,
+    minWidth: 44,
+    minHeight: 44,
+    borderRadius: 33,
+    backgroundColor: OXBLOOD,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -26,
+    borderWidth: 5,
+    borderColor: PAPER,
     ...Platform.select({ web: { cursor: 'pointer' as const } }),
   },
 });

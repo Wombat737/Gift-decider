@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { FirstRun } from '@/components/first-run';
-import { EditionPlusBar, EditionTopTabs } from '@/components/stage-tab-bar';
+import { EditionDock } from '@/components/stage-tab-bar';
 import { exitHeaderOptions } from '@/components/stack-exit-button';
 import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -19,7 +19,6 @@ export default function AppLayout() {
 
   return (
     <View style={[styles.shell, { backgroundColor: theme.background }]}>
-      {chrome ? <EditionTopTabs pathname={pathname} /> : null}
       <View style={styles.stack}>
       <Stack
         screenOptions={{
@@ -41,7 +40,7 @@ export default function AppLayout() {
         <Stack.Screen name="blocked" options={{ title: 'Blocked people' }} />
       </Stack>
       </View>
-      {chrome ? <EditionPlusBar /> : null}
+      {chrome ? <EditionDock /> : null}
       {introOpen ? <FirstRun onDone={() => setIntroOpen(false)} /> : null}
     </View>
   );

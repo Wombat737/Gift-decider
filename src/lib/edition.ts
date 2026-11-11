@@ -66,9 +66,10 @@ export function writeEdition(id: string, patch: Partial<EditionMeta>): EditionMe
 
 /** Explore-demo dates only. Headlines stay empty until someone chooses one. */
 export function demoEventOn(id: string, today = new Date()) {
-  if (id !== 'demo-occasion-birthday') return null;
+  const offset = id === 'demo-occasion-birthday' ? 44 : id === 'demo-occasion-housewarming' ? 143 : 0;
+  if (!offset) return null;
   const event = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  event.setDate(event.getDate() + 44);
+  event.setDate(event.getDate() + offset);
   const month = String(event.getMonth() + 1).padStart(2, '0');
   const day = String(event.getDate()).padStart(2, '0');
   return `${event.getFullYear()}-${month}-${day}`;

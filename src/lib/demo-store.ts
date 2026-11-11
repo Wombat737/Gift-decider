@@ -60,7 +60,7 @@ const seedItems: WishlistItem[] = [
     id: 'demo-mug',
     wishlist_id: DEMO_WISHLIST_ID,
     image_path: null,
-    image_url: 'https://picsum.photos/seed/giftdecider-mug/800/800',
+    image_url: 'https://picsum.photos/seed/giftdecider-mug/1400/1400',
     title: 'Speckled ceramic mug',
     notes: 'Matte oatmeal glaze, 12oz. The one from the Saturday market stall.',
     source_type: 'manual',

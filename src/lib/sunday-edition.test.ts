@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { SundayEdition } from '../constants/coral-coast';
 import { coverMark, nextCoverOverride, resolveCoverTreatment } from './cover';
-import { daysUntil, headlineRuns, headlineSuggestions, issueKicker, occasionKind, plainHeadline } from './headlines';
+import { daysUntil, defaultHeadline, headlineRuns, headlineSuggestions, issueDateline, issueKicker, occasionKind, plainHeadline } from './headlines';
 import { listAsPlainText, storeNameFromUrl } from './list-text';
 import { DEFAULT_PREFS, readAppPrefs, resetMemoryPrefs, writeAppPrefs } from './preferences';
 import { resizeAction } from './prepare-photo';
@@ -23,11 +23,13 @@ describe('Sunday Edition palette', () => {
 describe('Cover fallback', () => {
   it('uses a letter with no photo, a print when the photo is weak, and full bleed otherwise', () => {
     assert.equal(resolveCoverTreatment({ imageUrl: '' }), 'monogram');
-    assert.equal(resolveCoverTreatment({ imageUrl: 'https://cdn.example/a.jpg', width: 320, height: 240 }), 'print');
+    assert.equal(resolveCoverTreatment({ imageUrl: 'https://cdn.example/a.jpg', width: 800, height: 800 }), 'print');
     assert.equal(resolveCoverTreatment({ imageUrl: 'https://cdn.example/a.jpg', width: 1600, height: 1200 }), 'full');
+    assert.equal(resolveCoverTreatment({ imageUrl: 'https://cdn.example/a.jpg', width: 2000, height: 1500, luminance: 0.2 }), 'print');
     assert.equal(resolveCoverTreatment({ imageUrl: 'https://cdn.example/a.jpg', width: 200, height: 200, override: 'full' }), 'full');
     assert.equal(coverMark('Birthday'), 'B');
-    assert.equal(coverMark('40th'), '4');
+    assert.equal(coverMark("Mia's 13th"), '13');
+    assert.equal(coverMark('Housewarming', '2026-12-25'), '25');
     assert.equal(nextCoverOverride('auto'), 'full');
     assert.equal(nextCoverOverride('monogram'), 'auto');
   });
@@ -37,8 +39,12 @@ describe('Headline voice', () => {
   it('suggests a few lines and never treats them as published', () => {
     assert.equal(occasionKind('Birthday'), 'birthday');
     assert.equal(occasionKind('Housewarming'), 'housewarming');
-    const forty = headlineSuggestions('The 40th');
+    const forty = headlineSuggestions("Wade's 40th");
     assert.equal(forty[0]?.text, 'The big *four-oh*');
+    assert.equal(headlineSuggestions("Mia's 13th").some((row) => /unlucky/i.test(row.text)), false);
+    assert.equal(defaultHeadline("Mia's 13th", 'Jordan'), "Mia's *13th*");
+    assert.equal(defaultHeadline('Birthday', 'Jordan'), "Jordan's *birthday*");
+    assert.equal(issueDateline(new Date(2026, 10, 11), 4), 'WED 11 NOVEMBER · ISSUE NO. 04');
     assert.equal(plainHeadline('The big *four-oh*'), 'The big four-oh');
     assert.deepEqual(headlineRuns('The big *four-oh*'), [
       { text: 'The big ', emphasis: false },
@@ -52,8 +58,8 @@ describe('Headline voice', () => {
   it('builds a kicker with a day count when a date is set', () => {
     const today = new Date(2026, 10, 11);
     assert.equal(daysUntil('2026-12-25', today), 44);
-    assert.equal(issueKicker('Birthday', null, '2026-12-25', today), 'BIRTHDAY · 44 DAYS');
-    assert.equal(issueKicker('Birthday', 'The big *day*', '2026-12-25', today), 'THE BIG DAY · 44 DAYS');
+    assert.equal(issueKicker('Birthday', null, '2026-12-25', today), 'THE BIG ONE · 44 DAYS');
+    assert.equal(issueKicker('Birthday', 'The big *day*', '2026-12-25', today), 'THE BIG ONE · 44 DAYS');
   });
 });
 
