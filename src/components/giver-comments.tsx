@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { PersonAvatar } from '@/components/person-avatar';
 import { Card } from '@/components/card';
 import { HelpTip } from '@/components/help-tip';
 import { NativePressable } from '@/components/native-pressable';
@@ -28,6 +29,7 @@ import {
   unreadMentionCount,
 } from '@/lib/giver-social';
 import type { CommentTagCandidate, ItemGiverComment } from '@/lib/types';
+import { loadAvatars } from '@/services/avatars';
 import { acceptTerms, getOwnProfile } from '@/services/profile';
 import {
   blockGiver,
@@ -56,6 +58,7 @@ type GiverCommentsProps = {
 export function GiverComments({ itemId, ownerName, loggedIn, userId, demoGiverPersona }: GiverCommentsProps) {
   const theme = useTheme();
   const [comments, setComments] = useState<ItemGiverComment[]>([]);
+  const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [candidates, setCandidates] = useState<CommentTagCandidate[]>([]);
   const [body, setBody] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -122,6 +125,12 @@ export function GiverComments({ itemId, ownerName, loggedIn, userId, demoGiverPe
     markedRead.current = itemId;
     void markItemGiverCommentMentionsRead(itemId);
   }, [canPost, comments, itemId]);
+
+  useEffect(() => {
+    const ids = comments.map((comment) => comment.author_id);
+    if (ids.length === 0) return;
+    void loadAvatars(ids).then(setAvatars).catch(() => setAvatars({}));
+  }, [comments]);
 
   const query = mentionQueryAt(body, cursor);
   const suggestions = query == null ? [] : filterTagCandidates(candidates, query);
@@ -292,6 +301,7 @@ export function GiverComments({ itemId, ownerName, loggedIn, userId, demoGiverPe
             <View key={thread.comment.id} style={styles.thread}>
               <CommentRow
                 comment={thread.comment}
+                avatarUri={avatars[thread.comment.author_id]}
                 userId={userId}
                 busy={busy}
                 onReply={() => {
@@ -315,6 +325,7 @@ export function GiverComments({ itemId, ownerName, loggedIn, userId, demoGiverPe
                 <View key={reply.id} style={[styles.reply, { borderLeftColor: theme.border }]}>
                   <CommentRow
                     comment={reply}
+                    avatarUri={avatars[reply.author_id]}
                     userId={userId}
                     busy={busy}
                     onEdit={() => {
@@ -458,6 +469,7 @@ export function GiverComments({ itemId, ownerName, loggedIn, userId, demoGiverPe
 
 function CommentRow({
   comment,
+  avatarUri,
   userId,
   busy,
   onReply,
@@ -467,6 +479,7 @@ function CommentRow({
   onBlock,
 }: {
   comment: ItemGiverComment;
+  avatarUri?: string | null;
   userId?: string | null;
   busy: boolean;
   onReply?: () => void;
@@ -490,6 +503,7 @@ function CommentRow({
       ]}
       accessibilityLabel={comment.unread ? 'New mention' : undefined}>
       <View style={styles.authorRow}>
+        <PersonAvatar name={comment.author_display_name} uri={avatarUri} size={32} />
         {comment.unread ? (
           <View style={[styles.dot, { backgroundColor: theme.brand }]} accessibilityLabel="Unread" />
         ) : null}
@@ -500,7 +514,7 @@ function CommentRow({
           </ThemedText>
         ) : null}
       </View>
-      <ThemedText>
+      <ThemedText type="titleSm" style={styles.quote}>
         {parts.map((part, index) =>
           part.kind === 'tag' ? (
             <ThemedText
@@ -629,6 +643,11 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: '100%',
     minWidth: 0,
+  },
+  quote: {
+    borderLeftWidth: 2,
+    borderLeftColor: '#D9D2C4',
+    paddingLeft: Spacing.two,
   },
   comment: {
     gap: Spacing.one,

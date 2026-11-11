@@ -24,6 +24,7 @@ export default function PasteInstagramScreen() {
   const [imageFallback, setImageFallback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoHeld, setPhotoHeld] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const request = useRef(0);
@@ -83,6 +84,14 @@ export default function PasteInstagramScreen() {
       <FlowHeader title="Paste a public post" />
 
       <TextField
+        label="Title"
+        placeholder="The exact thing, or the vibe"
+        value={title}
+        loading={busy}
+        onChangeText={setTitle}
+      />
+
+      <TextField
         label="Public Instagram URL"
         autoCapitalize="none"
         autoCorrect={false}
@@ -102,19 +111,13 @@ export default function PasteInstagramScreen() {
 
       <Button label={busy ? 'Working…' : 'Preview'} disabled={busy || photoBusy} onPress={() => void onPreview()} />
 
-      <TextField
-        label="Title"
-        placeholder="The exact thing, or the vibe"
-        value={title}
-        loading={busy}
-        onChangeText={setTitle}
-      />
       <PhotoField
         value={imageUrl}
         fallbackUrl={imageFallback}
         referrer={looksLikeCompleteBuyUrl(url) ? url : undefined}
         onChange={setImageUrl}
         onBusyChange={setPhotoBusy}
+        onHoldChange={setPhotoHeld}
         onRemoteError={() => {
           if (!looksLikeCompleteBuyUrl(url) || !imageUrl.trim()) return;
           void mirrorPreviewImage(url, imageUrl).then((stored) => {
@@ -137,7 +140,7 @@ export default function PasteInstagramScreen() {
         </ThemedText>
       ) : null}
 
-      <Button label="Pin as wishlist item" onPress={() => void onPin()} disabled={busy || photoBusy} />
+      <Button label="Pin as wishlist item" onPress={() => void onPin()} disabled={busy || photoBusy || photoHeld} />
     </Screen>
   );
 }

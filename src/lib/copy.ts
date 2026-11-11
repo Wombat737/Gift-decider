@@ -5,8 +5,8 @@ export const PrettyCopy = {
   ownerEmptyTitle: 'What moves you?',
   ownerEmptyBody: 'Add bits that feel like you…',
   ownerEmptyCta: 'Add a pick',
-  ownerHomeTitle: 'Your picks',
-  ownerSection: 'On your picks',
+  ownerHomeTitle: 'Your lists',
+  ownerSection: 'Also in this issue',
   ownerShareLink: 'Send to whoever’s choosing',
   previewGiverLink: 'Preview giver view',
   givenNamePrompt: 'What should we call you?',
@@ -19,7 +19,7 @@ export const PrettyCopy = {
   giverEmptyBody: 'Ask them to add a few bits that feel like them.',
   giverEmptyCta: 'Nudge them',
   giverHeadline: 'They’re set · you decide',
-  giverHomeIntro: 'A few things that feel like them. Pick one — or chip in with the mates.',
+  giverHomeIntro: 'A few things that feel like them. Pick one — or share the cost with the mates.',
   giverChooseCta: 'Choose this',
   giverSoftLockCta: 'Mark soft-locked',
   giverChoosing: 'Choosing',
@@ -35,15 +35,15 @@ export const PrettyCopy = {
   readyToBuyHint: 'Pledges hit the target. The organiser should buy it.',
   claimTaken: 'Already reserved — take it?',
   releaseReservation: 'Release reservation',
-  chipInCta: 'Chip in',
+  chipInCta: 'Share the cost',
   chipInHonour: 'PayID on honour — tick off what you’ve sent.',
   softLock: 'You’ve got this one.',
   purchasedGiver: 'Bought — nice one.',
-  revealDay: 'The mates chipped in — here’s who.',
+  revealDay: 'The mates shared the cost — here’s who.',
   peopleTitle: 'People you buy for',
   peopleEmptyTitle: 'Who are you buying for?',
   peopleEmptyBody:
-    'Search their Coral Coast handle or email. Pin is private — you only see gifts after they accept.',
+    'Search their handle or email. Pin is private — you only see gifts after they accept.',
   peopleCta: 'Add someone',
   requestsTitle: 'Giver requests',
   requestsBannerCta: 'Review requests',
@@ -51,7 +51,14 @@ export const PrettyCopy = {
   removeGiftTitle: 'Remove this pick?',
   removeGiftBody: 'Mates will no longer see it after they refresh. You can add it again later.',
   commentsHint: 'Only other givers see this — not them.',
+  copyAsText: 'Copy as text',
+  autofillSetting: 'Fill in from shop links',
 } as const;
+
+export function cantSeeLine(name?: string | null) {
+  const who = (name ?? '').trim() || 'They';
+  return `${who} can’t see who’s getting what.`;
+}
 
 export function mateNudgeMessage() {
   return 'Your Meantvo list is quiet — add a few bits so we can buy?';

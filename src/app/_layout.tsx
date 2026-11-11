@@ -1,8 +1,19 @@
+import {
+  InstrumentSerif_400Regular,
+  InstrumentSerif_400Regular_Italic,
+} from '@expo-google-fonts/instrument-serif';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 import { DefaultTheme, ThemeProvider } from 'expo-router';
 import { Stack } from 'expo-router';
+import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
@@ -23,6 +34,15 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  const [fontsReady, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
+  });
+
   return (
     <GestureHandlerRootView style={styles.root}>
       <AuthProvider>
@@ -30,7 +50,7 @@ export default function RootLayout() {
           <InboxProvider>
             <WebFonts />
             <SplashController />
-            <ThemedRoot />
+            {fontsReady || fontError ? <ThemedRoot /> : <View style={styles.root} />}
           </InboxProvider>
         </WishlistProvider>
       </AuthProvider>

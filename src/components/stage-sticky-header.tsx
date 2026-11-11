@@ -21,7 +21,7 @@ const LINKS = [
 ];
 
 /** Greeting, list title, and People / Requests / Settings. Stays pinned above the scroll. */
-export function StageStickyHeader({ title }: { title: string }) {
+export function StageStickyHeader({ title, links = true }: { title: string; links?: boolean }) {
   const theme = useTheme();
   const pathname = usePathname();
   const { user } = useAuth();
@@ -72,7 +72,7 @@ export function StageStickyHeader({ title }: { title: string }) {
       <ThemedText type="display" accessibilityRole="header" style={styles.title}>
         {title}
       </ThemedText>
-      <View style={styles.bar}>
+      {links ? <View style={styles.bar}>
         {LINKS.map((link) => {
           const on = active === link.id;
           const count = counts[link.id];
@@ -105,7 +105,7 @@ export function StageStickyHeader({ title }: { title: string }) {
             </NativePressable>
           );
         })}
-      </View>
+      </View> : null}
     </View>
   );
 }

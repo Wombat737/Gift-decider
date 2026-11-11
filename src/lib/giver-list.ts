@@ -53,7 +53,7 @@ export function groupGiftCardProgress(item: WishlistItem): { ratio: number; labe
   const target = giverPriceAmount(item);
   const ready = phase === 'ready_to_buy';
   if (target == null) {
-    const amount = `${formatAudQuiet(total)} chipped in`;
+    const amount = `${formatAudQuiet(total)} shared`;
     return {
       ratio: pledgeFillRatio(item),
       label: ready ? `${amount} · Ready to buy` : amount,

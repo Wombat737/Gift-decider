@@ -1,16 +1,17 @@
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 
 import { usesDemoData } from '@/lib/app-mode';
+import { env } from '@/lib/env';
 import {
   WISHLIST_IMAGE_MAX_BYTES,
   WISHLIST_IMAGES_BUCKET,
-  arrayBufferFromBase64,
   dataUrlFromBase64,
-  extFromMime,
   mimeFromFile,
   wishlistImageObjectPath,
 } from '@/lib/item-image';
+import { PHOTO_JPEG_QUALITY, resizeAction } from '@/lib/prepare-photo';
 import { supabase } from '@/lib/supabase';
 
 export type GiftPhotoSource = 'library' | 'camera';
@@ -18,15 +19,35 @@ export type GiftPhotoSource = 'library' | 'camera';
 function pickerOptions(): ImagePicker.ImagePickerOptions {
   return {
     mediaTypes: ['images'],
-    quality: 0.72,
+    // Skip the picker's full-size JPEG+base64 encode. We resize before upload.
+    quality: 1,
     allowsMultipleSelection: false,
     exif: false,
-    // Library photos are HEIC. `compatible` asks iOS for a JPEG, and `base64` is
-    // always JPEG even when the file copy stays HEIC. Camera already returns JPEG.
-    base64: true,
+    base64: false,
     preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     shouldDownloadFromNetwork: true,
   };
+}
+
+export type PhotoProgress = (fraction: number) => void;
+
+/** Resize to 1600px and recompress. Full-size base64 uploads were the slow path. */
+export async function compressGiftPhoto(uri: string, knownWidth = 0, knownHeight = 0) {
+  const format = ImageManipulator.SaveFormat.JPEG;
+  let width = knownWidth;
+  let height = knownHeight;
+  let source = uri;
+  if (width <= 0 || height <= 0) {
+    const probe = await ImageManipulator.manipulateAsync(uri, [], { compress: 1, format });
+    width = probe.width;
+    height = probe.height;
+    source = probe.uri;
+  }
+  const action = resizeAction(width, height);
+  return ImageManipulator.manipulateAsync(source, action ? [action] : [], {
+    compress: PHOTO_JPEG_QUALITY,
+    format,
+  });
 }
 
 function fileToDataUrl(file: Blob, mime?: string | null): Promise<string> {
@@ -134,67 +155,79 @@ export async function pickGiftPhoto(source: GiftPhotoSource): Promise<ImagePicke
   }
 }
 
-async function persistLocalPhoto(asset: ImagePicker.ImagePickerAsset): Promise<string> {
-  if (asset.base64) return dataUrlFromBase64(asset.base64, asset.mimeType);
-  if (asset.uri.startsWith('data:image/')) return asset.uri;
-  if (asset.file) return fileToDataUrl(asset.file, asset.mimeType);
-  try {
-    const response = await fetch(asset.uri);
-    if (!response.ok) return asset.uri;
-    const blob = await response.blob();
-    return await fileToDataUrl(blob, asset.mimeType || blob.type);
-  } catch {
-    return asset.uri;
-  }
-}
-
-async function bodyFromAsset(asset: ImagePicker.ImagePickerAsset): Promise<{
-  body: ArrayBuffer;
-  contentType: string;
-  ext: string;
-}> {
-  // Prefer the picker's JPEG base64. A camera-roll HEIC file is often over 8MB
-  // and the public URL then fails to paint, which is why library looked broken.
-  if (asset.base64) {
-    const body = arrayBufferFromBase64(asset.base64);
-    return { body, contentType: 'image/jpeg', ext: 'jpg' };
-  }
-
-  const contentType = mimeFromFile(asset.file?.type || asset.mimeType, asset.fileName);
-  const ext = extFromMime(contentType, asset.fileName);
-
-  if (asset.file) {
-    const body = await asset.file.arrayBuffer();
-    return { body, contentType, ext };
-  }
-
-  const response = await fetch(asset.uri);
+async function blobFromUri(uri: string) {
+  const response = await fetch(uri);
   if (!response.ok) throw new Error('Couldn’t read that photo');
-  const body = await response.arrayBuffer();
-  return { body, contentType, ext };
+  const blob = await response.blob();
+  if (blob.size === 0) throw new Error('Couldn’t read that photo');
+  return blob;
 }
 
-export async function uploadGiftPhoto(asset: ImagePicker.ImagePickerAsset): Promise<string> {
-  if (usesDemoData() || !supabase) return persistLocalPhoto(asset);
+function uploadErrorMessage(status: number) {
+  if (status === 401 || status === 403) return 'Sign in again to add a photo';
+  if (status === 413) return 'That photo is still too large. Try another.';
+  return 'Couldn’t upload that photo. Check your connection and try again.';
+}
 
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id;
-  if (!userId) throw new Error('Sign in to add a photo');
-
-  const { body, contentType, ext } = await bodyFromAsset(asset);
-  if (body.byteLength > WISHLIST_IMAGE_MAX_BYTES) {
-    throw new Error('That photo is too large (8MB max)');
-  }
-  if (body.byteLength === 0) throw new Error('Couldn’t read that photo');
-
-  const path = wishlistImageObjectPath(userId, ext);
-  const { error } = await supabase.storage.from(WISHLIST_IMAGES_BUCKET).upload(path, body, {
-    contentType,
-    upsert: false,
+function uploadWithProgress(path: string, body: Blob, token: string, onProgress?: PhotoProgress) {
+  const endpoint = `${env.supabaseUrl.replace(/\/$/, '')}/storage/v1/object/${WISHLIST_IMAGES_BUCKET}/${path}`;
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', endpoint);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('apikey', env.supabaseAnonKey);
+    xhr.setRequestHeader('Content-Type', 'image/jpeg');
+    xhr.setRequestHeader('x-upsert', 'false');
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(event.loaded / event.total);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(uploadErrorMessage(xhr.status)));
+    };
+    xhr.onerror = () => reject(new Error('Couldn’t upload that photo. Check your connection and try again.'));
+    xhr.send(body);
   });
-  if (error) throw new Error('Couldn’t upload that photo');
+}
+
+export async function uploadGiftPhoto(asset: ImagePicker.ImagePickerAsset, onProgress?: PhotoProgress): Promise<string> {
+  onProgress?.(0.05);
+  const prepared = await compressGiftPhoto(asset.uri, asset.width ?? 0, asset.height ?? 0).catch(() => null);
+  if (!prepared) throw new Error('Couldn’t prepare that photo. Try a different one.');
+  onProgress?.(0.3);
+
+  if (usesDemoData() || !supabase) {
+    const blob = await blobFromUri(prepared.uri);
+    const dataUrl = await fileToDataUrl(blob, 'image/jpeg');
+    onProgress?.(1);
+    return dataUrl;
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  const userId = sessionData.session?.user?.id;
+  if (!token || !userId) throw new Error('Sign in to add a photo');
+
+  const blob = await blobFromUri(prepared.uri);
+  if (blob.size > WISHLIST_IMAGE_MAX_BYTES) {
+    throw new Error('That photo is still too large after compressing. Try another.');
+  }
+
+  const path = wishlistImageObjectPath(userId, 'jpg');
+  try {
+    await uploadWithProgress(path, blob, token, (fraction) => onProgress?.(0.3 + fraction * 0.65));
+  } catch (err) {
+    // Fall back to the client upload if XHR is blocked, still using the small JPEG.
+    const body = await blob.arrayBuffer();
+    const { error } = await supabase.storage.from(WISHLIST_IMAGES_BUCKET).upload(path, body, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    });
+    if (error) throw err instanceof Error ? err : new Error('Couldn’t upload that photo');
+  }
 
   const { data } = supabase.storage.from(WISHLIST_IMAGES_BUCKET).getPublicUrl(path);
   if (!data.publicUrl) throw new Error('Couldn’t upload that photo');
+  onProgress?.(1);
   return data.publicUrl;
 }

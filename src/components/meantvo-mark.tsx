@@ -27,7 +27,7 @@ export function MonogramMark({ size }: { size: number }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Circle cx={512} cy={350} r={42} fill={CoralCoast.accent} />
+      <Circle cx={512} cy={350} r={42} fill={CoralCoast.brandText} />
     </Svg>
   );
 }
@@ -68,7 +68,7 @@ export function MeantvoHeaderMark({
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <Circle cx={512} cy={350} r={42} fill={CoralCoast.accent} />
+          <Circle cx={512} cy={350} r={42} fill={stroke} />
         </G>
         <G transform={onCoral ? 'translate(24, 0)' : undefined}>
           <Path fill={word} d={WORDMARK} />

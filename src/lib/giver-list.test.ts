@@ -191,7 +191,7 @@ describe('giver list price, sort, and available filter', () => {
     assert.equal(thumb.includes('brandSoft'), false);
     assert.equal(thumb.includes('brandInk'), false);
     assert.match(source('components/item-fields.tsx'), /Price \(AUD, optional\)/);
-    assert.match(source('components/item-fields.tsx'), /chip-in goal for a group gift/);
+    assert.match(source('components/item-fields.tsx'), /share the cost/);
     assert.match(source('app/g/[token]/index.tsx'), /presentGiverList/);
     assert.match(source('app/g/[token]/index.tsx'), /GiverListControls/);
     const controls = source('components/giver-list-controls.tsx');

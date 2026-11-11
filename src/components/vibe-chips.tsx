@@ -16,6 +16,20 @@ export const SUGGESTED_VIBES = [
   'practical',
   'home',
   'coffee',
+  'books',
+  'games',
+  'music',
+  'sport',
+  'garden',
+  'travel',
+  'art',
+  'learning',
+  'treats',
+  'handmade',
+  'bright',
+  'calm',
+  'adventure',
+  'school',
 ];
 
 type VibeChipsProps = {

@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Switch, View } from 'react-native';
 
 import { openPrivacyPolicy } from '@/components/legal-links';
 import { Button } from '@/components/button';
@@ -20,7 +20,10 @@ import { acceptBannerText, requestBannerText } from '@/lib/inbox';
 import { track } from '@/lib/analytics';
 import { env } from '@/lib/env';
 import { deleteOwnAccount } from '@/services/account';
+import { readAppPrefs, writeAppPrefs } from '@/lib/preferences';
 import { getOwnProfile, updateOwnProfile } from '@/services/profile';
+import { pickGiftPhoto, uploadGiftPhoto } from '@/services/item-image';
+import { PersonAvatar } from '@/components/person-avatar';
 import { TasteTagEditor } from '@/components/taste-tag-editor';
 import { FilterChips } from '@/components/vibe-chips';
 import { HelpFaq } from '@/lib/help';
@@ -43,6 +46,10 @@ export default function SettingsScreen() {
   const [deleteText, setDeleteText] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [photoNote, setPhotoNote] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [autofill, setAutofill] = useState(() => readAppPrefs().autofill);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,6 +65,7 @@ export default function SettingsScreen() {
         setHandle(profile.handle ?? '');
         setDiscoverability(profile.discoverability ?? 'handle');
         setTasteTags(profile.taste_tags ?? []);
+        setAvatarUrl(profile.avatar_url ?? null);
       })
       .catch(() => {
         setProfileMessage('Could not load your profile. Try again in a moment.');
@@ -167,6 +175,51 @@ export default function SettingsScreen() {
       <Card>
           <ThemedText type="eyebrow" themeColor="brand">
             Profile
+          </ThemedText>
+          <PersonAvatar name={displayName || user?.email} uri={avatarUrl} size={72} />
+          <Button
+            label={photoBusy ? 'Uploading photo…' : avatarUrl ? 'Change photo' : 'Add a photo'}
+            variant="secondary"
+            disabled={photoBusy}
+            onPress={() => {
+              void (async () => {
+                setPhotoNote(null);
+                setPhotoBusy(true);
+                try {
+                  const asset = await pickGiftPhoto('library');
+                  if (!asset) return;
+                  const url = await uploadGiftPhoto(asset);
+                  const saved = await updateOwnProfile({ avatar_url: url });
+                  setAvatarUrl(saved.avatar_url ?? url);
+                  setPhotoNote('Photo saved.');
+                } catch (error) {
+                  setPhotoNote(error instanceof Error ? error.message : 'Couldn’t save that photo. Try again.');
+                } finally {
+                  setPhotoBusy(false);
+                }
+              })();
+            }}
+          />
+          {photoNote ? (
+            <ThemedText type="small" themeColor="textSecondary">
+              {photoNote}
+            </ThemedText>
+          ) : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <ThemedText type="smallBold" style={{ flex: 1 }}>
+              {PrettyCopy.autofillSetting}
+            </ThemedText>
+            <Switch
+              accessibilityLabel={PrettyCopy.autofillSetting}
+              value={autofill}
+              onValueChange={(next) => {
+                setAutofill(next);
+                writeAppPrefs({ autofill: next });
+              }}
+            />
+          </View>
+          <ThemedText type="small" themeColor="textSecondary">
+            When this is on, a shop link can fill the title, photo, and price. You can still edit them.
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             Shown on giver share links (name / handle). Not used for surprise-safe gift status.

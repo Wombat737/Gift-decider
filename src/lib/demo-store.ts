@@ -305,7 +305,7 @@ const seedNotices: OrganiserNotice[] = [
     item_id: 'demo-grinder',
     kind: 'ready_to_buy',
     title: 'Funded — time to buy',
-    body: 'Pledges hit the target. Buy it, then mark purchased and pick delivery. The recipient still will not see who chipped in until the reveal date.',
+    body: 'Pledges hit the target. Buy it, then mark purchased and pick delivery. The recipient still will not see who shared the cost until the reveal date.',
     email_preview: [
       'Subject: Funded — time to buy Burr coffee grinder',
       '',
@@ -580,7 +580,7 @@ function recordReadyToBuyNotice(item: WishlistItem) {
     item_id: item.id,
     kind: 'ready_to_buy',
     title: 'Funded — time to buy',
-    body: `Pledges hit the target. ${pickOrganiserName(item)} should buy it, then mark purchased and pick delivery. The recipient still will not see who chipped in until the reveal date.`,
+    body: `Pledges hit the target. ${pickOrganiserName(item)} should buy it, then mark purchased and pick delivery. The recipient still will not see who shared the cost until the reveal date.`,
     email_preview: `Subject: ${preview.subject}\n\n${preview.text}`,
     created_at: now(),
   };
@@ -869,7 +869,7 @@ export function simulateDemoReveal(itemId: string, which: DemoRevealShift): Wish
 }
 
 export function addDemoPledge(itemId: string, amount: number, displayName?: string | null): ItemPledge {
-  if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter an amount to chip in');
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter an amount to share');
   adoptDemoRoot();
   const current = items.find((item) => item.id === itemId);
   if (!current) throw new Error('Item not found');

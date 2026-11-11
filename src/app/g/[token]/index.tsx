@@ -22,8 +22,8 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useOwnerPreview } from '@/hooks/use-owner-preview';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
-import { PrettyCopy, mateNudgeMessage } from '@/lib/copy';
-import { giverListTitle, recipientPicksTitle } from '@/lib/list-title';
+import { PrettyCopy, cantSeeLine, mateNudgeMessage } from '@/lib/copy';
+import { giverListTitle, personFirstLabel, recipientPicksTitle } from '@/lib/list-title';
 import { demoOwnerHasTasteTags } from '@/lib/demo-social';
 import { isDemoShareToken } from '@/lib/demo-store';
 import { giverListPaint, giverPaintItems, patchGiverCatalog, peekGiverCatalog, useGiverCatalogState } from '@/lib/giver-catalog';
@@ -207,6 +207,11 @@ export default function GiverShareScreen() {
             ? 'Gifts show as available. Reservations, pledges, and giver notes stay hidden.'
             : PrettyCopy.giverHomeIntro}
         </ThemedText>
+        {ownerPreview ? null : (
+          <ThemedText type="small" themeColor="textSecondary">
+            {cantSeeLine(personFirstLabel(meta?.owner_display_name, meta?.owner_handle))}
+          </ThemedText>
+        )}
       </View>
 
       <TextField

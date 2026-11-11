@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -40,15 +40,28 @@ export default function AddItemScreen() {
 function AddDraft({ initialUrl }: { initialUrl: string }) {
   const { addItem, occasions } = useWishlist();
   const [fields, setFields] = useState<ItemFieldsValue>({ ...emptyFields, buyUrl: initialUrl });
+  const fieldsRef = useRef(fields);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoHeld, setPhotoHeld] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function patchFields(patch: Partial<ItemFieldsValue>) {
+    const next = { ...fieldsRef.current, ...patch };
+    fieldsRef.current = next;
+    setFields(next);
+  }
+
   async function onSave() {
+    if (photoHeld || photoBusy) {
+      setError('The photo is still uploading. Retry it, or remove it, before saving.');
+      return;
+    }
     setBusy(true);
     setError(null);
+    const current = fieldsRef.current;
     try {
-      const buyUrl = fields.buyUrl.trim();
+      const buyUrl = current.buyUrl.trim();
       const cleaned = sanitizeBuyUrl(buyUrl);
       let instagram = false;
       if (cleaned) {
@@ -59,16 +72,16 @@ function AddDraft({ initialUrl }: { initialUrl: string }) {
         }
       }
       const item = await addItem({
-        title: fields.title.trim() || 'Untitled gift',
-        notes: fields.notes.trim() || undefined,
-        image_url: fields.imageUrl.trim() || undefined,
+        title: current.title.trim() || 'Untitled gift',
+        notes: current.notes.trim() || undefined,
+        image_url: current.imageUrl.trim() || undefined,
         buy_url: buyUrl || undefined,
-        tags: fields.tags,
-        item_kind: fields.itemKind,
-        size_hint: fields.sizeHint.trim() || null,
-        target_amount: parseAud(fields.targetAmount),
-        occasion_id: fields.occasionId,
-        no_substitution: noSubstitutionForSave(fields.itemKind, fields.noSubstitution),
+        tags: current.tags,
+        item_kind: current.itemKind,
+        size_hint: current.sizeHint.trim() || null,
+        target_amount: parseAud(current.targetAmount),
+        occasion_id: current.occasionId,
+        no_substitution: noSubstitutionForSave(current.itemKind, current.noSubstitution),
         source_type: instagram ? 'instagram' : 'manual',
         source_url: instagram ? buyUrl : undefined,
       });
@@ -84,7 +97,7 @@ function AddDraft({ initialUrl }: { initialUrl: string }) {
     <Screen
       wash={
         <LinearGradient
-          colors={['#FFF1EE', '#FFF6EC', '#FAFAFA'] as const}
+          colors={['#E4DCCC', '#F3EFE6', '#F3EFE6'] as const}
           locations={[0, 0.42, 1] as const}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
@@ -94,8 +107,9 @@ function AddDraft({ initialUrl }: { initialUrl: string }) {
       <ItemFields
         value={fields}
         occasions={occasions}
-        onChange={(patch) => setFields((current) => ({ ...current, ...patch }))}
+        onChange={patchFields}
         onPhotoBusy={setPhotoBusy}
+        onPhotoHold={setPhotoHeld}
         autofillBuyUrl
         cards
       />
@@ -109,7 +123,7 @@ function AddDraft({ initialUrl }: { initialUrl: string }) {
       <Button
         label={busy ? 'Saving…' : 'Pin to wishlist'}
         icon="add"
-        disabled={busy || photoBusy}
+        disabled={busy || photoBusy || photoHeld}
         onPress={() => void onSave()}
       />
       <Button label="Or paste an Instagram URL" variant="ghost" onPress={() => router.push('/paste')} />

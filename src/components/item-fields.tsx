@@ -9,6 +9,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { FieldHelp } from '@/lib/help';
 import { applyBuyLinkDraft, BUY_LINK_AUTOFILL_FAIL, claimAutofillUrl, isWishlistImagesUrl, looksLikeCompleteBuyUrl, sanitizeBuyUrl, type BuyLinkFields } from '@/lib/link-preview';
+import { readAppPrefs } from '@/lib/preferences';
 import { useTheme } from '@/hooks/use-theme';
 import type { ItemKind, Occasion } from '@/lib/types';
 import { autofillFromBuyUrl, mirrorPreviewImage } from '@/services/preview';
@@ -32,6 +33,7 @@ type ItemFieldsProps = {
   onChange: (patch: Partial<ItemFieldsValue>) => void;
   showImageUrl?: boolean;
   onPhotoBusy?: (busy: boolean) => void;
+  onPhotoHold?: (held: boolean) => void;
   /** Fetch a draft as soon as Add opens with a buy URL already filled in. */
   autofillBuyUrl?: boolean;
   /** Soft cards for the Add a pick page. Edit stays a plain stack. */
@@ -44,6 +46,7 @@ export function ItemFields({
   onChange,
   showImageUrl = true,
   onPhotoBusy,
+  onPhotoHold,
   autofillBuyUrl = false,
   cards = false,
 }: ItemFieldsProps) {
@@ -75,6 +78,7 @@ export function ItemFields({
   }, []);
 
   async function maybeAutofill(raw: string) {
+    if (!readAppPrefs().autofill) return;
     const trimmed = raw.trim();
     if (!trimmed) {
       filledUrl.current = '';
@@ -168,6 +172,16 @@ export function ItemFields({
   return (
     <>
       {frame(
+        'Name',
+        <TextField
+          label="Title"
+          placeholder="The exact thing, or the vibe"
+          value={value.title}
+          loading={previewing}
+          onChangeText={(title) => onChange({ title })}
+        />,
+      )}
+      {frame(
         'Link',
         <TextField
           label="Buy link (optional)"
@@ -203,19 +217,10 @@ export function ItemFields({
                 void mirrorCurrent();
               }}
               onBusyChange={onPhotoBusy}
+              onHoldChange={onPhotoHold}
             />,
           )
         : null}
-      {frame(
-        'Name',
-        <TextField
-          label="Title"
-          placeholder="The exact thing, or the vibe"
-          value={value.title}
-          loading={previewing}
-          onChangeText={(title) => onChange({ title })}
-        />,
-      )}
       {frame(
         'Amount',
         <TextField
@@ -225,7 +230,7 @@ export function ItemFields({
           value={value.targetAmount}
           loading={previewing}
           onChangeText={(targetAmount) => onChange({ targetAmount })}
-          hint="Also the chip-in goal for a group gift."
+          hint="Also the target when people share the cost."
           help={FieldHelp.chipIn}
         />,
       )}

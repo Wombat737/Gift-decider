@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useWishlist } from '@/context/wishlist-context';
 import { Spacing } from '@/constants/theme';
 import { PrettyCopy } from '@/lib/copy';
+import { listAsPlainText } from '@/lib/list-text';
 import { openOwnerPreview } from '@/lib/giver-catalog';
 import { track } from '@/lib/analytics';
 import { shareLink } from '@/lib/env';
@@ -81,6 +82,22 @@ export default function ShareScreen() {
         onPress={() => link && wishlist && void sharePack(wishlist.share_token)}
       />
       <ThemedText themeColor="textSecondary">{PrettyCopy.shareSubtitle}</ThemedText>
+      <Button
+        label={PrettyCopy.copyAsText}
+        variant="secondary"
+        disabled={!wishlist}
+        onPress={() => {
+          const text = listAsPlainText(
+            wishlist?.title || 'List',
+            items.map((item) => ({
+              title: item.title,
+              target_amount: item.target_amount,
+              buy_url: item.buy_url,
+            })),
+          );
+          void copyOrShare(text, link, setMessage);
+        }}
+      />
       <Button
         label={PrettyCopy.previewGiverLink}
         variant="secondary"

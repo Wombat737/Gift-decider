@@ -61,7 +61,18 @@ export function giverCardSecondary(
 
 export function stageTabVisible(pathname: string) {
   const path = pathname.replace(/\/$/, '') || '/';
-  return path === '/wishlist' || path === '/add' || path === '/settings';
+  return path === '/wishlist' || path === '/people' || path === '/settings';
+}
+
+export type EditionTab = 'lists' | 'people' | 'search' | 'settings';
+
+export function editionTabSelected(pathname: string, find = false): EditionTab | null {
+  const path = (pathname.split('?')[0] ?? '').replace(/\/$/, '') || '/';
+  if (path === '/people' && find) return 'search';
+  if (path === '/people') return 'people';
+  if (path === '/settings') return 'settings';
+  if (path === '/wishlist') return 'lists';
+  return null;
 }
 
 export function stageBarActive(pathname: string): 'people' | 'requests' | 'settings' | null {

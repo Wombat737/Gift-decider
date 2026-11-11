@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -34,6 +34,7 @@ export default function ItemDetailScreen() {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoHeld, setPhotoHeld] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const initialFields = useMemo<ItemFieldsValue | null>(
     () =>
@@ -55,6 +56,7 @@ export default function ItemDetailScreen() {
   );
   const [fields, setFields] = useState<ItemFieldsValue | null>(null);
   const form = fields ?? initialFields;
+  const formRef = useRef<ItemFieldsValue | null>(null);
 
   if (!item || !form) {
     return (
@@ -84,20 +86,25 @@ export default function ItemDetailScreen() {
   }
 
   async function onSave() {
+    if (photoHeld || photoBusy) {
+      setError('The photo is still uploading. Retry it, or remove it, before saving.');
+      return;
+    }
+    const saving = formRef.current ?? currentForm;
     setBusy(true);
     setError(null);
     try {
       await saveItem(current.id, {
-        title: currentForm.title.trim() || 'Untitled gift',
-        notes: currentForm.notes.trim() || null,
-        image_url: currentForm.imageUrl.trim() || null,
-        buy_url: currentForm.buyUrl.trim() || null,
-        tags: currentForm.tags,
-        item_kind: currentForm.itemKind,
-        size_hint: currentForm.sizeHint.trim() || null,
-        target_amount: parseAud(currentForm.targetAmount),
-        occasion_id: currentForm.occasionId,
-        no_substitution: noSubstitutionForSave(currentForm.itemKind, currentForm.noSubstitution),
+        title: saving.title.trim() || 'Untitled gift',
+        notes: saving.notes.trim() || null,
+        image_url: saving.imageUrl.trim() || null,
+        buy_url: saving.buyUrl.trim() || null,
+        tags: saving.tags,
+        item_kind: saving.itemKind,
+        size_hint: saving.sizeHint.trim() || null,
+        target_amount: parseAud(saving.targetAmount),
+        occasion_id: saving.occasionId,
+        no_substitution: noSubstitutionForSave(saving.itemKind, saving.noSubstitution),
       });
       setEditing(false);
       setFields(null);
@@ -111,10 +118,7 @@ export default function ItemDetailScreen() {
   return (
     <Screen>
       {!editing ? (
-        <GiftPhoto
-          uri={item.image_url}
-          missingUri="https://picsum.photos/seed/giftdecider-empty/800/800"
-        />
+          <GiftPhoto uri={item.image_url} />
       ) : null}
 
       {editing ? (
@@ -122,8 +126,13 @@ export default function ItemDetailScreen() {
           <ItemFields
             value={form}
             occasions={occasions}
-            onChange={(patch) => setFields({ ...form, ...patch })}
+            onChange={(patch) => {
+              const next = { ...(formRef.current ?? form), ...patch };
+              formRef.current = next;
+              setFields(next);
+            }}
             onPhotoBusy={setPhotoBusy}
+            onPhotoHold={setPhotoHeld}
           />
           {error ? (
             <ThemedText type="small" themeColor="accent">
@@ -132,7 +141,7 @@ export default function ItemDetailScreen() {
           ) : null}
           <Button
             label={busy ? 'Saving…' : PrettyCopy.savePick}
-            disabled={busy || photoBusy}
+            disabled={busy || photoBusy || photoHeld}
             onPress={() => void onSave()}
           />
           <Button
@@ -173,7 +182,7 @@ export default function ItemDetailScreen() {
                 Price: {formatAudQuiet(priceAmount)}
               </ThemedText>
               <ThemedText type="caption" themeColor="textSecondary">
-                Also the chip-in goal for a group gift.
+                Also the target when people share the cost.
               </ThemedText>
             </View>
           ) : null}
@@ -190,7 +199,14 @@ export default function ItemDetailScreen() {
             </ThemedText>
           ) : null}
 
-          <Button label={PrettyCopy.editPick} variant="secondary" onPress={() => setEditing(true)} />
+          <Button
+            label={PrettyCopy.editPick}
+            variant="secondary"
+            onPress={() => {
+              formRef.current = form;
+              setEditing(true);
+            }}
+          />
           <Button
             label={busy ? 'Removing…' : PrettyCopy.removeGift}
             variant="ghost"

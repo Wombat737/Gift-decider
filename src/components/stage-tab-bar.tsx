@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,30 +9,32 @@ import { useInbox } from '@/context/inbox-context';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { badgeCountLabel } from '@/lib/inbox';
-import { stageTabSelected } from '@/lib/stage-home';
+import { editionTabSelected, type EditionTab } from '@/lib/stage-home';
 
-const TABS: { id: 'home' | 'add' | 'me'; label: string; href: '/wishlist' | '/add' | '/settings'; icon: FlairIconName }[] =
-  [
-    { id: 'home', label: 'Home', href: '/wishlist', icon: 'home' },
-    { id: 'add', label: 'Add', href: '/add', icon: 'add' },
-    { id: 'me', label: 'Me', href: '/settings', icon: 'me' },
-  ];
+const TABS: { id: EditionTab; label: string; icon: FlairIconName }[] = [
+  { id: 'lists', label: 'Lists', icon: 'lists' },
+  { id: 'people', label: 'People', icon: 'people' },
+  { id: 'search', label: 'Search', icon: 'search' },
+  { id: 'settings', label: 'Settings', icon: 'settings' },
+];
 
-export function StageTabBar({ pathname }: { pathname: string }) {
+export function EditionTopTabs({ pathname }: { pathname: string }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ find?: string | string[] }>();
+  const find = (Array.isArray(params.find) ? params.find[0] : params.find) === '1';
   const { pendingRequests, newlyReady } = useInbox();
-  const selected = stageTabSelected(pathname);
-  const meBadge = badgeCountLabel(pendingRequests + newlyReady.length);
+  const selected = editionTabSelected(pathname, find);
+  const settingsBadge = badgeCountLabel(pendingRequests + newlyReady.length);
 
   return (
     <View
       style={[
-        styles.bar,
+        styles.top,
         {
-          backgroundColor: theme.backgroundElement,
-          borderTopColor: theme.border,
-          paddingBottom: Math.max(insets.bottom, Spacing.two),
+          backgroundColor: theme.background,
+          borderBottomColor: theme.border,
+          paddingTop: Math.max(insets.top, Spacing.two),
         },
       ]}>
       {TABS.map((tab) => {
@@ -43,30 +45,17 @@ export function StageTabBar({ pathname }: { pathname: string }) {
             key={tab.id}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            accessibilityLabel={tab.id === 'me' && meBadge ? `Me, ${meBadge} new` : tab.label}
-            onPress={() => {
-              if (active) return;
-              if (tab.id === 'me') track('settings_opened', { source: 'stage_tab' });
-              if (tab.id === 'home') {
-                router.dismissTo(tab.href);
-                return;
-              }
-              router.navigate(tab.href);
-            }}
-            style={styles.tab}>
-            <View>
-              <FlairIcon name={tab.icon} color={color} size={22} />
-              {tab.id === 'me' && meBadge ? (
-                <View style={[styles.badge, { backgroundColor: theme.brand }]}>
-                  <ThemedText type="caption" style={[styles.badgeText, { color: theme.brandText }]}>
-                    {meBadge}
-                  </ThemedText>
-                </View>
-              ) : null}
-            </View>
-            <ThemedText type="caption" style={{ color, fontWeight: 600 }}>
-              {tab.label}
-            </ThemedText>
+            accessibilityLabel={tab.id === 'settings' && settingsBadge ? `Settings, ${settingsBadge} new` : tab.label}
+            onPress={() => openTab(tab.id, active)}
+            style={styles.hit}>
+            <FlairIcon name={tab.icon} color={color} size={22} />
+            {tab.id === 'settings' && settingsBadge ? (
+              <View style={[styles.badge, { backgroundColor: theme.brand }]}>
+                <ThemedText type="caption" style={[styles.badgeText, { color: theme.brandText }]}>
+                  {settingsBadge}
+                </ThemedText>
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -74,30 +63,65 @@ export function StageTabBar({ pathname }: { pathname: string }) {
   );
 }
 
+function openTab(id: EditionTab, active: boolean) {
+  if (active) return;
+  if (id === 'lists') {
+    router.dismissTo('/wishlist');
+    return;
+  }
+  if (id === 'people') {
+    router.navigate('/people');
+    return;
+  }
+  if (id === 'search') {
+    router.navigate('/people?find=1');
+    return;
+  }
+  track('settings_opened', { source: 'edition_tab' });
+  router.navigate('/settings');
+}
+
+/** Floating bar. The oxblood plus is the only primary action. */
+export function EditionPlusBar() {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, Spacing.two) }]} pointerEvents="box-none">
+      <View style={[styles.bar, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add a pick"
+          onPress={() => router.navigate('/add')}
+          style={[styles.plus, { backgroundColor: theme.brand }]}>
+          <FlairIcon name="add" color={theme.brandText} size={28} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  bar: {
+  top: {
     width: '100%',
-    maxWidth: '100%',
     flexDirection: 'row',
-    borderTopWidth: 1,
+    borderBottomWidth: 1,
     flexGrow: 0,
     flexShrink: 0,
   },
-  tab: {
+  hit: {
     flex: 1,
     minHeight: 44,
     minWidth: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.one,
+    paddingVertical: Spacing.two,
     ...Platform.select({ web: { cursor: 'pointer' as const } }),
   },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -10,
+    top: 6,
+    right: '28%',
     minWidth: 16,
     height: 16,
     paddingHorizontal: 4,
@@ -108,6 +132,27 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     lineHeight: 12,
-    fontWeight: 700,
+  },
+  dock: {
+    width: '100%',
+    alignItems: 'center',
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  bar: {
+    marginBottom: Spacing.two,
+    borderRadius: 999,
+    borderWidth: 1,
+    padding: Spacing.two,
+  },
+  plus: {
+    width: 64,
+    height: 64,
+    minHeight: 44,
+    minWidth: 44,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({ web: { cursor: 'pointer' as const } }),
   },
 });

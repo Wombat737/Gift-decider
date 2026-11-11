@@ -27,17 +27,17 @@ function source(rel: string) {
 
 describe('Pretty pass punch-list', () => {
   it('P0 tokens: off-white chrome, white surface, brand-soft and accent-soft', () => {
-    assert.equal(CoralCoast.bg, '#FAFAFA');
-    assert.equal(CoralCoast.surface, '#FFFFFF');
-    assert.equal(CoralCoast.brandSoft, '#FFE8E4');
-    assert.equal(CoralCoast.accentSoft, '#FFF3D1');
-    assert.equal(CoralCoast.brand, '#E85D4C');
-    assert.equal(CoralCoast.accent, '#F5B942');
+    assert.equal(CoralCoast.bg, '#F3EFE6');
+    assert.equal(CoralCoast.surface, '#FBF9F4');
+    assert.equal(CoralCoast.brandSoft, '#E4DCCC');
+    assert.equal(CoralCoast.accentSoft, '#E4DCCC');
+    assert.equal(CoralCoast.brand, '#7A1F2B');
+    assert.equal(CoralCoast.accent, '#7A1F2B');
     const theme = source('constants/theme.ts');
     assert.match(theme, /0 1px 2px rgb\(23 23 23 \/ 0\.04\), 0 8px 22px rgb\(23 23 23 \/ 0\.05\)/);
     assert.match(theme, /twoHalf: 12/);
     assert.equal(source('global.css').includes('Fraunces'), false);
-    assert.match(source('global.css'), /--bg:\s*#fafafa/);
+    assert.match(source('global.css'), /--bg:\s*#f3efe6/);
   });
 
   it('P0 type: Plus Jakarta Sans scale caption→display, body min 16', () => {
@@ -50,8 +50,9 @@ describe('Pretty pass punch-list', () => {
     assert.match(theme, /title: \{ fontSize: 22, lineHeight: 28, fontWeight: '600'/);
     assert.match(theme, /display: \{ fontSize: 28, lineHeight: 34, fontWeight: '700'/);
     assert.match(text, /type === 'display'/);
-    assert.match(source('components/web-fonts.tsx'), /Plus\+Jakarta\+Sans/);
-    assert.match(source('app/+html.tsx'), /Plus\+Jakarta\+Sans/);
+    assert.match(source('components/web-fonts.tsx'), /Instrument\+Serif/);
+    assert.match(source('components/web-fonts.tsx'), /Inter:/);
+    assert.match(source('app/+html.tsx'), /Instrument\+Serif/);
   });
 
   it('P0 spacing: 16 card padding, 24 section gaps on home + list', () => {
@@ -96,7 +97,7 @@ describe('Pretty pass punch-list', () => {
     assert.match(share, /PrettyCopy\.shareAdvanced/);
     assert.equal(PrettyCopy.ownerEmptyTitle, 'What moves you?');
     assert.equal(PrettyCopy.ownerEmptyCta, 'Add a pick');
-    assert.equal(PrettyCopy.ownerHomeTitle, 'Your picks');
+    assert.equal(PrettyCopy.ownerHomeTitle, 'Your lists');
     assert.equal(PrettyCopy.giverEmptyTitle, 'Quiet picks');
     assert.equal(PrettyCopy.giverChooseCta, 'Choose this');
     assert.equal(PrettyCopy.shareTitle, 'Send this to whoever’s buying.');
