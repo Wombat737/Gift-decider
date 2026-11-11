@@ -227,10 +227,6 @@ export default function OwnerHomeScreen() {
         )}
       </View>
 
-      <View style={styles.prompt}>
-        <GivenNamePrompt />
-      </View>
-
       {error ? (
         <ThemedText type="small" themeColor="accent" style={styles.pad}>
           {error}
@@ -239,6 +235,7 @@ export default function OwnerHomeScreen() {
 
       {showingList && active && edition ? (
         <View
+          style={{ marginTop: 2 }}
           onLayout={(event) => {
             listTop.current = event.nativeEvent.layout.y;
             scrollPulse();
@@ -322,7 +319,7 @@ export default function OwnerHomeScreen() {
           ) : null}
         </View>
       ) : feature && featureEdition ? (
-        <View>
+        <View style={{ marginTop: 12 }}>
           <EditionStory
             kicker={issueKicker(feature.title, featureEdition.headline, featureEdition.eventOn, today)}
             headline={displayHeadline(featureEdition.headline, feature.title, who)}
@@ -385,6 +382,7 @@ export default function OwnerHomeScreen() {
           Loading…
         </ThemedText>
       )}
+      <GivenNamePrompt />
     </Screen>
   );
 }
