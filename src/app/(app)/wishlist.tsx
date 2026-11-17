@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { PeelArt } from '@/components/peel-moment';
+import { SamplePick } from '@/components/sample-pick';
 import { GivenNamePrompt } from '@/components/given-name-prompt';
 import { NativePressable } from '@/components/native-pressable';
 import { Screen } from '@/components/screen';
@@ -128,6 +129,7 @@ export default function OwnerHomeScreen() {
 
       {!loading && !error && items.length === 0 ? (
         <View style={styles.empty}>
+          <SamplePick />
           <View style={styles.art} pointerEvents="none">
             <PeelArt />
           </View>

@@ -24,6 +24,9 @@ export default function PasteInstagramScreen() {
   const [imageFallback, setImageFallback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoHeld, setPhotoHeld] = useState(false);
+  const imageUrlRef = useRef(imageUrl);
+  imageUrlRef.current = imageUrl;
   const [hint, setHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const request = useRef(0);
@@ -66,7 +69,7 @@ export default function PasteInstagramScreen() {
       const item = await addItem({
         title: title.trim() || 'Instagram find',
         notes: notes.trim() || undefined,
-        image_url: imageUrl.trim() || undefined,
+        image_url: imageUrlRef.current.trim() || undefined,
         source_type: 'instagram',
         source_url: url.trim() || undefined,
       });
@@ -81,6 +84,14 @@ export default function PasteInstagramScreen() {
   return (
     <Screen>
       <FlowHeader title="Paste a public post" />
+
+      <TextField
+        label="Title"
+        placeholder="The exact thing, or the vibe"
+        value={title}
+        loading={busy}
+        onChangeText={setTitle}
+      />
 
       <TextField
         label="Public Instagram URL"
@@ -100,25 +111,24 @@ export default function PasteInstagramScreen() {
         }}
       />
 
-      <Button label={busy ? 'Working…' : 'Preview'} disabled={busy || photoBusy} onPress={() => void onPreview()} />
-
-      <TextField
-        label="Title"
-        placeholder="The exact thing, or the vibe"
-        value={title}
-        loading={busy}
-        onChangeText={setTitle}
-      />
+      <Button label={busy ? 'Working…' : 'Preview'} disabled={busy || photoBusy || photoHeld} onPress={() => void onPreview()} />
       <PhotoField
         value={imageUrl}
         fallbackUrl={imageFallback}
         referrer={looksLikeCompleteBuyUrl(url) ? url : undefined}
-        onChange={setImageUrl}
+        onChange={(next) => {
+          imageUrlRef.current = next;
+          setImageUrl(next);
+        }}
         onBusyChange={setPhotoBusy}
+        onHoldChange={setPhotoHeld}
         onRemoteError={() => {
           if (!looksLikeCompleteBuyUrl(url) || !imageUrl.trim()) return;
           void mirrorPreviewImage(url, imageUrl).then((stored) => {
-            if (stored && stored !== imageUrl) setImageUrl(stored);
+            if (stored && stored !== imageUrl) {
+              imageUrlRef.current = stored;
+              setImageUrl(stored);
+            }
           });
         }}
       />
@@ -137,7 +147,7 @@ export default function PasteInstagramScreen() {
         </ThemedText>
       ) : null}
 
-      <Button label="Pin as wishlist item" onPress={() => void onPin()} disabled={busy || photoBusy} />
+      <Button label="Pin as wishlist item" onPress={() => void onPin()} disabled={busy || photoBusy || photoHeld} />
     </Screen>
   );
 }

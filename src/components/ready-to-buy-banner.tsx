@@ -63,7 +63,7 @@ export function ReadyToBuyBanner({
             {organiser} is the organiser. Buy it, then mark purchased and pick delivery.
           </ThemedText>
           <ThemedText type="caption" themeColor="textSecondary">
-            They still won’t see who chipped in until {when}.
+            They still won’t see who shared the cost until {when}.
           </ThemedText>
           {__DEV__ && notice?.email_preview ? (
             <ThemedText type="caption" themeColor="textSecondary" accessibilityLabel="ready-to-buy-email">

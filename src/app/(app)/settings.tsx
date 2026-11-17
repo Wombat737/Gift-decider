@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Switch, View } from 'react-native';
 
 import { openPrivacyPolicy } from '@/components/legal-links';
 import { Button } from '@/components/button';
@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/context/auth-context';
 import { useInbox } from '@/context/inbox-context';
 import { PrettyCopy } from '@/lib/copy';
+import { readAppPrefs, writeAppPrefs } from '@/lib/preferences';
 import { notifyGivenNameSaved } from '@/lib/given-name';
 import { acceptBannerText, requestBannerText } from '@/lib/inbox';
 import { track } from '@/lib/analytics';
@@ -38,6 +39,7 @@ export default function SettingsScreen() {
   const [discoverability, setDiscoverability] = useState<Discoverability>('handle');
   const [tasteTags, setTasteTags] = useState<string[]>([]);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [autofill, setAutofill] = useState(() => readAppPrefs().autofill);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteText, setDeleteText] = useState('');
@@ -163,6 +165,26 @@ export default function SettingsScreen() {
           accessibilityLabel="accepted-giver-pins"
         />
       ) : null}
+
+      <Card>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <ThemedText type="smallBold">{PrettyCopy.autofillSetting}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {PrettyCopy.autofillSettingHint}
+            </ThemedText>
+          </View>
+          <Switch
+            accessibilityLabel={PrettyCopy.autofillSetting}
+            value={autofill}
+            onValueChange={(next) => {
+              setAutofill(next);
+              writeAppPrefs({ autofill: next });
+            }}
+            trackColor={{ false: '#E5E5E5', true: '#E85D4C' }}
+          />
+        </View>
+      </Card>
 
       <Card>
           <ThemedText type="eyebrow" themeColor="brand">
