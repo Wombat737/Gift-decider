@@ -179,7 +179,7 @@ export function readyToBuyEmailPreview(item: WishlistItem) {
     '',
     `The group gift “${title}” is funded. Meantvo holds no money — honour system.`,
     `How givers pay you: ${pay}`,
-    `They see who chipped in on ${reveal} — not today.`,
+    `They see who shared the cost on ${reveal} — not today.`,
     '',
     'Mark it purchased in the giver view when you’ve bought it, and pick delivery (to you / collect / other).',
   ].join('\n');

@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -34,6 +34,7 @@ export default function ItemDetailScreen() {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoHeld, setPhotoHeld] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const initialFields = useMemo<ItemFieldsValue | null>(
     () =>
@@ -55,6 +56,8 @@ export default function ItemDetailScreen() {
   );
   const [fields, setFields] = useState<ItemFieldsValue | null>(null);
   const form = fields ?? initialFields;
+  const formRef = useRef(form);
+  formRef.current = form;
 
   if (!item || !form) {
     return (
@@ -84,6 +87,8 @@ export default function ItemDetailScreen() {
   }
 
   async function onSave() {
+    const currentForm = formRef.current;
+    if (!currentForm) return;
     setBusy(true);
     setError(null);
     try {
@@ -122,8 +127,13 @@ export default function ItemDetailScreen() {
           <ItemFields
             value={form}
             occasions={occasions}
-            onChange={(patch) => setFields({ ...form, ...patch })}
+            onChange={(patch) => {
+              const next = { ...(formRef.current ?? form), ...patch };
+              formRef.current = next;
+              setFields(next);
+            }}
             onPhotoBusy={setPhotoBusy}
+            onPhotoHold={setPhotoHeld}
           />
           {error ? (
             <ThemedText type="small" themeColor="accent">
@@ -132,7 +142,7 @@ export default function ItemDetailScreen() {
           ) : null}
           <Button
             label={busy ? 'Saving…' : PrettyCopy.savePick}
-            disabled={busy || photoBusy}
+            disabled={busy || photoBusy || photoHeld}
             onPress={() => void onSave()}
           />
           <Button
@@ -173,7 +183,7 @@ export default function ItemDetailScreen() {
                 Price: {formatAudQuiet(priceAmount)}
               </ThemedText>
               <ThemedText type="caption" themeColor="textSecondary">
-                Also the chip-in goal for a group gift.
+                Also the share-the-cost goal for a group gift.
               </ThemedText>
             </View>
           ) : null}

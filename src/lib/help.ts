@@ -9,8 +9,8 @@ export const HelpFaq = [
     a: 'On a taste / vibe item, shows a lock to givers. If the buy link is dead they only see a warning — no alternatives. Exact item already means no substitutes.',
   },
   {
-    q: 'How do chip-in and reveal work?',
-    a: 'Optional target amount lets mates chip in. You see who it’s from on the reveal date they pick — not as soon as it’s funded. Reserved and bought stay between givers.',
+    q: 'How does sharing the cost work?',
+    a: 'Optional target amount lets mates share the cost. You see who it’s from on the reveal date they pick — not as soon as it’s funded. Reserved and bought stay between givers.',
   },
   {
     q: 'What’s the vibe board?',
@@ -34,7 +34,7 @@ export const HelpFaq = [
   },
   {
     q: 'Can I paste a shop link?',
-    a: 'Yes — paste a buy URL on Add item. We try to fill photo, title, a short note, and the chip-in target when the page shows a price. Edit anything before you pin. If we miss the photo, add one yourself — Pin still works.',
+    a: 'Yes — paste a buy URL on Add item. We try to fill photo, title, a short note, and the share-the-cost target when the page shows a price. Edit anything before you pin. If we miss the photo, add one yourself — Pin still works.',
   },
   {
     q: 'What about Instagram?',
@@ -52,7 +52,7 @@ export const FieldHelp = {
     body: HelpFaq[1].a,
   },
   chipIn: {
-    title: 'Chip-in and reveal',
+    title: 'Sharing the cost',
     body: HelpFaq[2].a,
   },
   vibe: {

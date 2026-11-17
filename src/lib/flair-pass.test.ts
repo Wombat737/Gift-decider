@@ -65,9 +65,9 @@ describe('Flair pass (pretty v2) punch-list', () => {
     assert.equal(PrettyCopy.shareTitle, 'Send this to whoever’s buying.');
     assert.equal(PrettyCopy.softLock, 'You’ve got this one.');
     assert.equal(PrettyCopy.purchasedGiver, 'Bought — nice one.');
-    assert.equal(PrettyCopy.chipInCta, 'Chip in');
+    assert.equal(PrettyCopy.chipInCta, 'Share the cost');
     assert.equal(PrettyCopy.chipInHonour, 'PayID on honour — tick off what you’ve sent.');
-    assert.equal(PrettyCopy.revealDay, 'The mates chipped in — here’s who.');
+    assert.equal(PrettyCopy.revealDay, 'The mates shared the cost — here’s who.');
     const giverItem = source('app/g/[token]/[itemId].tsx');
     const hints = source('lib/format.ts');
     const pledge = source('components/pledge-panel.tsx');

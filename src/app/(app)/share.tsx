@@ -14,6 +14,7 @@ import { PrettyCopy } from '@/lib/copy';
 import { openOwnerPreview } from '@/lib/giver-catalog';
 import { track } from '@/lib/analytics';
 import { shareLink } from '@/lib/env';
+import { listAsPlainText } from '@/lib/list-text';
 import { mateInviteMessage } from '@/lib/invite';
 import { inviteByEmail, prefetchSharedItems } from '@/services/wishlist';
 
@@ -64,6 +65,25 @@ export default function ShareScreen() {
     }
   }
 
+  async function onCopyText() {
+    if (!wishlist) return;
+    const text = listAsPlainText(
+      wishlist.title,
+      items.map((item) => ({
+        title: item.title,
+        target_amount: item.target_amount,
+        buy_url: item.buy_url,
+      })),
+    );
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+      setMessage(PrettyCopy.copyAsTextDone);
+      return;
+    }
+    await Share.share({ message: text });
+    setMessage(PrettyCopy.copyAsTextDone);
+  }
+
   async function sharePack(token: string, title?: string | null) {
     const packLink = shareLink(token);
     track('share_link_copied', { token, occasion: title ?? 'whole-list' });
@@ -79,6 +99,12 @@ export default function ShareScreen() {
         icon="share"
         disabled={!link}
         onPress={() => link && wishlist && void sharePack(wishlist.share_token)}
+      />
+      <Button
+        label={PrettyCopy.copyAsText}
+        variant="secondary"
+        disabled={!wishlist}
+        onPress={() => void onCopyText()}
       />
       <ThemedText themeColor="textSecondary">{PrettyCopy.shareSubtitle}</ThemedText>
       <Button

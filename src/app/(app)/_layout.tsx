@@ -1,16 +1,20 @@
 import { Stack, usePathname } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { FirstRun } from '@/components/first-run';
 import { StageTabBar } from '@/components/stage-tab-bar';
 import { exitHeaderOptions } from '@/components/stack-exit-button';
 import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { PrettyCopy } from '@/lib/copy';
+import { readAppPrefs } from '@/lib/preferences';
 import { stageTabVisible } from '@/lib/stage-home';
 
 export default function AppLayout() {
   const theme = useTheme();
   const pathname = usePathname();
+  const [intro, setIntro] = useState(() => !readAppPrefs().introSeen);
 
   return (
     <View style={styles.shell}>
@@ -34,6 +38,7 @@ export default function AppLayout() {
         <Stack.Screen name="blocked" options={{ title: 'Blocked people' }} />
       </Stack>
       {stageTabVisible(pathname) ? <StageTabBar pathname={pathname} /> : null}
+      {intro ? <FirstRun onDone={() => setIntro(false)} /> : null}
     </View>
   );
 }
